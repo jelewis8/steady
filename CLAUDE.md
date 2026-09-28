@@ -11,7 +11,7 @@ The first user is an adult with partial epilepsy who struggles to maintain daily
 - **Phase 1 is built and live** at https://steady.example.com, and **in use by the first user** since 2026-09-28. Real health data now exists on her phone, so every change must follow the data-safety rules in `docs/WORKFLOW.md`.
 - **Work queue:** `BUGS.md` (P1 critical / P2 annoying / P3 wish list). Start any new session by reading it.
 - **What's live:** `CHANGELOG.md`. Each release is also a server folder and a git tag `release-YYYY-MM-DD`.
-- **Code:** git repo, `main` branch, pushed to GitHub. One commit per fix, with the bug ID in the message (`Fix B-012: …`).
+- **Code:** git repo, `main` branch, pushed to the private GitHub repo https://github.com/jelewis8/steady. One commit per fix, with the bug ID in the message (`Fix B-012: …`).
 
 ## Reference Documents
 
