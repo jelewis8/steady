@@ -1,0 +1,366 @@
+/**
+ * Entity types — mirror app-blueprint.md §2.3.
+ * Extensions beyond the blueprint are marked "EXT" and documented in docs/DATA-MODEL.md.
+ * This module is pure TypeScript: no DOM, no framework, no platform APIs.
+ */
+
+export type UUID = string;
+/** ISO 8601 date-time, UTC ("2026-09-27T12:00:00.000Z") */
+export type ISODateTime = string;
+/** Local calendar date "YYYY-MM-DD" */
+export type ISODate = string;
+/** Local wall-clock time "HH:mm" */
+export type ISOTime = string;
+
+export type ThemePref = 'light' | 'dark' | 'system' | 'contrast';
+export type DietMode = 'none' | 'keto' | 'mad' | 'lgit';
+
+export interface UserPreferences {
+  theme: ThemePref;
+  reducedMotion: boolean;
+  /** EXT: text scale, 1 = 100% */
+  textScale: number;
+  reminderLeadMinutes: number;
+  remindersEnabled: boolean;
+  /** EXT: maximum notifications per day (blueprint §2.7 #3) */
+  maxNotificationsPerDay: number;
+  /** EXT: minutes after a scheduled dose before it counts as "late" */
+  missedDoseWindowMinutes: number;
+  dailySummaryEnabled: boolean;
+  dailySummaryTime: ISOTime;
+  eveningCheckInEnabled: boolean;
+  seizureThresholdPerWeek: number | null;
+  showSeizureFreeCount: boolean;
+  dietMode: DietMode;
+  passcodeEnabled: boolean;
+  autoLockMinutes: number;
+  /** EXT: show rescue plan on the lock screen (caregiver story, Module 6) */
+  emergencyInfoOnLockScreen: boolean;
+  /** EXT: sleep targets */
+  targetBedtime: ISOTime;
+  targetWakeTime: ISOTime;
+  windDownMinutes: number;
+  /** EXT: hydration */
+  hydrationGoalMl: number;
+  glassSizeMl: number;
+  hydrationNudgeHours: number;
+  /** EXT: post-ictal safe mode */
+  safeModeDurationHours: number;
+  safeModeUntil: ISODateTime | null;
+  /** EXT: challenge #1 mitigation — medications + sleep only */
+  essentialsOnly: boolean;
+  /** EXT: local emergency number */
+  emergencyNumber: string;
+  /** EXT: minutes after which a running seizure should be treated as an emergency */
+  emergencyAfterMinutes: number;
+  /** EXT: optional catamenial tracking */
+  trackCycle: boolean;
+  /** EXT: user-defined trigger foods */
+  triggerFoods: string[];
+}
+
+export interface UserProfile {
+  id: UUID;
+  displayName: string;
+  dateOfBirth: ISODate | null;
+  epilepsyType: 'focal' | 'generalized' | 'combined' | 'unknown';
+  seizureFocus: string | null;
+  diagnosisDate: ISODate | null;
+  timezone: string;
+  preferences: UserPreferences;
+  /** EXT: onboarding finished */
+  onboarded: boolean;
+  /** EXT: true while the database holds generated sample data */
+  isSampleData: boolean;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export const SEIZURE_TYPES = [
+  'focal_aware',
+  'focal_impaired_awareness',
+  'focal_to_bilateral_tonic_clonic',
+  'unknown',
+] as const;
+export type SeizureType = (typeof SEIZURE_TYPES)[number];
+
+export interface SeizureEvent {
+  id: UUID;
+  timestamp: ISODateTime;
+  endTimestamp: ISODateTime | null;
+  type: SeizureType;
+  durationSeconds: number | null;
+  severity: 1 | 2 | 3 | 4 | 5;
+  auraIds: UUID[];
+  postIctalSymptoms: string[];
+  triggerTagIds: UUID[];
+  location: string | null;
+  activityAtOnset: string | null;
+  rescueMedicationUsed: boolean;
+  rescueMedicationDetails: string | null;
+  observerPresent: boolean | null;
+  observerNotes: string | null;
+  voiceNoteUri: string | null;
+  notes: string | null;
+  isQuickLog: boolean;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export interface AuraLog {
+  id: UUID;
+  seizureEventId: UUID | null;
+  timestamp: ISODateTime;
+  symptoms: string[];
+  durationSeconds: number | null;
+  progressedToSeizure: boolean;
+  notes: string | null;
+  createdAt: ISODateTime;
+}
+
+export interface Medication {
+  id: UUID;
+  name: string;
+  genericName: string | null;
+  dosage: string;
+  unit: string;
+  frequency: string;
+  scheduledTimes: ISOTime[];
+  prescriber: string | null;
+  pharmacy: string | null;
+  remainingCount: number | null;
+  /** EXT: units consumed per scheduled dose, for the refill countdown */
+  unitsPerDose: number;
+  refillDate: ISODate | null;
+  refillReminderDays: number;
+  isActive: boolean;
+  /** EXT: rescue medication — never scheduled, listed in the action plan */
+  isRescue: boolean;
+  startDate: ISODate;
+  endDate: ISODate | null;
+  sideEffectsNoted: string[];
+  notes: string | null;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export type DoseStatus = 'pending' | 'taken' | 'taken_late' | 'skipped' | 'unsure';
+
+export interface MedicationDose {
+  id: UUID;
+  medicationId: UUID;
+  scheduledTime: ISODateTime;
+  actualTime: ISODateTime | null;
+  status: DoseStatus;
+  sideEffects: string[];
+  notes: string | null;
+  createdAt: ISODateTime;
+}
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface MealLog {
+  id: UUID;
+  timestamp: ISODateTime;
+  mealType: MealType;
+  foods: string | null;
+  triggerFoodsFlagged: string[];
+  hydrationMl: number;
+  carbsGrams: number | null;
+  notes: string | null;
+  createdAt: ISODateTime;
+}
+
+/** EXT: single water intake event (tap-to-add widget). */
+export interface HydrationLog {
+  id: UUID;
+  timestamp: ISODateTime;
+  amountMl: number;
+  createdAt: ISODateTime;
+}
+
+export interface SleepEntry {
+  id: UUID;
+  /** The night of — e.g. 2026-09-26 for the night of Sep 26–27 */
+  date: ISODate;
+  targetBedtime: ISOTime;
+  actualBedtime: ISOTime | null;
+  targetWakeTime: ISOTime;
+  actualWakeTime: ISOTime | null;
+  durationMinutes: number | null;
+  qualityRating: 1 | 2 | 3 | 4 | 5 | null;
+  interruptions: number;
+  windDownCompleted: boolean;
+  notes: string | null;
+  createdAt: ISODateTime;
+}
+
+export const ROUTINE_CATEGORIES = [
+  'medication',
+  'meal',
+  'hydration',
+  'sleep',
+  'exercise',
+  'stress_check',
+  'mood',
+  'custom',
+] as const;
+export type RoutineCategory = (typeof ROUTINE_CATEGORIES)[number];
+
+export interface RoutineTemplateItem {
+  id: UUID;
+  hour: number;
+  minute: number;
+  label: string;
+  category: RoutineCategory;
+  linkedEntityId: UUID | null;
+  reminderEnabled: boolean;
+  reminderOffsetMinutes: number;
+  isOptional: boolean;
+  /** EXT: kept even in essentials-only mode */
+  isEssential?: boolean;
+  /** EXT: for meal items — which meal this is */
+  mealType?: MealType;
+}
+
+export interface RoutineTemplate {
+  id: UUID;
+  name: string;
+  isDefault: boolean;
+  /** 0=Sunday … 6=Saturday. Empty = manually selected only. */
+  applicableDays: number[];
+  items: RoutineTemplateItem[];
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export type ChecklistStatus = 'pending' | 'done' | 'skipped' | 'deferred';
+
+export interface RoutineChecklistItem {
+  id: UUID;
+  templateItemId: UUID;
+  templateId: UUID;
+  date: ISODate;
+  scheduledHour: number;
+  scheduledMinute: number;
+  status: ChecklistStatus;
+  completedAt: ISODateTime | null;
+  notes: string | null;
+  /** EXT: snapshot so history survives template edits */
+  label: string;
+  category: RoutineCategory;
+  isOptional: boolean;
+  isEssential?: boolean;
+  mealType?: MealType;
+  /** EXT: when deferred, show again at this time */
+  deferredUntil?: ISODateTime | null;
+  /** EXT: ad-hoc item added just for today */
+  isAdHoc?: boolean;
+  createdAt: ISODateTime;
+}
+
+export const TRIGGER_CATEGORIES = [
+  'sleep',
+  'medication',
+  'diet',
+  'stress',
+  'substance',
+  'hormonal',
+  'illness',
+  'environmental',
+  'other',
+] as const;
+export type TriggerCategory = (typeof TRIGGER_CATEGORIES)[number];
+
+export interface TriggerTag {
+  id: UUID;
+  label: string;
+  category: TriggerCategory;
+  isBuiltIn: boolean;
+  createdAt: ISODateTime;
+}
+
+export interface RescueProtocol {
+  id: UUID;
+  seizureDescription: string;
+  rescueMedicationInstructions: string | null;
+  whenToCall911: string;
+  allergies: string[];
+  currentMedications: string;
+  neurologistName: string | null;
+  neurologistPhone: string | null;
+  additionalNotes: string | null;
+  /** EXT: plain-language "what helps me" list for bystanders */
+  howToHelp: string | null;
+  lastReviewedAt: ISODateTime | null;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export interface EmergencyContact {
+  id: UUID;
+  name: string;
+  relationship: string;
+  phone: string;
+  email: string | null;
+  notifyOnEmergency: boolean;
+  canViewRescueProtocol: boolean;
+  sortOrder: number;
+  createdAt: ISODateTime;
+}
+
+export const CORRELATION_TYPES = [
+  'sleep_duration_vs_seizures',
+  'adherence_vs_seizures',
+  'meal_regularity_vs_seizures',
+  'hydration_vs_seizures',
+  'trigger_frequency',
+  'time_of_day_pattern',
+  'day_of_week_pattern',
+  'custom',
+] as const;
+export type CorrelationType = (typeof CORRELATION_TYPES)[number];
+export type Confidence = 'low' | 'moderate' | 'high';
+
+export interface InsightRule {
+  id: UUID;
+  correlationType: CorrelationType;
+  timeRangeDays: number;
+  variables: Record<string, unknown>;
+  confidenceLevel: Confidence;
+  plainLanguageSummary: string;
+  generatedAt: ISODateTime;
+  dismissedByUser: boolean;
+}
+
+/** EXT: optional daily check-in (stress, mood, cycle) feeding the insight engine. */
+export interface DailyCheckIn {
+  id: UUID;
+  date: ISODate;
+  stress: 1 | 2 | 3 | 4 | 5 | null;
+  mood: 1 | 2 | 3 | 4 | 5 | null;
+  onPeriod: boolean | null;
+  illness: boolean | null;
+  alcoholDrinks: number | null;
+  /** answer to "Any seizure activity today?" */
+  seizureActivityReported: boolean | null;
+  notes: string | null;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+/** EXT: which template to use on a given day (e.g. "Sick day"). */
+export interface DayPlan {
+  date: ISODate;
+  templateId: UUID;
+}
+
+/** EXT: voice recording stored locally. */
+export interface VoiceNote {
+  id: UUID;
+  seizureEventId: UUID | null;
+  blob: Blob;
+  mimeType: string;
+  durationMs: number;
+  createdAt: ISODateTime;
+}

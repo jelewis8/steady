@@ -1,0 +1,248 @@
+@import '@fontsource/atkinson-hyperlegible/400.css';
+@import '@fontsource/atkinson-hyperlegible/700.css';
+@import 'tailwindcss';
+
+/*
+ * Design tokens. Atkinson Hyperlegible was designed by the Braille Institute for low-vision readers.
+ * Body text targets WCAG AAA (≥7:1) in every theme. No saturated reds except the single SOS control.
+ */
+:root,
+[data-theme='light'] {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-2: #efece5;
+  --ink: #16191d;
+  --ink-2: #454c55;
+  --line: #d6d1c6;
+  --line-strong: #8a8375;
+  --accent: #1a5a85;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2edf5;
+  --accent-text: #164c71;
+  --attn-bg: #fbf0d9;
+  --attn-ink: #6b4500;
+  --attn-line: #d9b56c;
+  --ok-bg: #e4f1e8;
+  --ok-ink: #1d5631;
+  --sos: #a3261f;
+  --sos-ink: #ffffff;
+  --focus: #0b57d0;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 16px rgb(0 0 0 / 0.05);
+  --chart-1: #1a5a85;
+  --chart-2: #b0741c;
+  --chart-3: #3f7d4f;
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #0f1418;
+  --surface: #182027;
+  --surface-2: #212b34;
+  --ink: #eef1f4;
+  --ink-2: #b9c3cd;
+  --line: #33404c;
+  --line-strong: #6f7f8f;
+  --accent: #8cc7f0;
+  --accent-ink: #0b1a26;
+  --accent-soft: #1d3446;
+  --accent-text: #a9d6f5;
+  --attn-bg: #3a2e14;
+  --attn-ink: #f3d596;
+  --attn-line: #7c6327;
+  --ok-bg: #173323;
+  --ok-ink: #a8dfb8;
+  --sos: #d9534a;
+  --sos-ink: #140404;
+  --focus: #ffd166;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  --chart-1: #8cc7f0;
+  --chart-2: #f0b35c;
+  --chart-3: #8fd19e;
+  color-scheme: dark;
+}
+
+[data-theme='contrast'] {
+  --bg: #000000;
+  --surface: #000000;
+  --surface-2: #111111;
+  --ink: #ffffff;
+  --ink-2: #ffffff;
+  --line: #ffffff;
+  --line-strong: #ffffff;
+  --accent: #ffe14d;
+  --accent-ink: #000000;
+  --accent-soft: #222200;
+  --accent-text: #ffe14d;
+  --attn-bg: #000000;
+  --attn-ink: #ffe14d;
+  --attn-line: #ffe14d;
+  --ok-bg: #000000;
+  --ok-ink: #7dffa0;
+  --sos: #ff6b5e;
+  --sos-ink: #000000;
+  --focus: #00e5ff;
+  --shadow: none;
+  --chart-1: #ffe14d;
+  --chart-2: #00e5ff;
+  --chart-3: #7dffa0;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-attn-bg: var(--attn-bg);
+  --color-attn-ink: var(--attn-ink);
+  --color-attn-line: var(--attn-line);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-ink: var(--ok-ink);
+  --color-sos: var(--sos);
+  --color-sos-ink: var(--sos-ink);
+}
+
+:root {
+  --tap: 3rem; /* 48px minimum target (WCAG 2.2 AA 2.5.8 asks for 24px; we use 48) */
+  --text-scale: 1;
+  font-size: calc(100% * var(--text-scale));
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Post-ictal safe mode: +25% text, +50% targets (blueprint §2.4). */
+[data-safe='true'] {
+  --tap: 4.5rem;
+  font-size: calc(125% * var(--text-scale));
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+body {
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Visible focus for keyboard users, in every theme. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+.tap {
+  min-height: var(--tap);
+  min-width: var(--tap);
+}
+
+/* Seizure safety: the only motion allowed is slow (≥300ms) opacity/transform easing. */
+.ease-calm {
+  transition-property: opacity, transform, background-color, border-color;
+  transition-duration: 320ms;
+  transition-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+[data-motion='reduce'] *,
+[data-motion='reduce'] *::before,
+[data-motion='reduce'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* Native dialog as a bottom sheet on phones, centered card on larger screens. */
+dialog.sheet {
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 40rem;
+  max-height: 92dvh;
+  border: 0;
+  padding: 0;
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 -8px 40px rgb(0 0 0 / 0.25);
+}
+@media (min-width: 48rem) {
+  dialog.sheet {
+    margin: auto;
+    border-radius: 1.25rem;
+  }
+}
+dialog.sheet::backdrop {
+  background: rgb(10 14 18 / 0.55);
+}
+[data-theme='contrast'] dialog.sheet {
+  border: 2px solid var(--line);
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+input[type='time'],
+input[type='date'],
+input[type='datetime-local'] {
+  min-height: var(--tap);
+}
+
+/* Visually hidden but available to screen readers. */
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Breathing guide — one full cycle is 10 seconds; far below any photosensitive frequency. */
+.breath-circle {
+  transition: transform 4000ms ease-in-out;
+}
+.breath-circle[data-phase='out'] {
+  transition-duration: 6000ms;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .print-plain {
+    box-shadow: none !important;
+    border-color: #999 !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+}

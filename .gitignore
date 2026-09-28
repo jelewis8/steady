@@ -1,0 +1,11 @@
+node_modules
+dist
+dev-dist
+coverage
+playwright-report
+test-results
+*.local
+.DS_Store
+# Never commit health-data backups
+steady-backup-*.json
+steady-*.csv
