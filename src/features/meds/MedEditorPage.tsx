@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import { sortTimes } from '../../core/checklist';
+import { parseUnitsPerDose } from '../../core/stats';
 import { addDays, dateKeyOf, formatIsoClock, relativeDay, todayKey } from '../../core/time';
 import type { DoseStatus, Medication } from '../../core/types';
 import { db } from '../../data/db';
@@ -24,6 +25,8 @@ export function MedEditorPage() {
   const nav = useNavigate();
   const [m, setM] = useState<Medication | null>(null);
   const [effect, setEffect] = useState('');
+  // Keep what she types as text while editing (so the field can be cleared and retyped); check it on save.
+  const [unitsText, setUnitsText] = useState('1');
   const today = todayKey();
   const doses = useDoses(addDays(today, -13), today).filter((d) => d.medicationId === id);
 
@@ -33,19 +36,24 @@ export function MedEditorPage() {
       else if (id) {
         const found = await db.medications.get(id);
         if (!found) nav('/meds', { replace: true });
-        else setM(found);
+        else {
+          setM(found);
+          setUnitsText(String(found.unitsPerDose ?? 1));
+        }
       }
     })();
   }, [id, isNew, nav]);
 
   if (!m) return <p className="text-ink-2">Loading…</p>;
   const set = (p: Partial<Medication>) => setM({ ...m, ...p });
-  const valid = m.name.trim() && m.dosage.trim() && (m.isRescue || m.scheduledTimes.length > 0);
+  const unitsPerDose = parseUnitsPerDose(unitsText);
+  const valid = m.name.trim() && m.dosage.trim() && unitsPerDose != null && (m.isRescue || m.scheduledTimes.length > 0);
 
   async function save() {
-    if (!m || !valid) return;
+    if (!m || !valid || unitsPerDose == null) return;
     await saveMedication({
       ...m,
+      unitsPerDose,
       name: m.name.trim(),
       dosage: m.dosage.trim(),
       scheduledTimes: m.isRescue ? [] : sortTimes(m.scheduledTimes),
@@ -117,10 +125,14 @@ export function MedEditorPage() {
             </Field>
             <Field label="Used per dose" hint="e.g. 2 tablets">
               {(fid, d) => (
-                <Input id={fid} aria-describedby={d} type="number" inputMode="numeric" min={1} value={m.unitsPerDose} onChange={(e) => set({ unitsPerDose: Math.max(1, Number(e.target.value) || 1) })} />
+                <Input id={fid} aria-describedby={d} inputMode="decimal" value={unitsText} onChange={(e) => setUnitsText(e.target.value)} />
               )}
             </Field>
           </div>
+          {unitsPerDose == null && <p className="text-sm text-attn-ink">Enter how many you take each time, for example 1 or 2 (or 0.5 for half).</p>}
+          {!isNew && unitsPerDose != null && unitsPerDose !== m.unitsPerDose && (
+            <p className="text-sm text-ink-2">If you change this, check that “Pills/doses left” still matches what you have, so the refill reminder stays right.</p>
+          )}
           <Field label="Remind me to refill when this many days are left">
             {(fid) => <Input id={fid} type="number" inputMode="numeric" min={0} value={m.refillReminderDays} onChange={(e) => set({ refillReminderDays: Math.max(0, Number(e.target.value) || 0) })} />}
           </Field>
@@ -156,7 +168,7 @@ export function MedEditorPage() {
           <Button type="submit" variant="primary" size="lg" disabled={!valid}>
             {isNew ? 'Add medication' : 'Save changes'}
           </Button>
-          {!valid && <p className="text-sm text-ink-2">Add a name, a dose{m.isRescue ? '' : ' and at least one time'} to save.</p>}
+          {!valid && <p className="text-sm text-ink-2">Add a name, a dose{m.isRescue ? '' : ' and at least one time'}, and how many you take each time, to save.</p>}
         </form>
       </Card>
 

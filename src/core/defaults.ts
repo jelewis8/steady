@@ -21,7 +21,7 @@ export const SCHEMA_VERSION = '1.1.0';
 export const SEIZURE_TYPE_LABELS: Record<SeizureType, { label: string; hint: string }> = {
   focal_aware: { label: 'Focal aware', hint: 'I stayed aware — I remember it' },
   focal_impaired_awareness: { label: 'Focal impaired awareness', hint: 'I lost awareness or have a gap' },
-  focal_to_bilateral_tonic_clonic: { label: 'Focal to bilateral tonic-clonic', hint: 'Spread to a convulsive seizure' },
+  focal_to_bilateral_tonic_clonic: { label: 'Focal to bilateral tonic-clonic (formerly grand mal)', hint: 'Spread to a convulsive seizure' },
   unknown: { label: "I don't know", hint: 'That is completely fine' },
 };
 

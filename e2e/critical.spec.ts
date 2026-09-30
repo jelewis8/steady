@@ -10,7 +10,7 @@ async function onboard(page: Page) {
   await page.getByRole('button', { name: 'Next', exact: true }).click(); // meds
   await page.getByRole('button', { name: 'Add a medication' }).click();
   await page.getByLabel('Name').fill('Lamotrigine');
-  await page.getByLabel('Dose').fill('100');
+  await page.getByLabel('Dose', { exact: true }).fill('100');
   await page.getByRole('button', { name: 'Next', exact: true }).click(); // safety
   await page.getByLabel('Their name').fill('Alex');
   await page.getByLabel('Their phone number').fill('+1 555 0100');
@@ -186,4 +186,56 @@ test('restoring something that is not a backup shows a visible error and changes
   await expect(page.getByRole('alert')).toContainText('couldn’t be read');
   await page.goto('/meds');
   await expect(page.getByText('Lamotrigine')).toBeVisible();
+});
+
+// ---- Release 2: B-007, B-009, B-011 ----
+test('B-007: "Used per dose" can be cleared and set to 2, and is remembered', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  const units = page.getByLabel('Used per dose');
+  await units.fill('');
+  await expect(units).toHaveValue('');
+  await expect(page.getByText(/Enter how many you take each time/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  await units.fill('2');
+  await expect(units).toHaveValue('2');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await expect(page.getByLabel('Used per dose')).toHaveValue('2');
+});
+
+test('B-007: pills per dose can be set during onboarding', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Set up/ }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Add a medication' }).click();
+  await page.getByLabel('Name').fill('Keppra');
+  await page.getByLabel('Dose', { exact: true }).fill('500');
+  await page.getByLabel('Used per dose').fill('2');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Finish' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Keppra/ }).first().click();
+  await expect(page.getByLabel('Used per dose')).toHaveValue('2');
+});
+
+test('B-009: the convulsive seizure type says "formerly grand mal" in the quick log', async ({ page }) => {
+  await onboard(page);
+  await page.getByRole('button', { name: 'Log seizure' }).click();
+  await expect(page.getByRole('radio', { name: 'Focal to bilateral tonic-clonic (formerly grand mal)' })).toBeVisible();
+});
+
+test('B-011: a note recorded with a dose appears in the neurologist report', async ({ page }) => {
+  await onboard(page);
+  await page.getByRole('button', { name: /More options for Lamotrigine/ }).first().click();
+  await page.getByLabel('Note or side effect').fill('Felt dizzy an hour after');
+  await page.getByRole('button', { name: 'Save note' }).click();
+  await page.goto('/insights/report');
+  await expect(page.getByRole('heading', { name: 'Notes recorded with doses' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: /Felt dizzy an hour after/ })).toBeVisible();
 });

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, Lock, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { DEFAULT_ROUTINE_SETUP, type RoutineSetup } from '../../core/defaults';
 import { sortTimes } from '../../core/checklist';
+import { parseUnitsPerDose } from '../../core/stats';
 import { formatClock, parseTime, todayKey } from '../../core/time';
 import type { Medication } from '../../core/types';
 import { usePrefs } from '../../data/hooks';
@@ -13,7 +14,7 @@ import { Button, Card, Chip, Disclaimer, Field, IconButton, Input, Progress, Tex
 import { RoutineSetupForm } from '../routine/RoutineSetupForm';
 import { ImportCard } from '../settings/DataPage';
 
-type QuickMed = { name: string; dosage: string; unit: string; times: string[] };
+type QuickMed = { name: string; dosage: string; unit: string; perDose: string; times: string[] };
 const STEPS = ['About you', 'Your day', 'Medications', 'Safety', 'Reminders'];
 
 export function OnboardingPage() {
@@ -36,7 +37,7 @@ export function OnboardingPage() {
     await updatePreferences({ targetWakeTime: setup.wakeTime, targetBedtime: setup.bedTime, emergencyNumber: number.trim() || '911' });
     await replaceRoutineFromSetup(setup);
     for (const q of meds.filter((m) => m.name.trim() && m.dosage.trim())) {
-      const m: Medication = { ...newMedication(), name: q.name.trim(), dosage: q.dosage.trim(), unit: q.unit.trim(), scheduledTimes: sortTimes(q.times) };
+      const m: Medication = { ...newMedication(), name: q.name.trim(), dosage: q.dosage.trim(), unit: q.unit.trim(), scheduledTimes: sortTimes(q.times), unitsPerDose: parseUnitsPerDose(q.perDose) ?? 1 };
       await saveMedication(m);
     }
     if (contact.name.trim() && contact.phone.trim()) {
@@ -132,10 +133,12 @@ export function OnboardingPage() {
                     <Trash2 aria-hidden size={22} />
                   </IconButton>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <TextField label="Dose" value={m.dosage} onChange={(v) => setMeds(meds.map((x, j) => (j === i ? { ...x, dosage: v } : x)))} inputMode="decimal" />
                   <TextField label="Unit" value={m.unit} onChange={(v) => setMeds(meds.map((x, j) => (j === i ? { ...x, unit: v } : x)))} placeholder="mg" />
+                  <TextField label="Used per dose" value={m.perDose} onChange={(v) => setMeds(meds.map((x, j) => (j === i ? { ...x, perDose: v } : x)))} inputMode="decimal" />
                 </div>
+                <p className="-mt-1 text-sm text-ink-2">“Used per dose” is how many pills you take each time, for example 2.</p>
                 <fieldset>
                   <legend className="mb-1.5 font-bold">When</legend>
                   <div className="flex flex-wrap gap-2">
@@ -154,7 +157,7 @@ export function OnboardingPage() {
               </div>
             </Card>
           ))}
-          <Button icon={<Plus aria-hidden size={20} />} onClick={() => setMeds([...meds, { name: '', dosage: '', unit: 'mg', times: ['08:00', '20:00'] }])}>
+          <Button icon={<Plus aria-hidden size={20} />} onClick={() => setMeds([...meds, { name: '', dosage: '', unit: 'mg', perDose: '1', times: ['08:00', '20:00'] }])}>
             Add a medication
           </Button>
         </section>

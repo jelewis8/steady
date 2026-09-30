@@ -46,6 +46,35 @@ export function adherenceByDay(doses: MedicationDose[], from: ISODate, to: ISODa
   return map;
 }
 
+/** How many pills/units are taken per dose: "2", "1.5", "0,5" → number; empty, zero, negative or text → null. */
+export function parseUnitsPerDose(text: string): number | null {
+  const n = Number(text.trim().replace(',', '.'));
+  return text.trim() !== '' && Number.isFinite(n) && n > 0 && n <= 100 ? n : null;
+}
+
+export interface DoseNoteRow {
+  doseId: string;
+  when: string;
+  medication: string;
+  note: string;
+  sideEffects: string[];
+}
+
+/** Doses that have a note or side effects recorded with them, oldest first. Works for current and past medications. */
+export function doseNotesForReport(doses: MedicationDose[], meds: Medication[]): DoseNoteRow[] {
+  const name = new Map(meds.map((m) => [m.id, `${m.name} ${m.dosage}${m.unit}`.trim()]));
+  return doses
+    .filter((d) => (d.notes ?? '').trim() !== '' || (d.sideEffects ?? []).length > 0)
+    .sort((a, b) => (a.scheduledTime < b.scheduledTime ? -1 : 1))
+    .map((d) => ({
+      doseId: d.id,
+      when: d.actualTime && d.status !== 'pending' ? d.actualTime : d.scheduledTime,
+      medication: name.get(d.medicationId) ?? 'Medication no longer listed',
+      note: (d.notes ?? '').trim(),
+      sideEffects: d.sideEffects ?? [],
+    }));
+}
+
 export interface SupplyEstimate {
   daysLeft: number | null;
   runOutDate: ISODate | null;

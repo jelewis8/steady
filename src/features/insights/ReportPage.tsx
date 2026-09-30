@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Copy, Printer } from 'lucide-react';
 import { AURA_SYMPTOMS, POST_ICTAL_SYMPTOMS, SEIZURE_TYPE_LABELS } from '../../core/defaults';
-import { adherence } from '../../core/stats';
+import { adherence, doseNotesForReport } from '../../core/stats';
 import { dateKeyOf, formatDateShort, formatDuration, formatHours, formatIsoClock } from '../../core/time';
 import { useDoses, useProfile, useTriggerTags } from '../../data/hooks';
 import { webShare } from '../../platform/share';
@@ -26,6 +26,7 @@ export function ReportPage() {
   const perMed = meds
     .filter((m) => !m.isRescue)
     .map((m) => ({ m, a: adherence(allDoses.filter((x) => x.medicationId === m.id), d.start, d.end) }));
+  const doseNotes = doseNotesForReport(allDoses, d.meds);
   const seizures = [...d.seizures].sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1));
   const withDuration = seizures.filter((s) => s.durationSeconds != null);
   const medianDuration = withDuration.length
@@ -48,6 +49,9 @@ export function ReportPage() {
     `Medication adherence (recorded doses): ${d.adherence.percent ?? '—'}%`,
     ...perMed.map(({ m, a }) => `  - ${m.name} ${m.dosage}${m.unit} at ${m.scheduledTimes.join(', ')}: ${a.percent ?? '—'}% (${a.skipped} skipped, ${a.unsure} unsure, ${a.notRecorded} not recorded)`),
     '',
+    ...(doseNotes.length
+      ? ['Notes recorded with doses:', ...doseNotes.map((n) => `  - ${formatDateShort(dateKeyOf(n.when))} ${formatIsoClock(n.when)}, ${n.medication}: ${[n.note, n.sideEffects.length ? `side effects: ${n.sideEffects.join(', ')}` : ''].filter(Boolean).join(' · ')}`), '']
+      : []),
     `Average sleep: ${d.avgSleep != null ? formatHours(d.avgSleep) : '—'}`,
     avgStress ? `Average self-rated stress: ${avgStress}/5 (${stressDays.length} days)` : '',
     d.triggers.length ? `Most-noted triggers: ${d.triggers.slice(0, 5).map((t) => `${t.tag.label} (${t.count})`).join(', ')}` : '',
@@ -171,6 +175,40 @@ export function ReportPage() {
                     .join('; ')}
                 </p>
               )}
+            </section>
+          )}
+
+          {doseNotes.length > 0 && (
+            <section className="mt-5">
+              <h2 className="text-lg font-bold">Notes recorded with doses</h2>
+              <table className="mt-2 w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b-2 border-line">
+                    <th className="py-1">Date</th>
+                    <th>Medication</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doseNotes.map((n) => (
+                    <tr key={n.doseId} className="border-b border-line align-top">
+                      <td className="py-1.5 pr-2 whitespace-nowrap">
+                        {formatDateShort(dateKeyOf(n.when))} {formatIsoClock(n.when)}
+                      </td>
+                      <td className="pr-2">{n.medication}</td>
+                      <td>
+                        {n.note}
+                        {n.sideEffects.length > 0 && (
+                          <>
+                            {n.note && ' · '}
+                            <strong>Side effects:</strong> {n.sideEffects.join(', ')}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </section>
           )}
 
