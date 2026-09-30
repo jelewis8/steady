@@ -18,6 +18,14 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-09-30-2
+
+Three small fixes. No data changes; schema stays `1.1.0`.
+
+- **B-007:** "Used per dose" (pills per dose) can now be cleared and retyped, so she can set 2. Half and decimal amounts work too. It is checked when saving, it is also in the setup screen's medication form, and the refill countdown uses it. **After changing it on an existing medication, re-check "Pills/doses left".** Past doses were counted as 1 pill each.
+- **B-009:** the seizure type is now labelled "Focal to bilateral tonic-clonic (formerly grand mal)" everywhere it appears.
+- **B-011:** the neurologist report and its text summary now include "Notes recorded with doses" (date, medication, note or side effect).
+
 ## release-2026-09-30
 
 Fixes the unclear message after restoring a backup. No data changes; schema stays `1.1.0`.

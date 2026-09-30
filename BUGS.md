@@ -40,10 +40,7 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 - [ ] **B-003** · 2026-09-28 · server · Port **5173** is open to the internet in the droplet firewall (a Vite dev-server port). Close it if nothing needs it: `ufw delete allow 5173`.
 - [ ] **B-004** · 2026-09-28 · testing · Manual screen-reader pass not done yet (VoiceOver on iPhone, TalkBack on Android, NVDA on Windows). Automated axe checks pass.
-- [ ] **B-007** · 2026-09-30 · reported by: Jeremiah · meds · **"Used per dose" (pills per dose) is stuck at 1; she needs 2.** Cause: the input in `MedEditorPage.tsx` turns an empty field back into `1` on every keystroke (`Math.max(1, Number(v) || 1)`), so you can't clear it and type 2. Fix: keep the typed text while editing and validate on save. Also add the field to onboarding's quick medication form. This affects the refill countdown, so re-check supply after the fix.
-- [ ] **B-009** · 2026-09-30 · reported by: Jeremiah · seizure log · Label the tonic-clonic option **"Focal to bilateral tonic-clonic (formerly grand mal)"** so it's recognisable. Update it everywhere the label appears: quick log, full form, seizure list, report.
 - [ ] **B-010** · 2026-09-30 · reported by: Jeremiah · meds · Side effects listed on a medication have **no start date**. → Fixed as part of **F-001** (dated side-effect log).
-- [ ] **B-011** · 2026-09-30 · reported by: Jeremiah · report · **Per-dose notes and side effects don't appear in the neurologist report.** Add a "Notes recorded with doses" section (date, medication, note) to `ReportPage.tsx` and the text summary. Can ship before F-001.
 
 ### P3 — Wish list
 
@@ -53,6 +50,9 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 ## Done
 
+- [x] **B-007** · 2026-09-30 · "Used per dose" can now be cleared and set to 2 (or 0.5, 1.5…); it is checked on save, added to the onboarding medication form, and the refill countdown uses it → release-2026-09-30-2
+- [x] **B-009** · 2026-09-30 · Seizure type now reads "Focal to bilateral tonic-clonic (formerly grand mal)" in the quick log, full form, list, insights and report → release-2026-09-30-2
+- [x] **B-011** · 2026-09-30 · Neurologist report (and its text summary) has a "Notes recorded with doses" section: date, medication, note / side effect → release-2026-09-30-2
 - [x] **B-008** · 2026-09-30 · Restoring a backup now shows a clear confirmation that stays on the page ("Backup restored: 0 seizure events, 2 medications, 9 dose records, …"), checked against what is actually stored, plus a visible error if it fails. The welcome screen no longer reloads before she can read it. Tested with a real backup in merge and replace modes → release-2026-09-30
 - [x] **B-006** · 2026-09-28 · Automated upgrade test (`src/data/upgrade.test.ts`): data and backups from the previous release must open intact; runs with `npm test` before every deploy → release-2026-09-30 (test only)
 - [x] **B-000** · 2026-09-27 · Phase 1 built and deployed to https://steady.example.com → release-2026-09-27
