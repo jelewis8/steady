@@ -9,7 +9,7 @@ The first user is an adult with partial epilepsy who struggles to maintain daily
 ## Current Status (keep this section up to date)
 
 - **Phase 1 is built and live** at https://steady.example.com, and **in use by the first user** since 2026-09-28. Real health data now exists on her phone, so every change must follow the data-safety rules in `docs/WORKFLOW.md`.
-- **Work queue:** `BUGS.md` (P1 critical / P2 annoying / P3 wish list). Start any new session by reading it.
+- **Work queue:** `BUGS.md` (things that are broken: P1 critical / P2 annoying / P3 wish list) and `FEATURES.md` (new features: Safety / High / Normal). Start any new session by reading both.
 - **What's live:** `CHANGELOG.md`. Each release is also a server folder and a git tag `release-YYYY-MM-DD`.
 - **Code:** git repo, `main` branch, pushed to the private GitHub repo https://github.com/jelewis8/steady. One commit per fix, with the bug ID in the message (`Fix B-012: …`).
 
@@ -18,6 +18,7 @@ The first user is an adult with partial epilepsy who struggles to maintain daily
 - `knowledge-base.md` — Clinical reference: focal epilepsy pathophysiology, triggers, treatments, devices, diagnostics. Source-aware (ILAE, AAN, NICE). Not medical advice.
 - `app-blueprint.md` — Application blueprint: design principles, modules, data model (JSON schemas), workflows, UI sketches, privacy architecture, tech stack, build order.
 - `BUGS.md` — Bugs and tasks list. Add items and tick them off; the next free ID is noted at the top.
+- `FEATURES.md` — Feature requests with design notes and open questions (IDs `F-###`).
 - `CHANGELOG.md` — One entry per deploy.
 - `docs/WORKFLOW.md` — Bug → fix → commit → release loop, data-safety rules for schema changes, and session handoff.
 - `docs/DEPLOY.md` — Production server details (Apache on the shared droplet) and release steps.
@@ -97,7 +98,7 @@ See `app-blueprint.md` — "Build Order Checklist" at the end. Phase 1 (steps 1�
 
 ## Working Rules for Changes
 
-1. Every fix corresponds to a `BUGS.md` item. Add one if it doesn't exist.
+1. Every fix corresponds to a `BUGS.md` item, and every feature to a `FEATURES.md` item. Add one if it doesn't exist.
 2. **P1 items** (safety or data: reminders, doses, seizure timer, SOS, export, data loss) ship alone, the same day. **P2 items** ship in small batches of 3–5.
 3. Add or adjust a test for each fix. `npm test`, `npm run lint` and `npm run e2e` must pass before committing.
 4. **Never break existing user data.** New fields need defaults. Renames, removals and index changes need a new `db.version(n+1)` with an `.upgrade()` in `src/data/db.ts`, **and** a migration in `parseEnvelope` with a `SCHEMA_VERSION` bump. Never edit an existing Dexie version block or delete a table. Details are in `docs/WORKFLOW.md`.

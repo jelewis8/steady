@@ -75,6 +75,7 @@ See [docs/DATA-MODEL.md](docs/DATA-MODEL.md) for the entities, including the doc
 | File | What it's for |
 |---|---|
 | [BUGS.md](BUGS.md) | Running list of bugs and tasks. Add items and tick them off. |
+| [FEATURES.md](FEATURES.md) | Feature requests, with design notes and open questions |
 | [CHANGELOG.md](CHANGELOG.md) | What shipped in each release |
 | [docs/WORKFLOW.md](docs/WORKFLOW.md) | Report → fix → commit → release loop, and the rules that protect user data |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | The production server and how to release |

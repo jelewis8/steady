@@ -23,13 +23,21 @@ The single running list of bugs, requests, and to-dos for Steady. Add anything h
 2. Add the release it shipped in, e.g. ` → release-2026-09-30`.
 3. Mention the ID in the commit message, e.g. `Fix B-004: dose note not saving`.
 
-The next free ID is **B-007**.
+The next free ID is **B-012**.
+
+New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`). This file is for things that are broken or wrong.
 
 ---
 
 ## Open
 
 ### P1 — Critical
+
+- [ ] **B-008** · 2026-09-30 · reported by: Jeremiah · **Restoring a backup gives no clear confirmation.** It either imports silently or doesn't import, and she can't tell which. Likely causes from the code:
+  - (a) The import on the **welcome/onboarding** screen shows its success message as a toast, but toasts only render inside the main app shell (`src/ui/Shell.tsx`). The page also reloads immediately (`OnboardingPage.tsx` → `window.location.assign('/')`), so the message is never visible.
+  - (b) Even in More → Backup & data, success is only a toast.
+
+  **Fix:** after an import, show a clear, persistent confirmation on the page itself ("Restored: 42 seizures, 610 doses, …"), plus a visible error message if it fails. **Verify with her actual backup file**, in both merge and replace modes.
 
 - [ ] **B-001** · 2026-09-28 · launch · Confirm Steady is **installed to her home screen** (iPhone Safari deletes site data after ~7 days unless the site is installed). Test by opening from the home-screen icon.
 - [ ] **B-002** · 2026-09-28 · launch · Make her **first backup** (More → Backup & data → Save backup file) and store the file somewhere safe that isn't the phone.
@@ -38,10 +46,14 @@ The next free ID is **B-007**.
 
 - [ ] **B-003** · 2026-09-28 · server · Port **5173** is open to the internet in the droplet firewall (a Vite dev-server port). Close it if nothing needs it: `ufw delete allow 5173`.
 - [ ] **B-004** · 2026-09-28 · testing · Manual screen-reader pass not done yet (VoiceOver on iPhone, TalkBack on Android, NVDA on Windows). Automated axe checks pass.
+- [ ] **B-007** · 2026-09-30 · reported by: Jeremiah · meds · **"Used per dose" (pills per dose) is stuck at 1; she needs 2.** Cause: the input in `MedEditorPage.tsx` turns an empty field back into `1` on every keystroke (`Math.max(1, Number(v) || 1)`), so you can't clear it and type 2. Fix: keep the typed text while editing and validate on save. Also add the field to onboarding's quick medication form. This affects the refill countdown, so re-check supply after the fix.
+- [ ] **B-009** · 2026-09-30 · reported by: Jeremiah · seizure log · Label the tonic-clonic option **"Focal to bilateral tonic-clonic (formerly grand mal)"** so it's recognisable. Update it everywhere the label appears: quick log, full form, seizure list, report.
+- [ ] **B-010** · 2026-09-30 · reported by: Jeremiah · meds · Side effects listed on a medication have **no start date**. → Fixed as part of **F-001** (dated side-effect log).
+- [ ] **B-011** · 2026-09-30 · reported by: Jeremiah · report · **Per-dose notes and side effects don't appear in the neurologist report.** Add a "Notes recorded with doses" section (date, medication, note) to `ReportPage.tsx` and the text summary. Can ship before F-001.
 
 ### P3 — Wish list
 
-- [ ] **B-005** · 2026-09-28 · meds · Dated side-effect log: record when each side effect started or stopped, and include per-dose side-effect notes in the neurologist report. (Today: an undated list per medication, plus a free-text note per dose that isn't in the report.)
+- [ ] **B-005** · 2026-09-28 · meds · ~~Dated side-effect log~~ → moved to **F-001** in FEATURES.md.
 - [ ] **B-006** · 2026-09-28 · data safety · Add an automated "upgrade" test: data saved by the previous release must open intact in the new release. Run it before every deploy.
 
 ---

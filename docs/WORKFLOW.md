@@ -79,7 +79,9 @@ Her data lives in her phone's browser, not on the server. Deploying never touche
 
 A new session automatically reads `CLAUDE.md`, which points to everything else. A good opening message:
 
-> Read CLAUDE.md, BUGS.md and CHANGELOG.md. Then fix the open P1 items in BUGS.md one at a time, following docs/WORKFLOW.md.
+> Read CLAUDE.md, BUGS.md, FEATURES.md and CHANGELOG.md. Then fix the open P1 items in BUGS.md one at a time, following docs/WORKFLOW.md.
+
+Feature requests go in [FEATURES.md](../FEATURES.md), not BUGS.md. The same commit → release → tick-off rules apply.
 
 Or name specific items:
 
