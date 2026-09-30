@@ -33,7 +33,14 @@ function statusText(e: ChecklistEntry): string {
   }
 }
 
+/** When a past-day item is recorded, it is recorded at the time it was scheduled for, not "now". */
+function recordTime(entry: ChecklistEntry, date: string): Date | undefined {
+  if (date === todayKey()) return undefined;
+  return new Date(localDateTime(date, formatTimeKey(Math.floor(entry.scheduledMinutes / 60), entry.scheduledMinutes % 60)));
+}
+
 export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: string }) {
+  const past = date !== todayKey();
   const prefs = usePrefs();
   const [menu, setMenu] = useState(false);
   const [checkIn, setCheckIn] = useState(false);
@@ -47,8 +54,9 @@ export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: str
         const undo = await setDoseStatus(entry.id, 'pending');
         toast(`${entry.label} set back to not recorded.`, undo);
       } else {
-        const undo = await setDoseStatus(entry.id, 'taken');
-        toast(`${entry.label} recorded as taken at ${formatClock(new Date().getHours(), new Date().getMinutes())}.`, undo);
+        const at = recordTime(entry, date);
+        const undo = await setDoseStatus(entry.id, 'taken', at);
+        toast(at ? `${entry.label} recorded as taken.` : `${entry.label} recorded as taken at ${formatClock(new Date().getHours(), new Date().getMinutes())}.`, undo);
       }
       return;
     }
@@ -56,7 +64,7 @@ export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: str
       setCheckIn(true);
       return;
     }
-    await setChecklistStatus(entry.id, done ? 'pending' : 'done', { glassMl: prefs?.glassSizeMl });
+    await setChecklistStatus(entry.id, done ? 'pending' : 'done', { glassMl: prefs?.glassSizeMl, at: recordTime(entry, date) });
   }
 
   const StatusIcon = done ? Check : entry.status === 'skipped' ? Minus : entry.status === 'unsure' ? HelpCircle : entry.status === 'deferred' ? Clock : null;
@@ -65,7 +73,7 @@ export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: str
     <li
       className={cx(
         'flex items-center gap-2 rounded-2xl border-2 py-2 pr-1 pl-2',
-        entry.overdue && open ? 'border-attn-line bg-attn-bg' : 'border-line bg-surface',
+        entry.overdue && open && !past ? 'border-attn-line bg-attn-bg' : 'border-line bg-surface',
         !open && 'opacity-90',
       )}
     >
@@ -93,7 +101,7 @@ export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: str
             {CATEGORY_LABELS[entry.category]}
             {entry.isOptional && ' · optional'}
           </span>
-          <span className={cx(entry.overdue && open && 'font-bold text-attn-ink')}>{statusText(entry)}</span>
+          <span className={cx(entry.overdue && open && !past && 'font-bold text-attn-ink')}>{past && open ? 'Not recorded yet' : statusText(entry)}</span>
           {entry.notes && <span className="italic">“{entry.notes}”</span>}
         </div>
       </div>
@@ -112,6 +120,7 @@ export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: str
 }
 
 function EntryActions({ entry, open, onClose, date }: { entry: ChecklistEntry; open: boolean; onClose: () => void; date: string }) {
+  const past = date !== todayKey();
   const prefs = usePrefs();
   const [note, setNote] = useState(entry.notes ?? '');
   const [earlier, setEarlier] = useState(formatTimeKey(Math.floor(entry.scheduledMinutes / 60), entry.scheduledMinutes % 60));
@@ -136,9 +145,15 @@ function EntryActions({ entry, open, onClose, date }: { entry: ChecklistEntry; o
       <div className="grid gap-2">
         {entry.kind === 'dose' ? (
           <>
-            <Button variant="primary" size="lg" block onClick={() => run(() => setDoseStatus(entry.id, 'taken'), `${entry.label} recorded as taken.`)}>
-              I took it just now
-            </Button>
+            {past ? (
+              <Button variant="primary" size="lg" block onClick={() => run(() => setDoseStatus(entry.id, 'taken', recordTime(entry, date)), `${entry.label} recorded as taken.`)}>
+                I took it on time
+              </Button>
+            ) : (
+              <Button variant="primary" size="lg" block onClick={() => run(() => setDoseStatus(entry.id, 'taken'), `${entry.label} recorded as taken.`)}>
+                I took it just now
+              </Button>
+            )}
             <div className="flex items-end gap-2 rounded-xl border border-line p-3">
               <Field label="I took it earlier, at">
                 {(id) => <Input id={id} type="time" value={earlier} onChange={(e) => setEarlier(e.target.value)} />}
@@ -172,7 +187,7 @@ function EntryActions({ entry, open, onClose, date }: { entry: ChecklistEntry; o
         ) : (
           <>
             {entry.status !== 'done' && (
-              <Button variant="primary" size="lg" block onClick={() => run(() => setChecklistStatus(entry.id, 'done', { glassMl: prefs?.glassSizeMl }))}>
+              <Button variant="primary" size="lg" block onClick={() => run(() => setChecklistStatus(entry.id, 'done', { glassMl: prefs?.glassSizeMl, at: recordTime(entry, date) }))}>
                 Done
               </Button>
             )}

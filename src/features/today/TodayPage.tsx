@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, ChevronDown, Plus, ShieldAlert, Sparkles } from 'lucide-react';
+import { CalendarDays, CalendarRange, ChevronDown, History, Plus, ShieldAlert, Sparkles } from 'lucide-react';
 import { selectTemplate } from '../../core/checklist';
 import { addDays, formatDateLong, formatTimeKey, todayKey } from '../../core/time';
 import { useDayPlan, useMeta, usePrefs, useProfile, useSeizures, useTemplates } from '../../data/hooks';
 import { addAdHocItem, setDayTemplate } from '../../data/repo';
 import { storage } from '../../data/storage';
 import { toast } from '../../state/ui';
-import { Button, Card, Field, Input, Progress, Sheet, cx } from '../../ui/kit';
+import { Button, Card, Field, Input, LinkButton, Progress, Sheet, cx } from '../../ui/kit';
+import { PickDaySheet } from '../calendar/PickDaySheet';
 import { isSafeMode, useNow } from '../../ui/hooks';
 import { seizuresInRange, daysSinceLastSeizure } from '../../core/stats';
 import { ChecklistRow } from './Checklist';
@@ -40,6 +41,7 @@ function RegularToday({ now }: { now: Date }) {
   const [showLater, setShowLater] = useState(false);
   const [showDone, setShowDone] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [pickDay, setPickDay] = useState(false);
 
   const weekCount = seizuresInRange(seizures, addDays(today, -6), today).length;
   const threshold = prefs?.seizureThresholdPerWeek;
@@ -55,6 +57,16 @@ function RegularToday({ now }: { now: Date }) {
         </h1>
         <p className="text-lg text-ink-2">{formatDateLong(today)}</p>
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button variant="quiet" icon={<History aria-hidden size={20} />} onClick={() => setPickDay(true)}>
+          Log from an earlier day
+        </Button>
+        <LinkButton to="/calendar" variant="quiet" icon={<CalendarRange aria-hidden size={20} />}>
+          Calendar
+        </LinkButton>
+      </div>
+      <PickDaySheet open={pickDay} onClose={() => setPickDay(false)} />
 
       {profile?.isSampleData && <SampleBanner />}
       <BackupNudge />

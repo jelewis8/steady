@@ -18,6 +18,21 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-09-30-5
+
+**F-003 and F-004: log past days clearly, and a calendar.** No data changes: schema stays `1.3.0`, database stays at version 2.
+
+- **Log from an earlier day** (button on Today, and in the Calendar): pick yesterday, the day before, or any past date. The day shows its routine and medications, and she can tick off doses and routine items, skip them, or leave them. Nothing is marked as a failure ("Not recorded yet").
+  - Things are recorded **at the time they were scheduled for that day**, not "now". A past breakfast or glass of water belongs to that day, and a past dose counts as taken on time. "I took it at…" is there for a different time.
+  - The day also has: seizures that day (and "Log a seizure on this day", which starts at noon on that day), sleep for the night before, and a check-in for that day.
+  - A day she has never opened starts empty, with an explicit "Add this day's routine and medications" button. Just looking at a day never changes her records or her adherence numbers.
+  - Medications she has **since stopped** are included on the days before she stopped them.
+  - A medication added to Steady recently is only scheduled from its "Started on" date. The day says so and links to the medication. If she was already taking it, she sets an earlier "Started on" and the day catches up.
+- **Sleep for any night:** Sleep → "Log a different night".
+- **Calendar** (Today, and More → Calendar): a month grid, weeks starting Monday. Each day shows symbols **with words**: seizure, warning sign, dose skipped or not sure, dose not recorded, short sleep the night before, period. Every day is a link with a full spoken description ("Tuesday, September 15: 1 seizure, 2 doses not recorded"). A **List** view shows the same as a table, in words. Tap a day to open it. No animation, and tap targets are 48 px or more.
+- Adherence numbers: doses on past days she chooses to fill in are added as "not recorded" until she ticks them, the same as on a day she opened the app but didn't tick.
+- Not included yet: bowel days on the calendar (F-006).
+
 ## release-2026-09-30-4
 
 **F-001 and F-007: a dated side-effect log, and medications that didn't work out.** Data schema is now `1.3.0`, and the database moves to **version 2** (one new table; nothing existing is changed). **Ask her to save a backup first.**

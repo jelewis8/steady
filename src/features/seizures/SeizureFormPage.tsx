@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import { ACTIVITIES, AURA_SYMPTOMS, LOCATIONS, POST_ICTAL_SYMPTOMS, SEIZURE_TYPE_LABELS, SEVERITY_LABELS } from '../../core/defaults';
 import { uuid } from '../../core/ids';
+import { localDateTime, todayKey } from '../../core/time';
 import { SEIZURE_TYPES, type SeizureEvent } from '../../core/types';
 import { db, getMeta, setMeta } from '../../data/db';
 import { useSeizures, useTriggerTags } from '../../data/hooks';
@@ -26,6 +27,9 @@ export function SeizureFormPage() {
   const { id } = useParams();
   const isNew = id === 'new';
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  // coming from a past day: start the time at noon on that day (she can change it)
+  const forDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get('date') ?? '') && (params.get('date') as string) < todayKey() ? (params.get('date') as string) : null;
   const [draft, setDraft] = useState<Draft | null>(null);
   const [customTrigger, setCustomTrigger] = useState('');
   const tags = useTriggerTags();
@@ -39,6 +43,7 @@ export function SeizureFormPage() {
       if (isNew) {
         const saved = await getMeta<Draft>(DRAFT_KEY);
         const d = saved ?? { ev: newSeizure({ id: uuid(), type: 'focal_aware', severity: 3 }), aura: [] };
+        if (forDate) d.ev = { ...d.ev, timestamp: localDateTime(forDate, '12:00') };
         initial.current = JSON.stringify(d);
         setDraft(d);
       } else if (id) {
@@ -51,7 +56,7 @@ export function SeizureFormPage() {
       }
       loaded.current = true;
     })();
-  }, [id, isNew, nav]);
+  }, [id, isNew, nav, forDate]);
 
   // Auto-save every change: drafts for new events, straight to the log for existing ones.
   useEffect(() => {
@@ -86,7 +91,7 @@ export function SeizureFormPage() {
     await saveSeizure({ ...draft.ev, isQuickLog: false }, draft.aura);
     if (isNew) await db.meta.delete(DRAFT_KEY);
     toast(isNew ? 'Seizure saved to your log.' : 'Changes saved.');
-    nav(isNew ? '/' : '/seizures');
+    nav(isNew ? (forDate ? `/day/${forDate}` : '/') : '/seizures');
   }
 
   async function discard() {

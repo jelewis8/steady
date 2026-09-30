@@ -6,7 +6,7 @@ import { usePrefs, useSleepEntries } from '../../data/hooks';
 import { deleteSleep, updatePreferences } from '../../data/repo';
 import { toast } from '../../state/ui';
 import { BarChart, ChartFrame } from '../../ui/charts';
-import { Button, Card, CardTitle, Disclaimer, Field, IconButton, Input, PageHeader, Stat } from '../../ui/kit';
+import { Button, Card, CardTitle, Disclaimer, Field, IconButton, Input, PageHeader, Sheet, Stat, TextField } from '../../ui/kit';
 import { SleepLogSheet } from './SleepLogSheet';
 
 export function SleepPage() {
@@ -14,6 +14,8 @@ export function SleepPage() {
   const prefs = usePrefs();
   const today = todayKey();
   const [night, setNight] = useState<string | null>(null);
+  const [pickNight, setPickNight] = useState(false);
+  const [otherNight, setOtherNight] = useState(addDays(todayKey(), -2));
   const nights = dateRange(addDays(today, -14), addDays(today, -1));
   const byDate = new Map(entries.map((e) => [e.date, e]));
   const avg7 = averageSleepMinutes(entries, addDays(today, -7), addDays(today, -1));
@@ -30,6 +32,24 @@ export function SleepPage() {
       <Button variant="primary" size="lg" onClick={() => setNight(addDays(today, -1))}>
         {byDate.has(addDays(today, -1)) ? 'Edit last night' : 'Log last night'}
       </Button>
+
+      <Button onClick={() => setPickNight(true)}>Log a different night</Button>
+      <Sheet open={pickNight} onClose={() => setPickNight(false)} title="Log a different night">
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!otherNight || otherNight >= today) return;
+            setPickNight(false);
+            setNight(otherNight);
+          }}
+        >
+          <TextField label="Which night?" type="date" value={otherNight} max={addDays(today, -1)} onChange={setOtherNight} hint="Pick the evening you went to bed. If you already logged that night, you can edit it." />
+          <Button type="submit" variant="primary" size="lg" disabled={!otherNight || otherNight >= today}>
+            Continue
+          </Button>
+        </form>
+      </Sheet>
 
       <Card labelledBy="avg-h">
         <CardTitle id="avg-h">Averages</CardTitle>

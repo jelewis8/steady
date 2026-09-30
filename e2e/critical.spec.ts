@@ -573,3 +573,214 @@ test('upgrade in a real browser: a database saved by the previous release opens 
   expect(db.version).toBe(20);
   expect(db.old).toEqual(['Irritability', 'Tiredness']); // the old field is left exactly as it was
 });
+
+// ---- Release 5: F-003 log past days, F-004 calendar ----
+const dayKey = (page: Page, offset: number) =>
+  page.evaluate((o) => {
+    const d = new Date();
+    d.setDate(d.getDate() + o);
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }, offset);
+
+test('F-003: a medication that starts later is explained on the day, and doses appear once its start date is earlier', async ({ page }) => {
+  await onboard(page);
+  const d = await dayKey(page, -2);
+  await page.goto(`/day/${d}`);
+  await page.getByRole('button', { name: 'Add this day’s routine and medications' }).click();
+  await expect(page.getByText('Some medications start after this day')).toBeVisible();
+  await expect(page.getByText(/Lamotrigine was added to Steady on a later date/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Mark Lamotrigine .* as taken$/ })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Open Lamotrigine' }).click();
+  await page.getByLabel('Started on').fill(await dayKey(page, -10));
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.goto(`/day/${d}`); // a day she already opened catches up
+  await expect(page.getByRole('button', { name: /^Mark Lamotrigine .* as taken$/ }).first()).toBeVisible();
+  await expect(page.getByText('Some medications start after this day')).toHaveCount(0);
+});
+
+test('F-003: from Today, open an earlier day, add its routine, and tick a dose and a meal as that day', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await page.getByLabel('Started on').fill(await dayKey(page, -10)); // she was taking it before she added it to Steady
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Log from an earlier day' }).click();
+  await page.getByRole('button', { name: /^Yesterday/ }).click();
+  const yesterday = await dayKey(page, -1);
+  await expect(page).toHaveURL(new RegExp(`/day/${yesterday}$`));
+  await expect(page.getByText('Nothing is recorded for this day yet')).toBeVisible();
+  await page.getByRole('button', { name: 'Add this day’s routine and medications' }).click();
+  await expect(page.getByRole('heading', { name: 'Not recorded yet' })).toBeVisible();
+  await expect(page.getByText('Not recorded yet').first()).toBeVisible();
+
+  // a dose: recorded at its scheduled time, not "now"
+  await page.getByRole('button', { name: /^Mark Lamotrigine .* as taken$/ }).first().click();
+  await expect(page.getByRole('heading', { name: 'Recorded', exact: true })).toBeVisible();
+  const taken = page.getByRole('listitem').filter({ hasText: 'Lamotrigine' }).filter({ hasText: /Taken at/ });
+  await expect(taken).toHaveCount(1);
+  await expect(taken).toContainText(/(8:00|08:00)/);
+
+  // a meal: the meal log belongs to yesterday, not today
+  await page.getByRole('button', { name: /^Mark Breakfast .* as done$/ }).first().click();
+  const where = await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const rows: { timestamp: string }[] = await new Promise((res) => {
+      const g = db.transaction('mealLogs').objectStore('mealLogs').getAll();
+      g.onsuccess = () => res(g.result);
+    });
+    const dose: { scheduledTime: string; actualTime: string | null; status: string }[] = await new Promise((res) => {
+      const g = db.transaction('medicationDoses').objectStore('medicationDoses').getAll();
+      g.onsuccess = () => res(g.result);
+    });
+    db.close();
+    const key = (iso: string) => {
+      const d = new Date(iso);
+      const p = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    };
+    return { meals: rows.map((r) => key(r.timestamp)), takenDoses: dose.filter((d) => d.status === 'taken').map((d) => [key(d.scheduledTime), d.actualTime && key(d.actualTime), d.actualTime === d.scheduledTime]) };
+  });
+  expect(where.meals).toEqual([yesterday]);
+  expect(where.takenDoses).toEqual([[yesterday, yesterday, true]]);
+
+  // back to today: nothing from yesterday leaked into today's progress
+  await page.getByRole('link', { name: 'Back to today' }).click();
+  await expect(page.getByText(/Today’s routine/)).toBeVisible();
+});
+
+test('F-003: add a seizure to a past day, and it returns to that day', async ({ page }) => {
+  await onboard(page);
+  const d = await dayKey(page, -3);
+  await page.goto(`/day/${d}`);
+  await expect(page.getByText('No seizures logged for this day.')).toBeVisible();
+  await page.getByRole('link', { name: 'Log a seizure on this day' }).click();
+  await expect(page.getByLabel('Started')).toHaveValue(`${d}T12:00`);
+  await page.getByRole('button', { name: 'Save seizure' }).click();
+  await expect(page).toHaveURL(new RegExp(`/day/${d}$`));
+  await expect(page.getByRole('link', { name: /Focal aware/ })).toBeVisible();
+});
+
+test('F-003: sleep for any night, and a check-in for a past day', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/sleep');
+  await page.getByRole('button', { name: 'Log a different night' }).click();
+  const night = await dayKey(page, -4);
+  await page.getByLabel('Which night?').fill(night);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Save sleep' }).click();
+  await expect(page.getByText(/Night of/).first()).toBeVisible();
+
+  // the day after that night shows it
+  await page.goto(`/day/${await dayKey(page, -3)}`);
+  await expect(page.getByText(/^\d{1,2}:\d{2}.* to \d{1,2}:\d{2}/)).toBeVisible();
+  await page.getByRole('button', { name: 'Add a check-in' }).click();
+  await expect(page.getByRole('dialog', { name: /^How was .*?$/ })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'How was today?' })).toHaveCount(0);
+});
+
+test('F-003: today and future days are not past days', async ({ page }) => {
+  await onboard(page);
+  await page.goto(`/day/${await dayKey(page, 0)}`);
+  await expect(page.getByText(/Today’s routine/)).toBeVisible();
+  await page.goto(`/day/${await dayKey(page, 3)}`);
+  await expect(page.getByText(/Today’s routine/)).toBeVisible();
+  await page.goto('/day/not-a-date');
+  await expect(page.getByText(/Today’s routine/)).toBeVisible();
+});
+
+test('F-003: a medication she has since stopped appears on the days before she stopped it', async ({ page }) => {
+  await onboard(page);
+  const started = await dayKey(page, -10);
+  const stopped = await dayKey(page, -2);
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await page.getByLabel('Started on').fill(started);
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await page.getByRole('button', { name: 'I no longer take this' }).click();
+  await page.getByRole('dialog').getByLabel('When did you stop?').fill(stopped);
+  await page.getByRole('dialog').getByRole('button', { name: 'Save and move to past medications' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Medications' })).toBeVisible();
+
+  await page.goto(`/day/${await dayKey(page, -5)}`);
+  await page.getByRole('button', { name: 'Add this day’s routine and medications' }).click();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Lamotrigine' }).first()).toBeVisible();
+
+  await page.goto(`/day/${await dayKey(page, -1)}`); // after she stopped it
+  await page.getByRole('button', { name: 'Add this day’s routine and medications' }).click();
+  await expect(page.getByRole('heading', { name: 'Not recorded yet' })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Lamotrigine' })).toHaveCount(0);
+});
+
+test('F-004: the calendar shows markers as words, opens a day, and has a list view and month navigation', async ({ page }) => {
+  await onboard(page);
+  const d = await dayKey(page, -1);
+  const month = d.slice(0, 7);
+  // give yesterday a seizure
+  await page.goto(`/day/${d}`);
+  await page.getByRole('link', { name: 'Log a seizure on this day' }).click();
+  await page.getByRole('button', { name: 'Save seizure' }).click();
+  await expect(page).toHaveURL(new RegExp(`/day/${d}$`));
+
+  await page.goto(`/calendar?m=${month}`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendar' })).toBeVisible();
+  const cell = page.getByRole('link', { name: /: 1 seizure$/ });
+  await expect(cell).toHaveCount(1);
+  await expect(page.getByRole('columnheader').first()).toContainText('Monday'); // weeks start on Monday
+  await expect(page.getByText('What the symbols mean')).toBeVisible();
+
+  // list view: a real table with the same information in words
+  await page.getByRole('radio', { name: 'List' }).click();
+  const row = page.getByRole('row').filter({ hasText: '1 seizure' });
+  await expect(row).toHaveCount(1);
+  await expect(row.getByRole('link')).toBeVisible();
+  await page.getByRole('radio', { name: 'Calendar' }).click();
+
+  // open the day from the calendar
+  await page.getByRole('link', { name: /: 1 seizure$/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/day/${d}$`));
+  await page.goBack();
+
+  // months: previous works, next is unavailable for the current month
+  await page.getByRole('button', { name: 'Previous month' }).click();
+  await expect(page.getByRole('button', { name: 'Back to this month' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back to this month' }).click();
+  const thisMonth = (await dayKey(page, 0)).slice(0, 7);
+  await page.goto(`/calendar?m=${thisMonth}`);
+  await expect(page.getByRole('button', { name: 'Next month' })).toBeDisabled();
+});
+
+test('F-004: calendar and day pages have no accessibility violations and no animation', async ({ page }) => {
+  await onboard(page);
+  await page.goto(`/day/${await dayKey(page, -1)}`);
+  await page.getByRole('button', { name: 'Add this day’s routine and medications' }).click();
+  for (const path of ['/calendar', '/calendar?view=list', `/day/${await dayKey(page, -1)}`]) {
+    await page.goto(path);
+    await page.waitForTimeout(400);
+    const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(r.violations, `${path}: ${r.violations.map((v) => v.id).join(', ')}`).toEqual([]);
+  }
+  await page.goto('/calendar');
+  const fast = await page.evaluate(() => {
+    const bad: string[] = [];
+    for (const el of Array.from(document.querySelectorAll('*'))) {
+      const cs = getComputedStyle(el);
+      const durations = [...cs.transitionDuration.split(','), ...cs.animationDuration.split(',')].map((d) => d.trim()).map((d) => (d.endsWith('ms') ? parseFloat(d) : parseFloat(d) * 1000));
+      if (durations.some((ms) => ms > 0 && ms < 300)) bad.push(el.tagName);
+      if (cs.animationName !== 'none') bad.push('animation:' + el.tagName);
+    }
+    return bad;
+  });
+  expect(fast).toEqual([]);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Log from an earlier day' }).click();
+  await page.waitForTimeout(300);
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+});

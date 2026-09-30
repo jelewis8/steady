@@ -7,7 +7,7 @@
  * Pure functions only.
  */
 import { uuid } from './ids';
-import { fromDateKey, localDateTime, minutesOfDay, parseTime } from './time';
+import { fromDateKey, localDateTime, minutesOfDay, parseTime, todayKey } from './time';
 import type {
   DayPlan,
   ISODate,
@@ -112,8 +112,13 @@ export function syncDayItems(
   return { toAdd, toRemoveIds, toUpdate };
 }
 
-export function isMedicationActiveOn(med: Medication, date: ISODate): boolean {
-  if (!med.isActive || med.isRescue) return false;
+/**
+ * Was this medication scheduled on `date`? Today and later follow `isActive`. For past days, a medication she has since
+ * stopped still counts up to the day she stopped it (so a past day can be filled in accurately).
+ */
+export function isMedicationActiveOn(med: Medication, date: ISODate, today: ISODate = todayKey()): boolean {
+  if (med.isRescue) return false;
+  if (!med.isActive && (date >= today || !med.endDate)) return false;
   if (med.startDate && date < med.startDate) return false;
   if (med.endDate && date > med.endDate) return false;
   return true;
@@ -125,11 +130,12 @@ export function missingDosesForDay(
   date: ISODate,
   existing: MedicationDose[],
   now: ISODateTime,
+  today: ISODate = todayKey(),
 ): MedicationDose[] {
   const have = new Set(existing.map((d) => `${d.medicationId}|${d.scheduledTime}`));
   const out: MedicationDose[] = [];
   for (const m of meds) {
-    if (!isMedicationActiveOn(m, date)) continue;
+    if (!isMedicationActiveOn(m, date, today)) continue;
     for (const t of m.scheduledTimes) {
       const scheduledTime = localDateTime(date, t);
       if (have.has(`${m.id}|${scheduledTime}`)) continue;
@@ -149,10 +155,10 @@ export function missingDosesForDay(
 }
 
 /** Remove still-pending doses whose schedule no longer exists (e.g., a time was edited). */
-export function orphanedPendingDoses(meds: Medication[], date: ISODate, existing: MedicationDose[]): string[] {
+export function orphanedPendingDoses(meds: Medication[], date: ISODate, existing: MedicationDose[], today: ISODate = todayKey()): string[] {
   const valid = new Set<string>();
   for (const m of meds) {
-    if (!isMedicationActiveOn(m, date)) continue;
+    if (!isMedicationActiveOn(m, date, today)) continue;
     for (const t of m.scheduledTimes) valid.add(`${m.id}|${localDateTime(date, t)}`);
   }
   return existing

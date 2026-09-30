@@ -28,21 +28,6 @@ _(none open)_
 
 ### High
 
-- [ ] **F-003** · 2026-09-30 · requested by: Jeremiah · **Log things after the fact, clearly**
-  - What already exists (it's hard to find):
-    - Seizure log → "Log past one"; the quick log's "Other" time option.
-    - "I took it earlier, at…" on today's doses.
-    - Editing past nights in the Sleep diary.
-  - Missing:
-    - Opening **any past day** to tick off doses and routine items.
-    - Logging sleep for **any night**, not just last night.
-  - Make the path obvious. For example, "Log something from earlier" on Today, and a day picker (ties into F-004).
-
-- [ ] **F-004** · 2026-09-30 · requested by: Jeremiah (suggested by a user) · **Calendar view, like a period-tracking app**
-  - A month grid. Each day shows markers for seizures, auras, missed or unsure doses, short sleep, period days, and bowel days (F-006). Markers use icons plus text, never colour alone.
-  - Tap a day to see its details and edit them (F-003).
-  - Needs a table/list alternative for screen readers. No animation.
-
 - [ ] **F-006** · 2026-09-30 · requested by: Jeremiah's friend (first user) · **Bowel and bladder tracking**
   - Her words: medications can cause lasting constipation. She has a planned "toilet day" every 6 days (passion fruit tea, papaya). Dystonia means she doesn't feel the need to urinate, so she schedules bathroom times. "It would be important to ask if we pooped for the day."
   - **Bowel:** a daily question, "Did you have a bowel movement today?", then "How was it?" (simple choices; consider plain-language labels rather than a clinical scale) and "What did you eat or drink beforehand?" (notes). Show "days since last bowel movement" discreetly.
@@ -69,6 +54,9 @@ _(none open)_
 ---
 
 ## Done
+
+- [x] **F-003** · 2026-09-30 · Log things after the fact, clearly: "Log from an earlier day" on Today opens any past day (doses, routine, seizures, sleep, check-in), recorded at that day's times; sleep for any night → release-2026-09-30-5
+- [x] **F-004** · 2026-09-30 · Calendar: Monday-start month grid with icon-plus-words markers (seizures, warning signs, missed/unsure/unrecorded doses, short sleep, period) and a table list view; bowel days come with F-006 → release-2026-09-30-5
 
 - [x] **F-001** · 2026-09-30 · Dated side-effect log (medication or "not sure which", start and stop dates, severity, notes), in the neurologist report; the old undated list was migrated to "date unknown" → release-2026-09-30-4
 - [x] **F-007** · 2026-09-30 · Medications that didn't work out: "I no longer take this" asks the date and (optionally) why; the report has "Past medications and why they were stopped"; allergic reactions also appear on the action plan under Allergies → release-2026-09-30-4

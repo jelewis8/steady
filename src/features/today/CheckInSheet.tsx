@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatDateLong, todayKey } from '../../core/time';
 import type { DailyCheckIn } from '../../core/types';
 import { useCheckIn, usePrefs } from '../../data/hooks';
 import { saveCheckIn } from '../../data/repo';
@@ -33,14 +34,14 @@ export function CheckInSheet({ open, onClose, date }: { open: boolean; onClose: 
     });
     onClose();
     toast('Check-in saved. Thank you.');
-    if (form.seizureActivityReported && !existing?.seizureActivityReported) setQuickLog(true);
+    if (date === todayKey() && form.seizureActivityReported && !existing?.seizureActivityReported) setQuickLog(true);
   }
 
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title="How was today?"
+      title={date === todayKey() ? 'How was today?' : `How was ${formatDateLong(date)}?`}
       footer={
         <Button variant="primary" size="lg" block onClick={save}>
           Save check-in

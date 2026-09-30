@@ -1,4 +1,4 @@
-import { BedDouble, BookOpen, Database, FileText, HandHeart, Info, LifeBuoy, List, Pill, Settings, Shield, Utensils } from 'lucide-react';
+import { BedDouble, BookOpen, CalendarRange, Database, FileText, HandHeart, Info, LifeBuoy, List, Pill, Settings, Shield, Utensils } from 'lucide-react';
 import { usePrefs } from '../../data/hooks';
 import { updatePreferences } from '../../data/repo';
 import { Card, ListLink, PageHeader, Toggle } from '../../ui/kit';
@@ -19,6 +19,7 @@ export function MorePage() {
       </Card>
       <nav aria-label="Sections">
         <Card className="p-2 sm:p-2">
+          <ListLink to="/calendar" icon={<CalendarRange size={22} />} title="Calendar" sub="Month view, and fill in past days" />
           <ListLink to="/meds" icon={<Pill size={22} />} title="Medications" sub="Doses, supply, adherence" />
           <ListLink to="/seizures" icon={<List size={22} />} title="Seizure log" sub="Every seizure and warning sign" />
           <ListLink to="/sleep" icon={<BedDouble size={22} />} title="Sleep" sub="Diary and targets" />

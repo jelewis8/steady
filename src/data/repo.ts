@@ -124,12 +124,12 @@ export async function setDayTemplate(date: ISODate, templateId: string): Promise
 export async function setChecklistStatus(
   id: string,
   status: ChecklistStatus,
-  opts: { glassMl?: number; deferMinutes?: number } = {},
+  opts: { glassMl?: number; deferMinutes?: number; /** when it really happened, for a past day (default: now) */ at?: Date } = {},
 ): Promise<Undo> {
   const item = await db.routineChecklistItems.get(id);
   if (!item) return noop;
   const before = { ...item };
-  const now = new Date();
+  const now = opts.at ?? new Date();
   const next: RoutineChecklistItem = {
     ...item,
     status,
