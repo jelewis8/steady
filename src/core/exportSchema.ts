@@ -3,6 +3,7 @@
  * Versioned, self-describing, no proprietary encoding. Voice notes are embedded as base64.
  */
 import { APP_VERSION, DEFAULT_PREFERENCES, SCHEMA_VERSION } from './defaults';
+import { sideEffectsFromNotes } from './sideEffects';
 import type {
   AuraLog,
   DailyCheckIn,
@@ -17,6 +18,7 @@ import type {
   RoutineChecklistItem,
   RoutineTemplate,
   SeizureEvent,
+  SideEffectLog,
   SleepEntry,
   TriggerTag,
   UserProfile,
@@ -49,6 +51,7 @@ export interface ExportData {
   dailyCheckIns: DailyCheckIn[];
   dayPlans: DayPlan[];
   voiceNotes: ExportedVoiceNote[];
+  sideEffects: SideEffectLog[];
 }
 
 export interface ExportEnvelope {
@@ -88,6 +91,7 @@ export const COLLECTION_KEYS = [
   'dailyCheckIns',
   'dayPlans',
   'voiceNotes',
+  'sideEffects',
 ] as const;
 export type CollectionKey = (typeof COLLECTION_KEYS)[number];
 
@@ -110,6 +114,7 @@ export function emptyExportData(): ExportData {
     dailyCheckIns: [],
     dayPlans: [],
     voiceNotes: [],
+    sideEffects: [],
   };
 }
 
@@ -161,6 +166,12 @@ export function parseEnvelope(raw: unknown): ParseResult {
     data.userProfile = { ...data.userProfile, safetyPlan: data.userProfile.safetyPlan ?? null, preferences: { ...DEFAULT_PREFERENCES, ...data.userProfile.preferences } };
   }
   data.emergencyContacts = data.emergencyContacts.map((c) => Object.assign({ supportPerson: false }, c));
+  // Migration 1.2.0 → 1.3.0 (F-001, F-007): the dated side-effect log and why a medication was stopped.
+  // Files from before 1.3.0 carry undated side-effect names on each medication; they become "date unknown" entries.
+  // (The old names stay on the medication, untouched.) Files from 1.3.0 on carry their own log, so nothing is added.
+  const hadSideEffectLog = Array.isArray((env.data as Partial<ExportData>).sideEffects);
+  data.medications = data.medications.map((m) => Object.assign({ stopReason: null, stopReasonNote: null }, m));
+  if (!hadSideEffectLog) data.sideEffects = sideEffectsFromNotes(data.medications);
   const requireId = <T extends { id?: unknown }>(arr: T[], name: string) => {
     const bad = arr.filter((x) => typeof x?.id !== 'string').length;
     if (bad) warnings.push(`${bad} ${name} without an id were skipped.`);
@@ -169,6 +180,7 @@ export function parseEnvelope(raw: unknown): ParseResult {
   data.seizureEvents = requireId(data.seizureEvents, 'seizure events');
   data.medications = requireId(data.medications, 'medications');
   data.medicationDoses = requireId(data.medicationDoses, 'doses');
+  data.sideEffects = requireId(data.sideEffects, 'side effects');
   return {
     ok: true,
     envelope: {
@@ -188,6 +200,7 @@ export function summarizeData(data: ExportData): { label: string; count: number 
     { label: 'seizure events', count: data.seizureEvents.length },
     { label: 'aura logs', count: data.auraLogs.length },
     { label: 'medications', count: data.medications.length },
+    { label: 'side effects', count: data.sideEffects.length },
     { label: 'dose records', count: data.medicationDoses.length },
     { label: 'sleep entries', count: data.sleepEntries.length },
     { label: 'meal logs', count: data.mealLogs.length },

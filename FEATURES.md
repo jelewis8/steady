@@ -28,11 +28,6 @@ _(none open)_
 
 ### High
 
-- [ ] **F-001** · 2026-09-30 · requested by: Jeremiah · **Dated side-effect log that feeds the neurologist report** (also resolves B-010)
-  - Record each side effect with the medication, the date it started, the date it stopped (optional), severity and notes. Allow "not sure which medication".
-  - Migrate today's undated `Medication.sideEffectsNoted` list into entries marked "date unknown".
-  - Report section: side effects by medication, with dates. Per-dose notes (B-011) feed into this too.
-
 - [ ] **F-003** · 2026-09-30 · requested by: Jeremiah · **Log things after the fact, clearly**
   - What already exists (it's hard to find):
     - Seizure log → "Log past one"; the quick log's "Other" time option.
@@ -55,11 +50,6 @@ _(none open)_
   - Include both in the report (frequency over the period), the calendar (F-004), and possibly insights (e.g. against medication changes).
   - Keep it private and matter-of-fact. It could sit in the evening check-in and/or as routine items.
 
-- [ ] **F-007** · 2026-09-30 · requested by: Jeremiah's friend · **Medications that didn't work out**
-  - When a medication is stopped ("I no longer take this"), record why: didn't control seizures, side effects, allergic reaction, cost or access, other. Also record its side effects and start/stop dates.
-  - Add a "Past medications and why they were stopped" section to the neurologist report, so a doctor knows what not to prescribe again.
-  - Optionally include it on the action plan under allergies/intolerances.
-
 ### Normal
 
 - [ ] **F-009** · 2026-09-30 · requested by: Jeremiah · **Low-mood note in the neurologist report** (split out of F-002)
@@ -79,5 +69,8 @@ _(none open)_
 ---
 
 ## Done
+
+- [x] **F-001** · 2026-09-30 · Dated side-effect log (medication or "not sure which", start and stop dates, severity, notes), in the neurologist report; the old undated list was migrated to "date unknown" → release-2026-09-30-4
+- [x] **F-007** · 2026-09-30 · Medications that didn't work out: "I no longer take this" asks the date and (optionally) why; the report has "Past medications and why they were stopped"; allergic reactions also appear on the action plan under Allergies → release-2026-09-30-4
 
 - [x] **F-002** · 2026-09-30 · Support for thoughts of suicide or self-harm: Support page (crisis lines by country, call/text a trusted person, emergency call), personal safety plan, reachable from Rescue, Calm & grounding, More and the lock screen → release-2026-09-30-3. _Wording still needs review by a clinician or peer-support organisation._

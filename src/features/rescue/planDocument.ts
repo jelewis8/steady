@@ -31,6 +31,7 @@ export function buildPlanDocument(opts: {
     .map((c) => `<li><strong>${esc(c.name)}</strong>${c.relationship ? ` (${esc(c.relationship)})` : ''} — <a href="tel:${esc(c.phone)}">${esc(c.phone)}</a></li>`)
     .join('');
 
+  const reactions = meds.filter((m) => !m.isActive && m.stopReason === 'allergic_reaction').map((m) => esc(m.name));
   const section = (title: string, body: string) => (body ? `<section><h2>${title}</h2>${body}</section>` : '');
 
   const body = `
@@ -42,7 +43,10 @@ export function buildPlanDocument(opts: {
 ${section('What my seizures look like', plan?.seizureDescription ? `<p>${para(plan.seizureDescription)}</p>` : '')}
 ${section('How to help me', plan?.howToHelp ? `<p>${para(plan.howToHelp)}</p>` : '')}
 ${section('Rescue medication', plan?.rescueMedicationInstructions ? `<p>${para(plan.rescueMedicationInstructions)}</p>` : '')}
-${section('Allergies', `<p>${plan?.allergies?.length ? esc(plan.allergies.join(', ')) : 'None known'}</p>`)}
+${section(
+  'Allergies',
+  `<p>${plan?.allergies?.length ? esc(plan.allergies.join(', ')) : 'None known'}</p>${reactions.length ? `<p>Medications stopped after an allergic reaction: ${reactions.join(', ')}</p>` : ''}`,
+)}
 ${section(
   'Current medications',
   medRows

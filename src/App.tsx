@@ -19,6 +19,7 @@ import { SeizureFormPage } from './features/seizures/SeizureFormPage';
 import { RescuePage } from './features/rescue/RescuePage';
 import { CalmPage } from './features/rescue/CalmPage';
 
+const SideEffectsPage = lazy(() => import('./features/meds/SideEffectsPage').then((m) => ({ default: m.SideEffectsPage })));
 const SupportPage = lazy(() => import('./features/support/SupportPage').then((m) => ({ default: m.SupportPage })));
 const SafetyPlanPage = lazy(() => import('./features/support/SafetyPlanPage').then((m) => ({ default: m.SafetyPlanPage })));
 const SchedulePage = lazy(() => import('./features/routine/SchedulePage').then((m) => ({ default: m.SchedulePage })));
@@ -143,6 +144,7 @@ export default function App() {
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="more" element={<MorePage />} />
           <Route path="meds" element={<MedsPage />} />
+          <Route path="meds/side-effects" element={<SideEffectsPage />} />
           <Route path="meds/:id" element={<MedEditorPage />} />
           <Route path="seizures" element={<SeizureListPage />} />
           <Route path="seizures/:id" element={<SeizureFormPage />} />

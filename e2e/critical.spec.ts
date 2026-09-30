@@ -375,3 +375,201 @@ test('F-002: support pages have no accessibility violations and never contact an
   }
   expect(foreign).toEqual([]);
 });
+
+// ---- Release 4: F-001 dated side-effect log, F-007 medications that didn't work out ----
+test('F-001: add a dated side effect to a medication, edit it, and remove it with undo', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await page.getByRole('button', { name: 'Add a side effect' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add a side effect' });
+  await dialog.getByLabel('What did you notice?').fill('Dizziness');
+  await dialog.getByLabel('When did it start?').fill('2026-09-01');
+  await dialog.getByRole('radio', { name: 'Moderate' }).click();
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  const entry = page.getByRole('listitem').filter({ hasText: 'Dizziness' });
+  await expect(entry).toContainText('Moderate');
+  await expect(entry).toContainText(/Started .*Sep.* · still happening/);
+
+  // a stop date before the start date is caught
+  await page.getByRole('button', { name: 'Edit Dizziness' }).click();
+  const edit = page.getByRole('dialog', { name: 'Edit side effect' });
+  await edit.getByLabel('When did it stop?').fill('2026-08-01');
+  await expect(edit.getByRole('alert')).toContainText('before the start date');
+  await edit.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(edit).toBeVisible(); // not saved
+  await edit.getByLabel('When did it stop?').fill('2026-09-10');
+  await edit.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(entry).toContainText(/stopped .*10/);
+
+  await page.getByRole('button', { name: 'Edit Dizziness' }).click();
+  await page.getByRole('button', { name: 'Remove this entry' }).click();
+  await expect(page.getByText('Nothing noted for this medication.')).toBeVisible();
+  await page.getByRole('button', { name: 'Undo' }).last().click(); // the newest toast
+  await expect(page.getByRole('listitem').filter({ hasText: 'Dizziness' })).toBeVisible();
+});
+
+test('F-001: "not sure which medication" and "date unknown" are fine, and show in the report', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds/side-effects');
+  await expect(page.getByRole('heading', { level: 1, name: 'Side effects' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add a side effect' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add a side effect' });
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(dialog.getByText(/Add a few words/)).toBeVisible(); // gentle, not red-error wording
+  await dialog.getByLabel('What did you notice?').fill('Headaches');
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Not sure which medication' })).toBeVisible();
+  await expect(page.getByText('Start date unknown')).toBeVisible();
+
+  await page.goto('/insights/report');
+  await expect(page.getByRole('heading', { name: 'Side effects noted' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Headaches' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Start date unknown' })).toBeVisible();
+});
+
+test('F-007: stopping a medication asks why (optionally) and the report lists it', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await page.getByRole('button', { name: 'Add a side effect' }).click();
+  await page.getByLabel('What did you notice?').fill('Rash');
+  await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'I no longer take this' }).click();
+  const dialog = page.getByRole('dialog', { name: /Stopping Lamotrigine/ });
+  await expect(dialog.getByText(/Never stop an anti-seizure medication without talking to your doctor/)).toBeVisible();
+  await dialog.getByRole('radio', { name: 'Allergic reaction' }).click();
+  await dialog.getByLabel(/Anything you’d like to add/).fill('Hives after two days');
+  await dialog.getByRole('button', { name: 'Save and move to past medications' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Medications' })).toBeVisible();
+  await page.getByText(/Past medications \(1\)/).click();
+  await expect(page.getByRole('link', { name: /Lamotrigine/ })).toContainText('Allergic reaction');
+
+  await page.goto('/insights/report');
+  await expect(page.getByRole('heading', { name: 'Past medications and why they were stopped' })).toBeVisible();
+  const row = page.getByRole('row', { name: /Lamotrigine/ }).filter({ hasText: 'Allergic reaction' });
+  await expect(row).toContainText('Hives after two days');
+  await expect(row).toContainText('Rash');
+  await expect(page.getByRole('heading', { name: 'Side effects noted' })).toBeVisible();
+});
+
+test('F-007: she can skip the reason, and add it later', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await page.getByRole('button', { name: 'I no longer take this' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Save and move to past medications' }).click(); // nothing chosen
+  await page.getByText(/Past medications \(1\)/).click();
+  await expect(page.getByRole('link', { name: /Lamotrigine/ })).toContainText('Reason not recorded');
+  await page.getByRole('link', { name: /Lamotrigine/ }).click();
+  await expect(page.getByRole('heading', { name: 'Why it was stopped' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add a reason' }).click();
+  await page.getByRole('dialog').getByRole('radio', { name: /control my seizures/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Did not control seizures')).toBeVisible();
+});
+
+test('F-001: side-effect screens have no accessibility violations (including the open sheet)', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds/side-effects');
+  await page.waitForTimeout(300);
+  let r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+  await page.getByRole('button', { name: 'Add a side effect' }).click();
+  await page.waitForTimeout(300);
+  r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await page.getByRole('button', { name: 'I no longer take this' }).click();
+  await page.waitForTimeout(300);
+  r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+});
+
+test('upgrade in a real browser: a database saved by the previous release opens and its side effects are kept as "date unknown"', async ({ page }) => {
+  await page.goto('/favicon.svg'); // same origin, no app running, so nothing has opened the database yet
+  await page.evaluate(async () => {
+    // The release-2026-09-30-3 database: schema version 1 (IndexedDB version 10), exactly as that release created it.
+    const stores: Record<string, string> = {
+      profile: 'id',
+      seizureEvents: 'id, timestamp',
+      auraLogs: 'id, timestamp, seizureEventId',
+      medications: 'id, isActive',
+      medicationDoses: 'id, medicationId, scheduledTime, [medicationId+scheduledTime]',
+      mealLogs: 'id, timestamp',
+      hydrationLogs: 'id, timestamp',
+      sleepEntries: 'id, &date',
+      routineTemplates: 'id',
+      routineChecklistItems: 'id, date, [date+templateItemId]',
+      triggerTags: 'id, label',
+      rescueProtocol: 'id',
+      emergencyContacts: 'id, sortOrder',
+      insightRules: 'id, correlationType',
+      dailyCheckIns: 'id, &date',
+      dayPlans: 'date',
+      voiceNotes: 'id, seizureEventId',
+      meta: 'key',
+    };
+    const db: IDBDatabase = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('steady', 10);
+      req.onupgradeneeded = () => {
+        for (const [name, spec] of Object.entries(stores)) {
+          const parts = spec.split(',').map((x) => x.trim());
+          const store = req.result.createObjectStore(name, { keyPath: parts[0] });
+          for (const p of parts.slice(1)) {
+            const unique = p.startsWith('&');
+            const n = p.replace('&', '');
+            const keyPath = n.startsWith('[') ? n.slice(1, -1).split('+') : n;
+            store.createIndex(n, keyPath, { unique });
+          }
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const now = new Date().toISOString();
+    const tx = db.transaction(['profile', 'medications'], 'readwrite');
+    tx.objectStore('profile').put({
+      id: 'p1', displayName: 'Test', dateOfBirth: null, epilepsyType: 'focal', seizureFocus: null, diagnosisDate: null, timezone: 'America/New_York',
+      preferences: { theme: 'system', emergencyNumber: '911' }, onboarded: true, isSampleData: false, createdAt: now, updatedAt: now,
+    });
+    tx.objectStore('medications').put({
+      id: 'm1', name: 'Keppra', genericName: null, dosage: '500', unit: 'mg', frequency: 'twice daily', scheduledTimes: ['08:00', '20:00'],
+      prescriber: null, pharmacy: null, remainingCount: 20, unitsPerDose: 1, refillDate: null, refillReminderDays: 7, isActive: true, isRescue: false,
+      startDate: '2026-01-01', endDate: null, sideEffectsNoted: ['Irritability', 'Tiredness'], notes: null, createdAt: now, updatedAt: now,
+    });
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  });
+
+  await page.goto('/meds/side-effects');
+  await expect(page.getByRole('heading', { level: 1, name: 'Side effects' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Keppra/ })).toBeVisible();
+  await expect(page.getByText('Irritability')).toBeVisible();
+  await expect(page.getByText('Tiredness')).toBeVisible();
+  await expect(page.getByText('Start date unknown')).toHaveCount(2);
+  // the rest of her data is untouched and the app works
+  await page.goto('/meds');
+  await expect(page.getByText('Keppra')).toBeVisible();
+  const db = await page.evaluate(async () => {
+    const d: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const med: { sideEffectsNoted: string[] } = await new Promise((res) => {
+      const g = d.transaction('medications').objectStore('medications').get('m1');
+      g.onsuccess = () => res(g.result);
+    });
+    const v = d.version;
+    d.close();
+    return { version: v, old: med.sideEffectsNoted };
+  });
+  expect(db.version).toBe(20);
+  expect(db.old).toEqual(['Irritability', 'Tiredness']); // the old field is left exactly as it was
+});

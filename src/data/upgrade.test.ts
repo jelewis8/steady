@@ -18,6 +18,8 @@ import { SteadyDB } from './db';
 import { checksumOf, createDexieStorage } from './storage';
 import backup20260927 from '../test/fixtures/backup-release-2026-09-27.json?raw';
 
+// Releases 2026-09-27 through 2026-09-30-3 all used database schema version 1, so this one entry covers them.
+// release-2026-09-30-4 added version 2 (the sideEffects table); when the NEXT schema change ships, add the version-2 stores here too.
 const PREVIOUS_RELEASES: { release: string; stores: Record<string, string> }[] = [
   {
     release: 'release-2026-09-27',
@@ -64,6 +66,8 @@ const loadJson = (raw: string) => JSON.parse(raw) as ExportEnvelope;
 const ROW_KEYS = COLLECTION_KEYS.filter((k) => k !== 'voiceNotes');
 
 describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, stores }) => {
+  // Collections that did not exist in that release (added later) are checked by the migration tests below.
+  const rowKeys = ROW_KEYS.filter((k) => k in stores);
   const fixture = FROZEN_BACKUPS.find((f) => f.release === release);
   if (!fixture) throw new Error(`No frozen backup registered for ${release}`);
 
@@ -73,7 +77,7 @@ describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, sto
     await old.open();
     await old.table('profile').put(data.userProfile);
     if (data.rescueProtocol) await old.table('rescueProtocol').put(data.rescueProtocol);
-    for (const k of ROW_KEYS) await old.table(k).bulkPut(data[k] as unknown[]);
+    for (const k of rowKeys) await old.table(k).bulkPut(data[k] as unknown[]);
     await old.table('meta').put({ key: 'lastExportAt', value: '2026-09-29T10:00:00.000Z' });
     old.close();
   }
@@ -88,7 +92,7 @@ describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, sto
     try {
       expect(await current.profile.toArray()).toEqual([data.userProfile]);
       expect(await current.rescueProtocol.toArray()).toEqual(data.rescueProtocol ? [data.rescueProtocol] : []);
-      for (const k of ROW_KEYS) {
+      for (const k of rowKeys) {
         const rows = await (current[k] as unknown as Dexie.Table).toArray();
         expect(byId(rows), `${k} changed after upgrade`).toEqual(byId(data[k] as { id?: string }[]));
       }
@@ -133,7 +137,7 @@ describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, sto
       const out = await createDexieStorage(current).exportAll();
       expect(out.schemaVersion).toBe(SCHEMA_VERSION);
       expect(out.checksum).toHaveLength(64);
-      for (const k of ROW_KEYS) expect(byId(out.data[k] as { id?: string }[]), k).toEqual(byId(source.data[k] as { id?: string }[]));
+      for (const k of rowKeys) expect(byId(out.data[k] as { id?: string }[]), k).toEqual(byId(source.data[k] as { id?: string }[]));
     } finally {
       current.close();
     }
@@ -157,7 +161,7 @@ describe.each(FROZEN_BACKUPS)('backup file exported by $release', ({ raw: text }
     const storage = createDexieStorage(database);
     await storage.importAll(parsed.envelope, 'replace');
     const after = await storage.exportAll();
-    expect(summarizeData(after.data)).toEqual(summarizeData(raw.data));
+    expect(summarizeData(after.data)).toEqual(summarizeData(parsed.envelope.data));
     database.close();
   });
 
@@ -197,9 +201,97 @@ describe.skipIf(realBackups.length === 0).each(realBackups)('real backup $path',
       const storage = createDexieStorage(database);
       await storage.importAll(parsed.envelope, mode);
       const after = await storage.exportAll();
-      expect(summarizeData(after.data)).toEqual(summarizeData(raw.data));
+      expect(summarizeData(after.data)).toEqual(summarizeData(parsed.envelope.data));
       expect(after.data.userProfile?.id).toBe(raw.data.userProfile?.id);
       database.close();
     });
   }
+});
+
+/**
+ * Release 2026-09-30-4 (F-001): side effects move from an undated list on each medication into a dated log.
+ * Every old entry must survive as a "date unknown" entry, nothing old may be removed, and running it twice must not duplicate.
+ */
+describe('side-effect migration (F-001)', () => {
+  const sources = [
+    { label: 'frozen backup', text: backup20260927 },
+    ...realBackups.map((b) => ({ label: `real backup ${b.path}`, text: b.text })),
+  ];
+
+  for (const src of sources) {
+    it(`Dexie upgrade: every old undated side effect becomes a date-unknown entry, and the old field is untouched (${src.label})`, async () => {
+      const data = (JSON.parse(src.text) as ExportEnvelope).data;
+      // give the old data some side effects, as the release-2026-09-30-3 app would have saved them
+      const meds = data.medications.map((m, i) => ({ ...m, sideEffectsNoted: i === 0 ? ['Dizziness', 'dizziness ', 'Nausea'] : (m.sideEffectsNoted ?? []) }));
+      const name = freshName('se-upgrade');
+      const old = new Dexie(name);
+      old.version(1).stores(PREVIOUS_RELEASES[0].stores);
+      await old.open();
+      await old.table('medications').bulkPut(meds);
+      old.close();
+
+      const current = new SteadyDB(name);
+      await current.open();
+      try {
+        const rows = await current.sideEffects.toArray();
+        const expected = meds.flatMap((m) => [...new Set((m.sideEffectsNoted ?? []).map((x) => x.trim().toLowerCase()).filter(Boolean))].map((n) => `${m.id}|${n}`));
+        expect(rows.map((r) => `${r.medicationId}|${r.name.toLowerCase()}`).sort()).toEqual(expected.sort());
+        expect(rows.every((r) => r.startDate === null && r.endDate === null && r.severity === null)).toBe(true);
+        expect(rows.length).toBeGreaterThan(0);
+        // the old field is left exactly as it was
+        const after = await current.medications.toArray();
+        expect(byId(after.map((m) => ({ id: m.id, n: m.sideEffectsNoted })) as never)).toEqual(byId(meds.map((m) => ({ id: m.id, n: m.sideEffectsNoted })) as never));
+        expect(await current.medications.count()).toBe(meds.length);
+      } finally {
+        current.close();
+      }
+    });
+
+    it(`Dexie upgrade: a database with no side effects upgrades cleanly and opens (${src.label})`, async () => {
+      const data = (JSON.parse(src.text) as ExportEnvelope).data;
+      const name = freshName('se-none');
+      const old = new Dexie(name);
+      old.version(1).stores(PREVIOUS_RELEASES[0].stores);
+      await old.open();
+      await old.table('medications').bulkPut(data.medications.map((m) => ({ ...m, sideEffectsNoted: [] })));
+      old.close();
+      const current = new SteadyDB(name);
+      await current.open();
+      try {
+        expect(await current.sideEffects.count()).toBe(0);
+        expect(await current.medications.count()).toBe(data.medications.length);
+      } finally {
+        current.close();
+      }
+    });
+
+    it(`backup import: an older backup gets the same date-unknown entries, and importing twice does not duplicate (${src.label})`, async () => {
+      const raw = JSON.parse(src.text) as ExportEnvelope;
+      raw.data.medications = raw.data.medications.map((m, i) => ({ ...m, sideEffectsNoted: i === 0 ? ['Dizziness', 'Nausea'] : (m.sideEffectsNoted ?? []) }));
+      const parsed = parseEnvelope(raw);
+      if (!parsed.ok) throw new Error(parsed.error);
+      expect(parsed.envelope.data.sideEffects.length).toBeGreaterThanOrEqual(2);
+      const database = new SteadyDB(freshName('se-import'));
+      const storage = createDexieStorage(database);
+      await storage.importAll(parsed.envelope, 'replace');
+      const again = parseEnvelope(JSON.parse(JSON.stringify(raw)));
+      if (!again.ok) throw new Error(again.error);
+      await storage.importAll(again.envelope, 'merge');
+      const after = await storage.exportAll();
+      expect(after.data.sideEffects.length).toBe(parsed.envelope.data.sideEffects.length);
+      expect(after.data.medications.every((m) => m.stopReason === null && m.stopReasonNote === null)).toBe(true);
+      database.close();
+    });
+  }
+
+  it('a current-version backup keeps its own side-effect log and is not re-migrated', async () => {
+    const raw = JSON.parse(backup20260927) as ExportEnvelope;
+    raw.data.medications = raw.data.medications.map((m) => ({ ...m, sideEffectsNoted: ['Old note'] }));
+    raw.data.sideEffects = [
+      { id: 'se-1', medicationId: raw.data.medications[0].id, name: 'Dizziness', startDate: '2026-09-01', endDate: null, severity: 'mild', notes: null, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z' },
+    ];
+    const parsed = parseEnvelope(raw);
+    if (!parsed.ok) throw new Error(parsed.error);
+    expect(parsed.envelope.data.sideEffects.map((x) => x.id)).toEqual(['se-1']);
+  });
 });

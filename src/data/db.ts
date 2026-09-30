@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
+import { sideEffectsFromNotes } from '../core/sideEffects';
 import type {
   AuraLog,
   DailyCheckIn,
@@ -13,6 +14,7 @@ import type {
   RoutineChecklistItem,
   RoutineTemplate,
   SeizureEvent,
+  SideEffectLog,
   SleepEntry,
   TriggerTag,
   UserProfile,
@@ -42,6 +44,7 @@ export class SteadyDB extends Dexie {
   dailyCheckIns!: EntityTable<DailyCheckIn, 'id'>;
   dayPlans!: Table<DayPlan, string>;
   voiceNotes!: EntityTable<VoiceNote, 'id'>;
+  sideEffects!: EntityTable<SideEffectLog, 'id'>;
   meta!: Table<MetaRow, string>;
 
   constructor(name = 'steady') {
@@ -66,6 +69,16 @@ export class SteadyDB extends Dexie {
       voiceNotes: 'id, seizureEventId',
       meta: 'key',
     });
+    // Release 2026-09-30-4 (F-001, F-007): a table for the dated side-effect log. Existing tables are unchanged.
+    // The upgrade turns each medication's old undated side-effect names into "date unknown" entries.
+    // It never deletes or edits the old field, so rolling back to an earlier release loses nothing.
+    this.version(2)
+      .stores({ sideEffects: 'id, medicationId, startDate' })
+      .upgrade(async (tx) => {
+        const meds = await tx.table('medications').toArray();
+        const rows = sideEffectsFromNotes(meds);
+        if (rows.length) await tx.table('sideEffects').bulkPut(rows);
+      });
   }
 }
 

@@ -32,7 +32,9 @@ import type {
   RoutineTemplate,
   SafetyPlan,
   SeizureEvent,
+  SideEffectLog,
   SleepEntry,
+  StopReason,
   TriggerCategory,
   TriggerTag,
   UserPreferences,
@@ -273,6 +275,8 @@ export function newMedication(): Medication {
     startDate: todayKey(),
     endDate: null,
     sideEffectsNoted: [],
+    stopReason: null,
+    stopReasonNote: null,
     notes: null,
     createdAt: now,
     updatedAt: now,
@@ -284,7 +288,15 @@ export async function saveMedication(med: Medication): Promise<void> {
   await ensureDay(todayKey());
 }
 
-export async function deleteMedication(id: string): Promise<Undo> {
+export interface StopDetails {
+  /** Date she stopped (defaults to today) */
+  endDate?: ISODate;
+  reason?: StopReason | null;
+  note?: string | null;
+}
+
+/** "I no longer take this": archives the medication (history is kept) and records when and, if she says, why. */
+export async function deleteMedication(id: string, stop: StopDetails = {}): Promise<Undo> {
   const med = await db.medications.get(id);
   if (!med) return noop;
   // Keep dose history (it's medical history); only remove today's still-pending doses.
@@ -293,12 +305,60 @@ export async function deleteMedication(id: string): Promise<Undo> {
     (d) => d.status === 'pending' && dateKeyOf(d.scheduledTime) >= today,
   );
   await db.transaction('rw', [db.medications, db.medicationDoses], async () => {
-    await db.medications.put({ ...med, isActive: false, endDate: today, updatedAt: isoNow() });
+    await db.medications.put({
+      ...med,
+      isActive: false,
+      endDate: stop.endDate ?? today,
+      stopReason: stop.reason ?? null,
+      stopReasonNote: stop.note?.trim() || null,
+      updatedAt: isoNow(),
+    });
     await db.medicationDoses.bulkDelete(pending.map((d) => d.id));
   });
   return async () => {
     await db.medications.put(med);
     await db.medicationDoses.bulkPut(pending);
+  };
+}
+
+/** Add or correct why (and when) an already-stopped medication was stopped. */
+export async function saveStopDetails(id: string, stop: StopDetails): Promise<Undo> {
+  const med = await db.medications.get(id);
+  if (!med) return noop;
+  await db.medications.put({
+    ...med,
+    endDate: stop.endDate ?? med.endDate,
+    stopReason: stop.reason ?? null,
+    stopReasonNote: stop.note?.trim() || null,
+    updatedAt: isoNow(),
+  });
+  return async () => {
+    await db.medications.put(med);
+  };
+}
+
+// ───────────────────────── side effects ─────────────────────────
+
+export function newSideEffect(medicationId: string | null = null): SideEffectLog {
+  const now = isoNow();
+  return { id: uuid(), medicationId, name: '', startDate: null, endDate: null, severity: null, notes: null, createdAt: now, updatedAt: now };
+}
+
+export async function saveSideEffect(se: SideEffectLog): Promise<Undo> {
+  const before = await db.sideEffects.get(se.id);
+  await db.sideEffects.put({ ...se, name: se.name.trim(), notes: se.notes?.trim() || null, updatedAt: isoNow() });
+  return async () => {
+    if (before) await db.sideEffects.put(before);
+    else await db.sideEffects.delete(se.id);
+  };
+}
+
+export async function deleteSideEffect(id: string): Promise<Undo> {
+  const se = await db.sideEffects.get(id);
+  if (!se) return noop;
+  await db.sideEffects.delete(id);
+  return async () => {
+    await db.sideEffects.put(se);
   };
 }
 

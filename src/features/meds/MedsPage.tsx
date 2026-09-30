@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { adherence, supplyEstimate } from '../../core/stats';
-import { addDays, formatClock, parseTime, todayKey } from '../../core/time';
+import { STOP_REASON_SHORT } from '../../core/sideEffects';
+import { addDays, formatClock, formatDateShort, parseTime, todayKey } from '../../core/time';
 import type { Medication } from '../../core/types';
 import { useDoses, useMedications } from '../../data/hooks';
 import { Card, CardTitle, Disclaimer, Empty, LinkButton, PageHeader, Stat } from '../../ui/kit';
@@ -15,7 +16,9 @@ function MedRow({ m }: { m: Medication }) {
           {m.name} <span className="font-normal text-ink-2">{m.dosage} {m.unit}</span>
         </div>
         <div className="text-ink-2">
-          {m.isRescue
+          {!m.isActive
+            ? `${m.endDate ? `Stopped ${formatDateShort(m.endDate)} · ` : ''}${m.stopReason ? STOP_REASON_SHORT[m.stopReason] : 'Reason not recorded'}`
+            : m.isRescue
             ? 'Rescue medication — used as your plan says'
             : m.scheduledTimes.length
               ? `Daily at ${m.scheduledTimes.map((t) => formatClock(parseTime(t).hour, parseTime(t).minute)).join(', ')}`
@@ -55,6 +58,9 @@ export function MedsPage() {
           </LinkButton>
         }
       />
+      <LinkButton to="/meds/side-effects" block>
+        Side effects log
+      </LinkButton>
       {scheduled.length > 0 && (
         <Card labelledBy="adh-h">
           <CardTitle id="adh-h">Doses recorded as taken</CardTitle>

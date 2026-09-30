@@ -35,7 +35,6 @@ describe('F-002 data: migration 1.1.0 → 1.2.0', () => {
     if (!parsed.ok) return;
     expect(parsed.warnings).toEqual([]);
     expect(parsed.envelope.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe('1.2.0');
     const p = parsed.envelope.data.userProfile!;
     expect(p.safetyPlan).toBeNull();
     expect(p.preferences.country).toBeNull();
@@ -45,7 +44,9 @@ describe('F-002 data: migration 1.1.0 → 1.2.0', () => {
     expect(p.preferences.emergencyNumber).toBe(raw.data.userProfile!.preferences.emergencyNumber);
     expect(p.displayName).toBe(raw.data.userProfile!.displayName);
     expect(parsed.envelope.data.emergencyContacts.every((c) => c.supportPerson === false)).toBe(true);
-    expect(summarizeData(parsed.envelope.data)).toEqual(summarizeData(raw.data));
+    // everything she had is still there (the side-effect log is checked in upgrade.test.ts)
+    const without = (d: typeof raw.data) => summarizeData({ ...d, sideEffects: [] });
+    expect(without(parsed.envelope.data)).toEqual(without(raw.data));
   });
 
   it('keeps a safety plan, country, own numbers and support flags through export and import (both modes)', async () => {

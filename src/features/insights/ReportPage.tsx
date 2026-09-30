@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Copy, Printer } from 'lucide-react';
 import { AURA_SYMPTOMS, POST_ICTAL_SYMPTOMS, SEIZURE_TYPE_LABELS } from '../../core/defaults';
 import { adherence, doseNotesForReport } from '../../core/stats';
+import { describeSideEffectDates, groupSideEffects, pastMedicationsForReport, SEVERITY_TEXT } from '../../core/sideEffects';
 import { dateKeyOf, formatDateShort, formatDuration, formatHours, formatIsoClock } from '../../core/time';
-import { useDoses, useProfile, useTriggerTags } from '../../data/hooks';
+import { useDoses, useProfile, useSideEffects, useTriggerTags } from '../../data/hooks';
 import { webShare } from '../../platform/share';
 import { toast } from '../../state/ui';
 import { Button, Segmented } from '../../ui/kit';
@@ -22,6 +23,9 @@ export function ReportPage() {
   const tagName = new Map(tags.map((t) => [t.id, t.label]));
   const auraName = new Map(AURA_SYMPTOMS.map((a) => [a.key, a.label]));
   const postName = new Map(POST_ICTAL_SYMPTOMS.map((a) => [a.key, a.label]));
+  const allSideEffects = useSideEffects();
+  const sideEffectGroups = groupSideEffects(allSideEffects, d.meds);
+  const pastMeds = pastMedicationsForReport(d.meds, allSideEffects);
   const meds = d.meds.filter((m) => m.isActive);
   const perMed = meds
     .filter((m) => !m.isRescue)
@@ -49,6 +53,22 @@ export function ReportPage() {
     `Medication adherence (recorded doses): ${d.adherence.percent ?? '—'}%`,
     ...perMed.map(({ m, a }) => `  - ${m.name} ${m.dosage}${m.unit} at ${m.scheduledTimes.join(', ')}: ${a.percent ?? '—'}% (${a.skipped} skipped, ${a.unsure} unsure, ${a.notRecorded} not recorded)`),
     '',
+    ...(sideEffectGroups.length
+      ? [
+          'Side effects noted (all dates):',
+          ...sideEffectGroups.flatMap((g) =>
+            g.entries.map((e) => `  - ${g.medication ? `${g.medication.name} ${g.medication.dosage}${g.medication.unit}` : 'Medication not known'}: ${e.name}${e.severity ? ` (${SEVERITY_TEXT[e.severity].toLowerCase()})` : ''}, ${describeSideEffectDates(e).toLowerCase()}${e.notes ? ` — ${e.notes}` : ''}`),
+          ),
+          '',
+        ]
+      : []),
+    ...(pastMeds.length
+      ? [
+          'Past medications and why they were stopped:',
+          ...pastMeds.map((r) => `  - ${r.medication.name} ${r.medication.dosage}${r.medication.unit}: ${r.reasonText}${r.note ? ` (${r.note})` : ''}. ${r.period}${r.sideEffects.length ? `. Side effects: ${r.sideEffects.map((e) => e.name).join(', ')}` : ''}`),
+          '',
+        ]
+      : []),
     ...(doseNotes.length
       ? ['Notes recorded with doses:', ...doseNotes.map((n) => `  - ${formatDateShort(dateKeyOf(n.when))} ${formatIsoClock(n.when)}, ${n.medication}: ${[n.note, n.sideEffects.length ? `side effects: ${n.sideEffects.join(', ')}` : ''].filter(Boolean).join(' · ')}`), '']
       : []),
@@ -166,15 +186,69 @@ export function ReportPage() {
                   ))}
                 </tbody>
               </table>
-              {meds.some((m) => m.sideEffectsNoted.length) && (
-                <p className="mt-2 text-sm">
-                  Side effects noted:{' '}
-                  {meds
-                    .filter((m) => m.sideEffectsNoted.length)
-                    .map((m) => `${m.name}: ${m.sideEffectsNoted.join(', ')}`)
-                    .join('; ')}
-                </p>
-              )}
+            </section>
+          )}
+
+          {sideEffectGroups.length > 0 && (
+            <section className="mt-5">
+              <h2 className="text-lg font-bold">Side effects noted</h2>
+              <p className="text-sm text-ink-2">All dates, as recorded by the patient. “Start date unknown” means it was noted without a date.</p>
+              <table className="mt-2 w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b-2 border-line">
+                    <th className="py-1">Medication</th>
+                    <th>Side effect</th>
+                    <th>Strength</th>
+                    <th>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sideEffectGroups.flatMap((g) =>
+                    g.entries.map((e) => (
+                      <tr key={e.id} className="border-b border-line align-top">
+                        <td className="py-1.5 pr-2">{g.medication ? `${g.medication.name} ${g.medication.dosage}${g.medication.unit}` : 'Not sure which'}</td>
+                        <td className="pr-2">
+                          {e.name}
+                          {e.notes && <span className="text-ink-2"> — {e.notes}</span>}
+                        </td>
+                        <td className="pr-2">{e.severity ? SEVERITY_TEXT[e.severity] : '—'}</td>
+                        <td>{describeSideEffectDates(e)}</td>
+                      </tr>
+                    )),
+                  )}
+                </tbody>
+              </table>
+            </section>
+          )}
+
+          {pastMeds.length > 0 && (
+            <section className="mt-5">
+              <h2 className="text-lg font-bold">Past medications and why they were stopped</h2>
+              <table className="mt-2 w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b-2 border-line">
+                    <th className="py-1">Medication</th>
+                    <th>When</th>
+                    <th>Why it was stopped</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pastMeds.map((r) => (
+                    <tr key={r.medication.id} className="border-b border-line align-top">
+                      <td className="py-1.5 pr-2">
+                        {r.medication.name} {r.medication.dosage}
+                        {r.medication.unit}
+                      </td>
+                      <td className="pr-2">{r.period}</td>
+                      <td>
+                        <strong>{r.reasonText}</strong>
+                        {r.note && <span> — {r.note}</span>}
+                        {r.sideEffects.length > 0 && <div className="text-ink-2">Side effects noted: {r.sideEffects.map((e) => e.name).join(', ')}</div>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </section>
           )}
 

@@ -19,7 +19,7 @@ function med(partial: Partial<Medication> = {}): Medication {
     id: 'm1', name: 'Lamotrigine', genericName: null, dosage: '100', unit: 'mg', frequency: 'twice daily',
     scheduledTimes: ['08:00', '20:00'], prescriber: null, pharmacy: null, remainingCount: 10, unitsPerDose: 1,
     refillDate: null, refillReminderDays: 7, isActive: true, isRescue: false, startDate: '2026-01-01', endDate: null,
-    sideEffectsNoted: [], notes: null, createdAt: NOW, updatedAt: NOW, ...partial,
+    sideEffectsNoted: [], notes: null, stopReason: null, stopReasonNote: null, createdAt: NOW, updatedAt: NOW, ...partial,
   };
 }
 

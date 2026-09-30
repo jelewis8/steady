@@ -15,6 +15,7 @@ import type {
   MedicationDose,
   RoutineChecklistItem,
   SeizureEvent,
+  SideEffectLog,
   SleepEntry,
 } from '../core/types';
 import { db } from './db';
@@ -62,20 +63,34 @@ export async function loadSampleData(days = 90): Promise<void> {
       id: uuid(), name: 'Lamotrigine', genericName: 'lamotrigine', dosage: '100', unit: 'mg', frequency: 'twice daily',
       scheduledTimes: ['08:00', '20:00'], prescriber: 'Dr. Rivera', pharmacy: 'Main St Pharmacy', remainingCount: 18,
       unitsPerDose: 1, refillDate: null, refillReminderDays: 10, isActive: true, isRescue: false, startDate: addDays(start, -200),
-      endDate: null, sideEffectsNoted: ['Mild dizziness'], notes: null, createdAt: nowIso, updatedAt: nowIso,
+      endDate: null, sideEffectsNoted: [], notes: null, stopReason: null, stopReasonNote: null, createdAt: nowIso, updatedAt: nowIso,
     },
     {
       id: uuid(), name: 'Levetiracetam', genericName: 'levetiracetam', dosage: '500', unit: 'mg', frequency: 'twice daily',
       scheduledTimes: ['08:00', '20:00'], prescriber: 'Dr. Rivera', pharmacy: 'Main St Pharmacy', remainingCount: 96,
       unitsPerDose: 1, refillDate: null, refillReminderDays: 7, isActive: true, isRescue: false, startDate: addDays(start, -400),
-      endDate: null, sideEffectsNoted: ['Irritability (first month)'], notes: 'Take with food', createdAt: nowIso, updatedAt: nowIso,
+      endDate: null, sideEffectsNoted: [], notes: 'Take with food', stopReason: null, stopReasonNote: null, createdAt: nowIso, updatedAt: nowIso,
     },
     {
       id: uuid(), name: 'Midazolam nasal spray', genericName: 'midazolam', dosage: '5', unit: 'mg', frequency: 'as needed',
       scheduledTimes: [], prescriber: 'Dr. Rivera', pharmacy: null, remainingCount: 2, unitsPerDose: 1, refillDate: null,
       refillReminderDays: 0, isActive: true, isRescue: true, startDate: addDays(start, -100), endDate: null,
-      sideEffectsNoted: [], notes: 'Rescue only — see action plan', createdAt: nowIso, updatedAt: nowIso,
+      sideEffectsNoted: [], notes: 'Rescue only — see action plan', stopReason: null, stopReasonNote: null, createdAt: nowIso, updatedAt: nowIso,
     },
+    {
+      id: uuid(), name: 'Carbamazepine', genericName: 'carbamazepine', dosage: '200', unit: 'mg', frequency: 'twice daily',
+      scheduledTimes: [], prescriber: 'Dr. Rivera', pharmacy: null, remainingCount: null, unitsPerDose: 1, refillDate: null,
+      refillReminderDays: 0, isActive: false, isRescue: false, startDate: addDays(start, -700), endDate: addDays(start, -420),
+      sideEffectsNoted: [], notes: null, stopReason: 'side_effects', stopReasonNote: 'Rash and constant sleepiness', createdAt: nowIso, updatedAt: nowIso,
+    },
+  ];
+
+  const sideEffects: SideEffectLog[] = [
+    { id: uuid(), medicationId: meds[0].id, name: 'Mild dizziness', startDate: addDays(start, -180), endDate: null, severity: 'mild', notes: 'Mostly in the morning', createdAt: nowIso, updatedAt: nowIso },
+    { id: uuid(), medicationId: meds[1].id, name: 'Irritability', startDate: addDays(start, -395), endDate: addDays(start, -365), severity: 'moderate', notes: 'First month', createdAt: nowIso, updatedAt: nowIso },
+    { id: uuid(), medicationId: meds[3].id, name: 'Rash', startDate: addDays(start, -430), endDate: addDays(start, -420), severity: 'severe', notes: null, createdAt: nowIso, updatedAt: nowIso },
+    { id: uuid(), medicationId: meds[3].id, name: 'Sleepiness', startDate: null, endDate: null, severity: null, notes: null, createdAt: nowIso, updatedAt: nowIso },
+    { id: uuid(), medicationId: null, name: 'Headaches', startDate: addDays(start, -40), endDate: null, severity: 'mild', notes: 'Not sure which medication', createdAt: nowIso, updatedAt: nowIso },
   ];
 
   const sleep: SleepEntry[] = [];
@@ -237,6 +252,7 @@ export async function loadSampleData(days = 90): Promise<void> {
     await db.triggerTags.bulkPut(triggers);
     await db.routineTemplates.bulkPut(templates);
     await db.medications.bulkPut(meds);
+    await db.sideEffects.bulkPut(sideEffects);
     await db.medicationDoses.bulkPut(doses);
     await db.routineChecklistItems.bulkPut(items);
     await db.sleepEntries.bulkPut(sleep);

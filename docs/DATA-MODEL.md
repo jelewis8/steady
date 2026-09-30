@@ -2,12 +2,12 @@
 
 Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamps are ISO 8601 UTC, local calendar dates are `YYYY-MM-DD`, and times are `HH:mm`. IDs are UUID v4.
 
-## Export envelope (schema 1.2.0)
+## Export envelope (schema 1.3.0)
 
 ```json
 {
   "$schema": "https://steady.example.com/schema/export-v1.json",
-  "schemaVersion": "1.2.0",
+  "schemaVersion": "1.3.0",
   "exportedAt": "…",
   "appVersion": "1.0.0",
   "checksum": "<sha-256 hex of JSON.stringify(data)>",
@@ -18,7 +18,7 @@ Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamp
 Encrypted exports wrap the entire envelope:
 
 ```json
-{ "format": "steady-encrypted-export", "schemaVersion": "1.2.0", "exportedAt": "…",
+{ "format": "steady-encrypted-export", "schemaVersion": "1.3.0", "exportedAt": "…",
   "kdf": { "name": "PBKDF2", "hash": "SHA-256", "iterations": 310000, "saltBase64": "…" },
   "cipher": { "name": "AES-GCM", "ivBase64": "…" }, "ciphertextBase64": "…" }
 ```
@@ -55,6 +55,18 @@ No Dexie version change: nothing is indexed. New fields are optional and read wi
 Crisis-line and emergency-number data is **not** stored per user. It ships in the app (`src/core/crisisLines.ts`, see [CRISIS-LINES.md](CRISIS-LINES.md)).
 
 **Merge-mode import** keeps the device's own profile. The exception is support data: a safety plan, country, own numbers or main person in the backup are adopted when the device has none (`mergeSupportIntoProfile`). Anything already on the device wins.
+
+## Extensions in 1.3.0 (F-001 dated side-effect log, F-007 medications that didn't work out)
+
+**Database:** Dexie version 2 adds one table, `sideEffects: 'id, medicationId, startDate'`. Nothing existing is changed. Its `upgrade()` turns each medication's old undated `sideEffectsNoted` names into `SideEffectLog` rows with `startDate: null` ("date unknown"). The old field is **never** deleted or edited, so rolling back to an earlier release loses nothing.
+
+| Where | Addition | Notes |
+|---|---|---|
+| **New** `SideEffectLog` | `{ id, medicationId \| null, name, startDate \| null, endDate \| null, severity: 'mild' \| 'moderate' \| 'severe' \| null, notes, createdAt, updatedAt }` | `medicationId: null` = "not sure which medication". `startDate: null` = "date unknown". `endDate: null` = still happening or not known. |
+| `Medication` | `stopReason` (`not_controlling` \| `side_effects` \| `allergic_reaction` \| `cost_or_access` \| `other` \| null), `stopReasonNote` | Why it was stopped, if she said. `endDate` is the date she stopped. |
+| `Medication.sideEffectsNoted` | **legacy** | Still stored and exported, no longer shown. The log replaces it. |
+
+**Import migration** (`parseEnvelope`): a file without a `sideEffects` list (schema before 1.3.0) gets one built from each medication's `sideEffectsNoted`. Ids are made from the medication id and name (`deterministicId`), the same as the Dexie upgrade, so restoring an old backup never duplicates entries. Files that already carry a `sideEffects` list are not migrated. Medications get `stopReason: null`.
 
 ## Linked records
 

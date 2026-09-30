@@ -53,7 +53,7 @@ All platform-specific APIs are behind interfaces (`StorageAdapter`, `Notificatio
 Entities are defined as JSON schemas in `app-blueprint.md` §2.3:
 `UserProfile`, `SeizureEvent`, `AuraLog`, `Medication`, `MedicationDose`, `MealLog`, `SleepEntry`, `RoutineTemplate`, `RoutineChecklistItem`, `TriggerTag`, `RescueProtocol`, `EmergencyContact`, `InsightRule`.
 
-Extensions (schema 1.2.0): `HydrationLog`, `DailyCheckIn` (stress/mood/cycle; the blueprint's insights needed them), `DayPlan`, `VoiceNote`, plus extra preference fields; 1.2.0 adds the personal `SafetyPlan`, country and own crisis numbers, and `EmergencyContact.supportPerson` (F-002). All are documented in `docs/DATA-MODEL.md`. Any schema change must bump `SCHEMA_VERSION` in `src/core/defaults.ts` and add a migration in `parseEnvelope`.
+Extensions (schema 1.3.0): `HydrationLog`, `DailyCheckIn` (stress/mood/cycle; the blueprint's insights needed them), `DayPlan`, `VoiceNote`, plus extra preference fields; 1.2.0 adds the personal `SafetyPlan`, country and own crisis numbers, `EmergencyContact.supportPerson` (F-002), and in 1.3.0 the dated `SideEffectLog` table and `Medication.stopReason` (F-001, F-007; Dexie version 2). All are documented in `docs/DATA-MODEL.md`. Any schema change must bump `SCHEMA_VERSION` in `src/core/defaults.ts` and add a migration in `parseEnvelope`.
 
 All timestamps are ISO 8601. All IDs are UUIDs v4. Schema version field required on every export.
 

@@ -3,12 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import { sortTimes } from '../../core/checklist';
 import { parseUnitsPerDose } from '../../core/stats';
-import { addDays, dateKeyOf, formatIsoClock, relativeDay, todayKey } from '../../core/time';
+import { STOP_REASON_SHORT } from '../../core/sideEffects';
+import { addDays, dateKeyOf, formatDateShort, formatIsoClock, relativeDay, todayKey } from '../../core/time';
 import type { DoseStatus, Medication } from '../../core/types';
 import { db } from '../../data/db';
 import { useDoses } from '../../data/hooks';
-import { deleteMedication, newMedication, saveMedication } from '../../data/repo';
+import { deleteMedication, newMedication, saveMedication, saveStopDetails } from '../../data/repo';
 import { toast } from '../../state/ui';
+import { SideEffectsList } from './SideEffects';
+import { StopMedicationSheet } from './StopMedication';
 import { Button, Card, Disclaimer, Field, IconButton, Input, PageHeader, TextArea, TextField, Toggle } from '../../ui/kit';
 
 const STATUS_TEXT: Record<DoseStatus, string> = {
@@ -24,7 +27,7 @@ export function MedEditorPage() {
   const isNew = id === 'new';
   const nav = useNavigate();
   const [m, setM] = useState<Medication | null>(null);
-  const [effect, setEffect] = useState('');
+  const [stopSheet, setStopSheet] = useState<'stop' | 'edit' | null>(null);
   // Keep what she types as text while editing (so the field can be cleared and retyped); check it on save.
   const [unitsText, setUnitsText] = useState('1');
   const today = todayKey();
@@ -141,29 +144,6 @@ export function MedEditorPage() {
             <TextField label="Pharmacy" value={m.pharmacy ?? ''} onChange={(v) => set({ pharmacy: v || null })} />
           </div>
           <TextField label="Started on" type="date" value={m.startDate} onChange={(v) => set({ startDate: v || todayKey() })} />
-          <div>
-            <span className="font-bold">Side effects I’ve noticed</span>
-            <ul className="my-2 flex flex-wrap gap-2">
-              {m.sideEffectsNoted.map((s) => (
-                <li key={s}>
-                  <Button variant="quiet" aria-label={`Remove side effect ${s}`} onClick={() => set({ sideEffectsNoted: m.sideEffectsNoted.filter((x) => x !== s) })}>
-                    {s} ✕
-                  </Button>
-                </li>
-              ))}
-            </ul>
-            <div className="flex gap-2">
-              <Input aria-label="Add a side effect" placeholder="e.g. Dizziness" value={effect} onChange={(e) => setEffect(e.target.value)} />
-              <Button
-                onClick={() => {
-                  if (effect.trim()) set({ sideEffectsNoted: [...new Set([...m.sideEffectsNoted, effect.trim()])] });
-                  setEffect('');
-                }}
-              >
-                Add
-              </Button>
-            </div>
-          </div>
           <Field label="Notes">{(fid) => <TextArea id={fid} value={m.notes ?? ''} onChange={(e) => set({ notes: e.target.value || null })} className="min-h-20" />}</Field>
           <Button type="submit" variant="primary" size="lg" disabled={!valid}>
             {isNew ? 'Add medication' : 'Save changes'}
@@ -171,6 +151,32 @@ export function MedEditorPage() {
           {!valid && <p className="text-sm text-ink-2">Add a name, a dose{m.isRescue ? '' : ' and at least one time'}, and how many you take each time, to save.</p>}
         </form>
       </Card>
+
+      {!isNew && (
+        <Card labelledBy="se-h">
+          <h2 id="se-h" className="mb-2 text-lg font-bold">
+            Side effects I’ve noticed
+          </h2>
+          <SideEffectsList medicationId={m.id} />
+        </Card>
+      )}
+      {isNew && <p className="text-sm text-ink-2">You can note side effects, and when they started, after you save this medication.</p>}
+
+      {!isNew && !m.isActive && (
+        <Card labelledBy="why-h">
+          <h2 id="why-h" className="mb-2 text-lg font-bold">
+            Why it was stopped
+          </h2>
+          <p>
+            {m.endDate ? `Stopped ${formatDateShort(m.endDate)}. ` : ''}
+            {m.stopReason ? STOP_REASON_SHORT[m.stopReason] : 'Reason not recorded.'}
+          </p>
+          {m.stopReasonNote && <p className="mt-1 whitespace-pre-line text-ink-2">{m.stopReasonNote}</p>}
+          <Button className="mt-3" onClick={() => setStopSheet('edit')}>
+            {m.stopReason ? 'Change this' : 'Add a reason'}
+          </Button>
+        </Card>
+      )}
 
       {!isNew && doses.length > 0 && (
         <Card labelledBy="hist-h">
@@ -200,14 +206,29 @@ export function MedEditorPage() {
         <Button
           variant="ghost"
           icon={<Trash2 aria-hidden size={20} />}
-          onClick={async () => {
-            const undo = await deleteMedication(m.id);
-            toast(`${m.name} moved to past medications. Dose history is kept.`, undo);
-            nav('/meds');
-          }}
+          onClick={() => setStopSheet('stop')}
         >
           I no longer take this
         </Button>
+      )}
+      {stopSheet && (
+        <StopMedicationSheet
+          med={m}
+          mode={stopSheet}
+          onClose={() => setStopSheet(null)}
+          onSave={async (v) => {
+            if (stopSheet === 'stop') {
+              const undo = await deleteMedication(m.id, { endDate: v.endDate, reason: v.reason, note: v.note });
+              toast(`${m.name} moved to past medications. Dose history is kept.`, undo);
+              nav('/meds');
+            } else {
+              const undo = await saveStopDetails(m.id, { endDate: v.endDate, reason: v.reason, note: v.note });
+              setM({ ...m, endDate: v.endDate, stopReason: v.reason, stopReasonNote: v.note });
+              setStopSheet(null);
+              toast('Saved.', undo);
+            }
+          }}
+        />
       )}
       <Disclaimer>Only change doses or times when your prescriber tells you to. Steady just keeps the record.</Disclaimer>
     </div>

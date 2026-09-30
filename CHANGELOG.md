@@ -18,6 +18,18 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-09-30-4
+
+**F-001 and F-007: a dated side-effect log, and medications that didn't work out.** Data schema is now `1.3.0`, and the database moves to **version 2** (one new table; nothing existing is changed). **Ask her to save a backup first.**
+
+- **Side effects have dates.** Each entry has what she noticed, which medication (or "I'm not sure which one"), when it started and stopped (both optional, "date unknown" is fine), how strong it was (mild, moderate, severe, or not sure), and notes. Find them under Medications → Side effects log, and on each medication's page. Entries can be edited, removed, and undone.
+- **Her existing side effects are kept.** On first opening after the update, each medication's old undated side effects become entries marked "Start date unknown". The old list is left untouched in the database, so nothing is lost even if this release is rolled back. Restoring an older backup does the same, without duplicates.
+- **"I no longer take this"** now asks when she stopped and, if she wants to say, why: didn't control seizures, side effects, allergic reaction, cost or access, another reason, or "I'd rather not say". Nothing is required. She can also add a reason later to a medication she stopped before (open it from Past medications). Past medications show when and why.
+- **Neurologist report:** new sections "Side effects noted" (all dates, with when each started and stopped) and "Past medications and why they were stopped" (with the side effects logged against each). Both are in the text summary too.
+- **Action plan:** medications stopped after an allergic reaction are listed under Allergies.
+- New upgrade tests: a database written by the previous release is upgraded in a real browser and in unit tests (with her real backup), and old backups migrate without duplicates.
+- Not done here: per-dose notes are still shown in their own report section (B-011) and aren't merged into the side-effect log.
+
 ## release-2026-09-30-3
 
 **F-002: support for thoughts of suicide or self-harm.** Data schema is now `1.2.0`. There is no database change, only new optional fields, and old data and old backups open unchanged (upgrade test passes).

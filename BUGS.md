@@ -40,16 +40,16 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 - [ ] **B-003** · 2026-09-28 · server · Port **5173** is open to the internet in the droplet firewall (a Vite dev-server port). Close it if nothing needs it: `ufw delete allow 5173`.
 - [ ] **B-004** · 2026-09-28 · testing · Manual screen-reader pass not done yet (VoiceOver on iPhone, TalkBack on Android, NVDA on Windows). Automated axe checks pass.
-- [ ] **B-010** · 2026-09-30 · reported by: Jeremiah · meds · Side effects listed on a medication have **no start date**. → Fixed as part of **F-001** (dated side-effect log).
 
 ### P3 — Wish list
 
-- [ ] **B-005** · 2026-09-28 · meds · ~~Dated side-effect log~~ → moved to **F-001** in FEATURES.md.
 
 ---
 
 ## Done
 
+- [x] **B-010** · 2026-09-30 · Side effects now have a start and stop date (and severity), and the old undated ones are kept as "date unknown" → release-2026-09-30-4 (F-001)
+- [x] **B-005** · 2026-09-28 · Dated side-effect log → release-2026-09-30-4 (F-001)
 - [x] **B-007** · 2026-09-30 · "Used per dose" can now be cleared and set to 2 (or 0.5, 1.5…); it is checked on save, added to the onboarding medication form, and the refill countdown uses it → release-2026-09-30-2
 - [x] **B-009** · 2026-09-30 · Seizure type now reads "Focal to bilateral tonic-clonic (formerly grand mal)" in the quick log, full form, list, insights and report → release-2026-09-30-2
 - [x] **B-011** · 2026-09-30 · Neurologist report (and its text summary) has a "Notes recorded with doses" section: date, medication, note / side effect → release-2026-09-30-2

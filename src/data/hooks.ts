@@ -94,6 +94,10 @@ export function useRescueProtocol() {
   return useLiveQuery(() => db.rescueProtocol.toCollection().first(), []);
 }
 
+export function useSideEffects() {
+  return useLiveQuery(() => db.sideEffects.toArray(), []) ?? [];
+}
+
 export function useContacts() {
   return useLiveQuery(() => db.emergencyContacts.orderBy('sortOrder').toArray(), []) ?? [];
 }

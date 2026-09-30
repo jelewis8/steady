@@ -174,7 +174,32 @@ export interface Medication {
   isRescue: boolean;
   startDate: ISODate;
   endDate: ISODate | null;
+  /** Legacy (before 1.3.0): undated side-effect names. Kept so old releases still work; the side-effect log (SideEffectLog) replaces it. */
   sideEffectsNoted: string[];
+  notes: string | null;
+  /** EXT (1.3.0, F-007): why it was stopped, if she said; null = not recorded */
+  stopReason: StopReason | null;
+  stopReasonNote: string | null;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export const STOP_REASONS = ['not_controlling', 'side_effects', 'allergic_reaction', 'cost_or_access', 'other'] as const;
+export type StopReason = (typeof STOP_REASONS)[number];
+
+export type SideEffectSeverity = 'mild' | 'moderate' | 'severe';
+
+/** EXT (1.3.0, F-001): one side effect, with when it started and stopped. */
+export interface SideEffectLog {
+  id: UUID;
+  /** null = "not sure which medication" */
+  medicationId: UUID | null;
+  name: string;
+  /** null = "date unknown" (including everything migrated from the old undated list) */
+  startDate: ISODate | null;
+  /** null = still happening or not known */
+  endDate: ISODate | null;
+  severity: SideEffectSeverity | null;
   notes: string | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
