@@ -15,6 +15,7 @@ import type {
   MedicationDose,
   RoutineChecklistItem,
   SeizureEvent,
+  BathroomLog,
   SideEffectLog,
   SleepEntry,
 } from '../core/types';
@@ -84,6 +85,17 @@ export async function loadSampleData(days = 90): Promise<void> {
       sideEffectsNoted: [], notes: null, stopReason: 'side_effects', stopReasonNote: 'Rash and constant sleepiness', createdAt: nowIso, updatedAt: nowIso,
     },
   ];
+
+  // a few weeks of bowel and bladder records (sample data is illustrative)
+  const bathroom: BathroomLog[] = [];
+  for (let i = 0; i < Math.min(days, 40); i++) {
+    const date = addDays(today, -(i + 1));
+    const had = r() < 0.6;
+    bathroom.push({
+      id: uuid(), date, bowel: had, bowelHow: had ? (r() < 0.2 ? 'hard' : r() < 0.15 ? 'loose' : 'normal') : null,
+      bowelNotes: had && r() < 0.2 ? 'Papaya and tea the day before' : null, urinationCount: 3 + Math.floor(r() * 4), createdAt: nowIso, updatedAt: nowIso,
+    });
+  }
 
   const sideEffects: SideEffectLog[] = [
     { id: uuid(), medicationId: meds[0].id, name: 'Mild dizziness', startDate: addDays(start, -180), endDate: null, severity: 'mild', notes: 'Mostly in the morning', createdAt: nowIso, updatedAt: nowIso },
@@ -253,6 +265,7 @@ export async function loadSampleData(days = 90): Promise<void> {
     await db.routineTemplates.bulkPut(templates);
     await db.medications.bulkPut(meds);
     await db.sideEffects.bulkPut(sideEffects);
+    await db.bathroomLogs.bulkPut(bathroom);
     await db.medicationDoses.bulkPut(doses);
     await db.routineChecklistItems.bulkPut(items);
     await db.sleepEntries.bulkPut(sleep);

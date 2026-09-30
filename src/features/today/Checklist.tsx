@@ -14,6 +14,7 @@ import {
 import { toast } from '../../state/ui';
 import { Button, cx, Field, Input, Sheet, TextArea } from '../../ui/kit';
 import { CategoryIcon } from '../../ui/icons';
+import { BathroomSheet } from '../bathroom/BathroomSheet';
 import { CheckInSheet } from './CheckInSheet';
 
 const clock = (mins: number) => formatClock(Math.floor(mins / 60), mins % 60);
@@ -44,6 +45,7 @@ export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: str
   const prefs = usePrefs();
   const [menu, setMenu] = useState(false);
   const [checkIn, setCheckIn] = useState(false);
+  const [bathroom, setBathroom] = useState(false);
   const done = entry.status === 'done';
   const open = entry.status === 'pending' || entry.status === 'deferred';
   const name = `${entry.label}${entry.detail ? ` ${entry.detail}` : ''}`;
@@ -58,6 +60,10 @@ export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: str
         const undo = await setDoseStatus(entry.id, 'taken', at);
         toast(at ? `${entry.label} recorded as taken.` : `${entry.label} recorded as taken at ${formatClock(new Date().getHours(), new Date().getMinutes())}.`, undo);
       }
+      return;
+    }
+    if (!done && entry.category === 'bowel') {
+      setBathroom(true);
       return;
     }
     if (!done && (entry.category === 'stress_check' || entry.category === 'mood')) {
@@ -115,6 +121,7 @@ export function ChecklistRow({ entry, date }: { entry: ChecklistEntry; date: str
       </button>
       <EntryActions entry={entry} open={menu} onClose={() => setMenu(false)} date={date} />
       <CheckInSheet open={checkIn} onClose={() => setCheckIn(false)} date={date} />
+      <BathroomSheet open={bathroom} onClose={() => setBathroom(false)} date={date} />
     </li>
   );
 }

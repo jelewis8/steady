@@ -63,6 +63,8 @@ export interface UserPreferences {
   customSupportLines: CustomSupportLine[];
   /** EXT (1.2.0, F-002): the main person to reach out to (an EmergencyContact id) */
   defaultSupportContactId: string | null;
+  /** EXT (1.4.0, F-006): show the bowel and bladder card, calendar marker and report section */
+  trackBathroom: boolean;
 }
 
 /** A crisis or support number the user added for her own country or situation. */
@@ -264,6 +266,8 @@ export const ROUTINE_CATEGORIES = [
   'exercise',
   'stress_check',
   'mood',
+  'bowel',
+  'bathroom',
   'custom',
 ] as const;
 export type RoutineCategory = (typeof ROUTINE_CATEGORIES)[number];
@@ -284,13 +288,39 @@ export interface RoutineTemplateItem {
   mealType?: MealType;
 }
 
+export type DoseShiftWhich = 'all' | 'morning';
+
 export interface RoutineTemplate {
   id: UUID;
   name: string;
   isDefault: boolean;
   /** 0=Sunday … 6=Saturday. Empty = manually selected only. */
   applicableDays: number[];
+  /** EXT (1.4.0, F-008): use this routine every N days (N >= 2), counting from repeatStartDate, instead of by weekday. null/absent = by weekday. */
+  repeatEveryDays?: number | null;
+  repeatStartDate?: ISODate | null;
+  /** EXT (1.4.0, F-008): on days this routine is used, scheduled medication times move LATER by this many minutes (0 = no change). Only ever set by her, never suggested. */
+  doseShiftMinutes?: number;
+  doseShiftWhich?: DoseShiftWhich;
   items: RoutineTemplateItem[];
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export type BowelHow = 'hard' | 'normal' | 'loose';
+
+/** EXT (1.4.0, F-006): one record per day for bowel and bladder. Private, plain-language, never scored. */
+export interface BathroomLog {
+  id: UUID;
+  /** unique per day */
+  date: ISODate;
+  /** "Did you have a bowel movement today?" null = not answered */
+  bowel: boolean | null;
+  bowelHow: BowelHow | null;
+  /** what she ate or drank beforehand, or anything else she wants to note */
+  bowelNotes: string | null;
+  /** how many times she urinated (a one-tap counter) */
+  urinationCount: number;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }

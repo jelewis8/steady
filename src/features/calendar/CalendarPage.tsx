@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CircleHelp, Droplet, Moon, Pill, Sparkles, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleHelp, Droplet, Moon, Pill, Sparkles, Toilet, Zap } from 'lucide-react';
 import {
   buildMonthMarkers,
   daysOfMonth,
@@ -15,19 +15,20 @@ import {
   type DayMarkers,
 } from '../../core/calendar';
 import { addDays, formatDateLong, fromDateKey, todayKey } from '../../core/time';
-import { useAuras, useCheckIns, useDoses, useSeizures, useSleepEntries } from '../../data/hooks';
+import { useAuras, useBathroomLogs, useCheckIns, useDoses, usePrefs, useSeizures, useSleepEntries } from '../../data/hooks';
 import { Button, Card, cx, Disclaimer, IconButton, PageHeader, Segmented } from '../../ui/kit';
 
 type View = 'grid' | 'list';
 
 /** Legend and cell icons. Every marker has an icon AND words: colour is never the only signal. */
-const MARKERS: { key: keyof Pick<DayMarkers, 'seizures' | 'auras' | 'dosesMissed' | 'dosesNotRecorded' | 'shortSleep' | 'period'>; label: string; Icon: typeof Zap }[] = [
+const MARKERS: { key: keyof Pick<DayMarkers, 'seizures' | 'auras' | 'dosesMissed' | 'dosesNotRecorded' | 'shortSleep' | 'period' | 'bowel'>; label: string; Icon: typeof Zap }[] = [
   { key: 'seizures', label: 'Seizure', Icon: Zap },
   { key: 'auras', label: 'Warning sign', Icon: Sparkles },
   { key: 'dosesMissed', label: 'Dose skipped or not sure', Icon: Pill },
   { key: 'dosesNotRecorded', label: 'Dose not recorded', Icon: CircleHelp },
   { key: 'shortSleep', label: 'Short sleep the night before', Icon: Moon },
   { key: 'period', label: 'Period', Icon: Droplet },
+  { key: 'bowel', label: 'Bowel movement', Icon: Toilet },
 ];
 
 const MONDAY = '2026-09-07';
@@ -36,7 +37,7 @@ const WEEKDAYS = Array.from({ length: 7 }, (_, i) => {
   return { short: d.toLocaleDateString(undefined, { weekday: 'short' }), long: d.toLocaleDateString(undefined, { weekday: 'long' }) };
 });
 
-function DayCell({ date, markers, today }: { date: string; markers: DayMarkers; today: string }) {
+function DayCell({ date, markers, today, showBowel }: { date: string; markers: DayMarkers; today: string; showBowel: boolean }) {
   const day = Number(date.slice(8));
   const isToday = date === today;
   const future = date > today;
@@ -62,7 +63,7 @@ function DayCell({ date, markers, today }: { date: string; markers: DayMarkers; 
         {day}
       </span>
       <span aria-hidden className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
-        {MARKERS.map(({ key, Icon }) => {
+        {MARKERS.filter((m) => showBowel || m.key !== 'bowel').map(({ key, Icon }) => {
           const v = markers[key];
           if (!v) return null;
           return (
@@ -93,7 +94,10 @@ export function CalendarPage() {
   const doses = useDoses(first, last);
   const sleep = useSleepEntries();
   const checkIns = useCheckIns();
-  const markers = useMemo(() => buildMonthMarkers({ month, seizures, auras, doses, sleep, checkIns }), [month, seizures, auras, doses, sleep, checkIns]);
+  const bathroomLogs = useBathroomLogs();
+  // the bowel marker only appears for someone who tracks it (or has records)
+  const showBowel = !!usePrefs()?.trackBathroom || bathroomLogs.some((l) => l.bowel === true);
+  const markers = useMemo(() => buildMonthMarkers({ month, seizures, auras, doses, sleep, checkIns, bathroomLogs: showBowel ? bathroomLogs : [] }), [month, seizures, auras, doses, sleep, checkIns, bathroomLogs, showBowel]);
   const rows = monthGrid(month);
 
   return (
@@ -148,7 +152,7 @@ export function CalendarPage() {
                 <tr key={i}>
                   {row.map((d, j) => (
                     <td key={j} className="p-0 align-top">
-                      {d ? <DayCell date={d} markers={markers.get(d)!} today={today} /> : null}
+                      {d ? <DayCell date={d} markers={markers.get(d)!} today={today} showBowel={showBowel} /> : null}
                     </td>
                   ))}
                 </tr>
@@ -195,7 +199,7 @@ export function CalendarPage() {
           What the symbols mean
         </h2>
         <ul className="grid gap-1.5 sm:grid-cols-2">
-          {MARKERS.map(({ key, label, Icon }) => (
+          {MARKERS.filter((m) => showBowel || m.key !== 'bowel').map(({ key, label, Icon }) => (
             <li key={key} className="flex items-center gap-2">
               <Icon aria-hidden size={18} strokeWidth={2.5} className="shrink-0" />
               {label}

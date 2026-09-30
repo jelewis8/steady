@@ -2,6 +2,7 @@ import Dexie, { type EntityTable, type Table } from 'dexie';
 import { sideEffectsFromNotes } from '../core/sideEffects';
 import type {
   AuraLog,
+  BathroomLog,
   DailyCheckIn,
   DayPlan,
   EmergencyContact,
@@ -45,6 +46,7 @@ export class SteadyDB extends Dexie {
   dayPlans!: Table<DayPlan, string>;
   voiceNotes!: EntityTable<VoiceNote, 'id'>;
   sideEffects!: EntityTable<SideEffectLog, 'id'>;
+  bathroomLogs!: EntityTable<BathroomLog, 'id'>;
   meta!: Table<MetaRow, string>;
 
   constructor(name = 'steady') {
@@ -79,6 +81,8 @@ export class SteadyDB extends Dexie {
         const rows = sideEffectsFromNotes(meds);
         if (rows.length) await tx.table('sideEffects').bulkPut(rows);
       });
+    // Release 2026-09-30-6 (F-006): a table for bowel and bladder records, one per day. Nothing existing is changed or migrated.
+    this.version(3).stores({ bathroomLogs: 'id, &date' });
   }
 }
 

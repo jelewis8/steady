@@ -69,15 +69,16 @@ describe('buildMonthMarkers', () => {
   });
 
   it('describes a day in plain words, and says nothing for an empty day', () => {
-    const empty = { date: '2026-09-01', seizures: 0, auras: 0, dosesMissed: 0, dosesNotRecorded: 0, shortSleep: false, period: false };
+    const empty = { date: '2026-09-01', seizures: 0, auras: 0, dosesMissed: 0, dosesNotRecorded: 0, shortSleep: false, period: false, bowel: false };
     expect(describeMarkers(empty)).toEqual([]);
-    expect(describeMarkers({ ...empty, seizures: 1, auras: 2, dosesMissed: 1, dosesNotRecorded: 3, shortSleep: true, period: true })).toEqual([
+    expect(describeMarkers({ ...empty, seizures: 1, auras: 2, dosesMissed: 1, dosesNotRecorded: 3, shortSleep: true, period: true, bowel: true })).toEqual([
       '1 seizure',
       '2 warning signs',
       '1 dose skipped or not sure',
       '3 doses not recorded',
       'short sleep the night before',
       'period',
+      'bowel movement',
     ]);
   });
 });

@@ -1,4 +1,4 @@
-import { Activity, BedDouble, Droplet, HeartPulse, Pill, Smile, Sparkles, Utensils } from 'lucide-react';
+import { Activity, BedDouble, Droplet, Droplets, HeartPulse, Pill, Smile, Sparkles, Toilet, Utensils } from 'lucide-react';
 import type { RoutineCategory } from '../core/types';
 
 const MAP: Record<RoutineCategory, typeof Pill> = {
@@ -9,6 +9,8 @@ const MAP: Record<RoutineCategory, typeof Pill> = {
   exercise: Activity,
   stress_check: HeartPulse,
   mood: Smile,
+  bowel: Toilet,
+  bathroom: Droplets,
   custom: Sparkles,
 };
 

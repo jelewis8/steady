@@ -9,6 +9,7 @@ import { storage } from '../../data/storage';
 import { toast } from '../../state/ui';
 import { Button, Card, Field, Input, LinkButton, Progress, Sheet, cx } from '../../ui/kit';
 import { PickDaySheet } from '../calendar/PickDaySheet';
+import { BathroomCard } from '../bathroom/BathroomCard';
 import { isSafeMode, useNow } from '../../ui/hooks';
 import { seizuresInRange, daysSinceLastSeizure } from '../../core/stats';
 import { ChecklistRow } from './Checklist';
@@ -195,6 +196,7 @@ function RegularToday({ now }: { now: Date }) {
       <MedCard now={now} />
       <WaterCard today={today} />
       <SleepCard today={today} now={now} />
+      <BathroomCard today={today} />
       <CheckInCard today={today} now={now} />
       <WeekCard today={today} />
       <InsightTeaser today={today} />
@@ -210,8 +212,14 @@ function TemplateSwitcher({ date }: { date: string }) {
   const [open, setOpen] = useState(false);
   const current = selectTemplate(templates, date, plan);
   if (templates.length < 2 || !current) return null;
+  const shift = current.doseShiftMinutes ?? 0;
   return (
     <div className="mt-3 border-t border-line pt-3">
+      {shift > 0 && (
+        <p className="mb-2">
+          Medication times are {shift % 60 === 0 ? `${shift / 60} ${shift === 60 ? 'hour' : 'hours'}` : `${shift} minutes`} later today, as set in “{current.name}”.
+        </p>
+      )}
       <Button variant="quiet" icon={<CalendarDays aria-hidden size={20} />} onClick={() => setOpen(true)}>
         Using “{current.name}” · change for today
       </Button>

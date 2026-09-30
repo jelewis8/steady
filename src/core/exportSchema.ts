@@ -6,6 +6,7 @@ import { APP_VERSION, DEFAULT_PREFERENCES, SCHEMA_VERSION } from './defaults';
 import { sideEffectsFromNotes } from './sideEffects';
 import type {
   AuraLog,
+  BathroomLog,
   DailyCheckIn,
   DayPlan,
   EmergencyContact,
@@ -52,6 +53,7 @@ export interface ExportData {
   dayPlans: DayPlan[];
   voiceNotes: ExportedVoiceNote[];
   sideEffects: SideEffectLog[];
+  bathroomLogs: BathroomLog[];
 }
 
 export interface ExportEnvelope {
@@ -92,6 +94,7 @@ export const COLLECTION_KEYS = [
   'dayPlans',
   'voiceNotes',
   'sideEffects',
+  'bathroomLogs',
 ] as const;
 export type CollectionKey = (typeof COLLECTION_KEYS)[number];
 
@@ -115,6 +118,7 @@ export function emptyExportData(): ExportData {
     dayPlans: [],
     voiceNotes: [],
     sideEffects: [],
+    bathroomLogs: [],
   };
 }
 
@@ -169,6 +173,10 @@ export function parseEnvelope(raw: unknown): ParseResult {
   // Migration 1.2.0 → 1.3.0 (F-001, F-007): the dated side-effect log and why a medication was stopped.
   // Files from before 1.3.0 carry undated side-effect names on each medication; they become "date unknown" entries.
   // (The old names stay on the medication, untouched.) Files from 1.3.0 on carry their own log, so nothing is added.
+  // Migration 1.3.0 → 1.4.0 (F-006, F-008): routines get repeat and dose-shift settings (none by default).
+  data.routineTemplates = data.routineTemplates.map((t) =>
+    Object.assign({ repeatEveryDays: null, repeatStartDate: null, doseShiftMinutes: 0, doseShiftWhich: 'all' as const }, t),
+  );
   const hadSideEffectLog = Array.isArray((env.data as Partial<ExportData>).sideEffects);
   data.medications = data.medications.map((m) => Object.assign({ stopReason: null, stopReasonNote: null }, m));
   if (!hadSideEffectLog) data.sideEffects = sideEffectsFromNotes(data.medications);
@@ -181,6 +189,7 @@ export function parseEnvelope(raw: unknown): ParseResult {
   data.medications = requireId(data.medications, 'medications');
   data.medicationDoses = requireId(data.medicationDoses, 'doses');
   data.sideEffects = requireId(data.sideEffects, 'side effects');
+  data.bathroomLogs = requireId(data.bathroomLogs, 'bathroom records');
   return {
     ok: true,
     envelope: {
@@ -201,6 +210,7 @@ export function summarizeData(data: ExportData): { label: string; count: number 
     { label: 'aura logs', count: data.auraLogs.length },
     { label: 'medications', count: data.medications.length },
     { label: 'side effects', count: data.sideEffects.length },
+    { label: 'bathroom records', count: data.bathroomLogs.length },
     { label: 'dose records', count: data.medicationDoses.length },
     { label: 'sleep entries', count: data.sleepEntries.length },
     { label: 'meal logs', count: data.mealLogs.length },

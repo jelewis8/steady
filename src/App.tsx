@@ -19,6 +19,7 @@ import { SeizureFormPage } from './features/seizures/SeizureFormPage';
 import { RescuePage } from './features/rescue/RescuePage';
 import { CalmPage } from './features/rescue/CalmPage';
 
+const BathroomPage = lazy(() => import('./features/bathroom/BathroomPage').then((m) => ({ default: m.BathroomPage })));
 const CalendarPage = lazy(() => import('./features/calendar/CalendarPage').then((m) => ({ default: m.CalendarPage })));
 const DayPage = lazy(() => import('./features/calendar/DayPage').then((m) => ({ default: m.DayPage })));
 const SideEffectsPage = lazy(() => import('./features/meds/SideEffectsPage').then((m) => ({ default: m.SideEffectsPage })));
@@ -144,6 +145,7 @@ export default function App() {
           <Route index element={<TodayPage />} />
           <Route path="insights" element={<InsightsPage />} />
           <Route path="calendar" element={<CalendarPage />} />
+          <Route path="bathroom" element={<BathroomPage />} />
           <Route path="day/:date" element={<DayPage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="more" element={<MorePage />} />

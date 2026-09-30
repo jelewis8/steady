@@ -94,6 +94,14 @@ export function useRescueProtocol() {
   return useLiveQuery(() => db.rescueProtocol.toCollection().first(), []);
 }
 
+export function useBathroomLogs() {
+  return useLiveQuery(() => db.bathroomLogs.toArray(), []) ?? [];
+}
+
+export function useBathroomLog(date: ISODate) {
+  return useLiveQuery(async () => (await db.bathroomLogs.where('date').equals(date).first()) ?? null, [date]);
+}
+
 export function useSideEffects() {
   return useLiveQuery(() => db.sideEffects.toArray(), []) ?? [];
 }

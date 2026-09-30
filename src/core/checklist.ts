@@ -7,11 +7,12 @@
  * Pure functions only.
  */
 import { uuid } from './ids';
-import { fromDateKey, localDateTime, minutesOfDay, parseTime, todayKey } from './time';
+import { addDays, daysBetween, fromDateKey, localDateTime, minutesOfDay, parseTime, todayKey } from './time';
 import type {
   DayPlan,
   ISODate,
   ISODateTime,
+  ISOTime,
   Medication,
   MedicationDose,
   MealType,
@@ -30,12 +31,49 @@ export function selectTemplate(
     const chosen = templates.find((t) => t.id === plan.templateId);
     if (chosen) return chosen;
   }
+  // A routine that repeats every N days wins on its days (F-008)...
+  const repeating = templates.find((t) => repeatMatches(t, date));
+  if (repeating) return repeating;
+  // ...otherwise weekdays. Repeating routines never take part in the weekday choice.
+  const byWeekday = templates.filter((t) => !isRepeating(t));
+  const pool = byWeekday.length ? byWeekday : templates;
   const dow = fromDateKey(date).getDay();
-  return (
-    templates.find((t) => t.applicableDays.includes(dow)) ??
-    templates.find((t) => t.isDefault) ??
-    templates[0]
-  );
+  return pool.find((t) => t.applicableDays.includes(dow)) ?? pool.find((t) => t.isDefault) ?? pool[0];
+}
+
+export function isRepeating(t: RoutineTemplate): boolean {
+  return (t.repeatEveryDays ?? 0) >= 2 && !!t.repeatStartDate;
+}
+
+/** Does a "repeats every N days" routine fall on this date? (Every N days counting from its start date, never before it.) */
+export function repeatMatches(t: RoutineTemplate, date: ISODate): boolean {
+  if (!isRepeating(t)) return false;
+  const diff = daysBetween(t.repeatStartDate as ISODate, date);
+  return diff >= 0 && diff % (t.repeatEveryDays as number) === 0;
+}
+
+/** The next `count` dates (from `from`, inclusive) a repeating routine falls on. */
+export function nextRepeatDates(t: RoutineTemplate, from: ISODate, count: number): ISODate[] {
+  if (!isRepeating(t)) return [];
+  const n = t.repeatEveryDays as number;
+  const start = t.repeatStartDate as ISODate;
+  const diff = daysBetween(start, from);
+  const first = diff <= 0 ? start : addDays(start, Math.ceil(diff / n) * n);
+  return Array.from({ length: count }, (_, i) => addDays(first, i * n));
+}
+
+/**
+ * A scheduled medication time on a day that uses `template`. Times move LATER by the routine's shift, never earlier, and never
+ * past 23:59. Only what she set up is applied. Steady never proposes a shift.
+ */
+export function shiftedDoseTime(time: ISOTime, template: RoutineTemplate | null | undefined): ISOTime {
+  const shift = template?.doseShiftMinutes ?? 0;
+  if (shift <= 0) return time;
+  const { hour, minute } = parseTime(time);
+  const base = hour * 60 + minute;
+  if ((template?.doseShiftWhich ?? 'all') === 'morning' && base >= 12 * 60) return time;
+  const moved = Math.min(23 * 60 + 59, base + shift);
+  return `${String(Math.floor(moved / 60)).padStart(2, '0')}:${String(moved % 60).padStart(2, '0')}`;
 }
 
 export interface DaySync {
@@ -131,14 +169,17 @@ export function missingDosesForDay(
   existing: MedicationDose[],
   now: ISODateTime,
   today: ISODate = todayKey(),
+  template: RoutineTemplate | null = null,
 ): MedicationDose[] {
-  const have = new Set(existing.map((d) => `${d.medicationId}|${d.scheduledTime}`));
+  const at = new Set(existing.map((d) => `${d.medicationId}|${d.scheduledTime}`));
+  // a dose she already took (or skipped) at its normal time still counts, even if today's routine would move it
+  const answered = new Set(existing.filter((d) => d.status !== 'pending').map((d) => `${d.medicationId}|${d.scheduledTime}`));
   const out: MedicationDose[] = [];
   for (const m of meds) {
     if (!isMedicationActiveOn(m, date, today)) continue;
-    for (const t of m.scheduledTimes) {
-      const scheduledTime = localDateTime(date, t);
-      if (have.has(`${m.id}|${scheduledTime}`)) continue;
+    for (const base of m.scheduledTimes) {
+      const scheduledTime = localDateTime(date, shiftedDoseTime(base, template));
+      if (at.has(`${m.id}|${scheduledTime}`) || answered.has(`${m.id}|${localDateTime(date, base)}`)) continue;
       out.push({
         id: uuid(),
         medicationId: m.id,
@@ -155,11 +196,17 @@ export function missingDosesForDay(
 }
 
 /** Remove still-pending doses whose schedule no longer exists (e.g., a time was edited). */
-export function orphanedPendingDoses(meds: Medication[], date: ISODate, existing: MedicationDose[], today: ISODate = todayKey()): string[] {
+export function orphanedPendingDoses(
+  meds: Medication[],
+  date: ISODate,
+  existing: MedicationDose[],
+  today: ISODate = todayKey(),
+  template: RoutineTemplate | null = null,
+): string[] {
   const valid = new Set<string>();
   for (const m of meds) {
     if (!isMedicationActiveOn(m, date, today)) continue;
-    for (const t of m.scheduledTimes) valid.add(`${m.id}|${localDateTime(date, t)}`);
+    for (const t of m.scheduledTimes) valid.add(`${m.id}|${localDateTime(date, shiftedDoseTime(t, template))}`);
   }
   return existing
     .filter((d) => d.status === 'pending' && !valid.has(`${d.medicationId}|${d.scheduledTime}`))

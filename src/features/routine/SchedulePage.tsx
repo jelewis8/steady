@@ -3,14 +3,14 @@ import { Link } from 'react-router-dom';
 import { Bell, BellOff, Link2, Plus, Trash2, Wand2 } from 'lucide-react';
 import { CATEGORY_LABELS, DEFAULT_ROUTINE_SETUP, MEAL_LABELS, type RoutineSetup } from '../../core/defaults';
 import { uuid } from '../../core/ids';
-import { formatClock, isoNow, parseTime, prefers24h, todayKey } from '../../core/time';
+import { formatClock, formatDateLong, isoNow, parseTime, prefers24h, todayKey } from '../../core/time';
 import { ROUTINE_CATEGORIES, type MealType, type RoutineCategory, type RoutineTemplate, type RoutineTemplateItem } from '../../core/types';
-import { selectTemplate } from '../../core/checklist';
+import { isRepeating, nextRepeatDates, selectTemplate, shiftedDoseTime } from '../../core/checklist';
 import { useDayPlan, useMedications, usePrefs, useTemplates } from '../../data/hooks';
 import { deleteTemplate, replaceRoutineFromSetup, saveTemplate, setDayTemplate } from '../../data/repo';
 import { toast } from '../../state/ui';
 import { CategoryIcon } from '../../ui/icons';
-import { Button, Card, Field, IconButton, Input, PageHeader, Select, Sheet, Toggle, cx } from '../../ui/kit';
+import { Button, Card, Disclaimer, Field, IconButton, Input, PageHeader, Segmented, Select, Sheet, TextField, Toggle, cx } from '../../ui/kit';
 import { RoutineSetupForm } from './RoutineSetupForm';
 
 const DAYS = [
@@ -48,7 +48,7 @@ export function SchedulePage() {
     for (const m of meds) {
       if (!m.isActive || m.isRescue) continue;
       for (const time of m.scheduledTimes) {
-        const { hour, minute } = parseTime(time);
+        const { hour, minute } = parseTime(shiftedDoseTime(time, t)); // shown at the moved time on days this routine moves doses
         r.push({ kind: 'med', id: `${m.id}-${time}`, label: `${m.name} ${m.dosage}${m.unit}`, hour, minute });
       }
     }
@@ -130,6 +130,8 @@ export function SchedulePage() {
           <Field label="Routine name">
             {(id) => <NameInput id={id} key={t.id} initial={t.name} onCommit={(name) => update({ name: name.trim() || 'Routine' })} />}
           </Field>
+          <RepeatFields key={t.id} t={t} update={update} />
+          {!isRepeatMode(t) && (
           <fieldset>
             <legend className="mb-1.5 font-bold">Use on these days</legend>
             <div className="grid grid-cols-7 gap-1.5">
@@ -154,6 +156,8 @@ export function SchedulePage() {
             </div>
             <p className="mt-2 text-sm text-ink-2">A day can belong to one routine. Routines with no days (like “Rest day”) can be picked on the Today screen.</p>
           </fieldset>
+          )}
+          <DoseShiftFields t={t} update={update} />
           <div className="flex flex-wrap gap-2">
             {todayTemplate?.id !== t.id && (
               <Button onClick={() => setDayTemplate(today, t.id).then(() => toast(`Today now uses “${t.name}”.`))}>Use this routine today</Button>
@@ -352,4 +356,114 @@ function NameInput({ id, initial, onCommit }: { id: string; initial: string; onC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [v]);
   return <Input id={id} value={v} onChange={(e) => setV(e.target.value)} onBlur={() => v !== initial && onCommit(v)} />;
+}
+
+/** Whether the routine is set to repeat every N days (even if N is still being typed). */
+function isRepeatMode(t: RoutineTemplate): boolean {
+  return t.repeatEveryDays != null;
+}
+
+type Update = (p: Partial<RoutineTemplate>) => Promise<void> | void;
+
+/** "Use this routine": on certain weekdays, or every few days counting from a date (F-008). */
+function RepeatFields({ t, update }: { t: RoutineTemplate; update: Update }) {
+  const every = isRepeatMode(t);
+  // keep what she types as text; save as soon as it is a usable number
+  const [text, setText] = useState(String(t.repeatEveryDays ?? 6));
+  const n = Number(text);
+  const valid = Number.isInteger(n) && n >= 2 && n <= 60;
+  const next = isRepeating(t) ? nextRepeatDates(t, todayKey(), 3) : [];
+  return (
+    <div className="grid gap-3">
+      <Segmented<'weekdays' | 'every'>
+        label="When to use this routine"
+        value={every ? 'every' : 'weekdays'}
+        onChange={async (v) => {
+          const before = t;
+          if (v === 'every') {
+            setText('6');
+            await update({ repeatEveryDays: 6, repeatStartDate: t.repeatStartDate ?? todayKey(), applicableDays: [] });
+            toast('This routine now repeats every few days. Its weekdays were cleared.', async () => {
+              await update(before);
+            });
+          } else {
+            await update({ repeatEveryDays: null, repeatStartDate: null });
+          }
+        }}
+        columns={2}
+        options={[
+          { value: 'weekdays', label: 'On certain weekdays' },
+          { value: 'every', label: 'Every few days' },
+        ]}
+      />
+      {every && (
+        <div className="grid gap-3 rounded-xl border border-line p-3">
+          <TextField
+            label="Every how many days?"
+            inputMode="numeric"
+            value={text}
+            onChange={(v) => {
+              setText(v);
+              const num = Number(v);
+              if (Number.isInteger(num) && num >= 2 && num <= 60) void update({ repeatEveryDays: num });
+            }}
+            hint={valid || text === '' ? 'For example 6 for every sixth day.' : 'Use a whole number from 2 to 60.'}
+            aria-invalid={!valid && text !== ''}
+          />
+          <TextField label="Starting on" type="date" value={t.repeatStartDate ?? ''} onChange={(v) => update({ repeatStartDate: v || todayKey() })} hint="This day, and then every few days after it." />
+          {next.length > 0 && (
+            <p>
+              <strong>Next:</strong> {next.map((d) => formatDateLong(d)).join(' · ')}
+            </p>
+          )}
+          <p className="text-sm text-ink-2">On those days this routine is used instead of your weekday one. A routine that repeats ignores the weekdays. To start from your usual day, use “New routine” to make a copy first.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SHIFT_CHOICES = [15, 30, 45, 60, 90, 120];
+
+/** On days this routine is used, medication times move later by an amount she chooses (F-008). */
+function DoseShiftFields({ t, update }: { t: RoutineTemplate; update: Update }) {
+  const shift = t.doseShiftMinutes ?? 0;
+  const which = t.doseShiftWhich ?? 'all';
+  return (
+    <div className="grid gap-3">
+      <Field label="Medication times on these days">
+        {(id) => (
+          <Select
+            id={id}
+            value={shift === 0 ? 'none' : which}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === 'none') void update({ doseShiftMinutes: 0 });
+              else void update({ doseShiftWhich: v as 'all' | 'morning', doseShiftMinutes: shift || 60 });
+            }}
+          >
+            <option value="none">Keep them as they are</option>
+            <option value="morning">Move morning doses later</option>
+            <option value="all">Move all doses later</option>
+          </Select>
+        )}
+      </Field>
+      {shift > 0 && (
+        <Field label="How much later">
+          {(id) => (
+            <Select id={id} value={shift} onChange={(e) => update({ doseShiftMinutes: Number(e.target.value) })}>
+              {SHIFT_CHOICES.map((m) => (
+                <option key={m} value={m}>
+                  {m % 60 === 0 ? `${m / 60} ${m === 60 ? 'hour' : 'hours'}` : `${m} minutes`} later
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      )}
+      <Disclaimer>
+        Only use this if your doctor has agreed to it. Steady never suggests changing when you take your medication. It only follows the plan you set. Reminders and your record use the moved times, and a dose taken at the moved time counts as on time.
+      </Disclaimer>
+    </div>
+  );
 }

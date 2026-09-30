@@ -3,10 +3,12 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { SEIZURE_TYPE_LABELS } from '../../core/defaults';
 import { addDays, dateKeyOf, formatDateLong, formatHours, formatIsoClock, todayKey } from '../../core/time';
-import { useCheckIn, useChecklistItems, useMedications, useSeizures, useSleepEntries } from '../../data/hooks';
+import { BOWEL_HOW_LABELS } from '../../core/bathroom';
+import { useBathroomLog, useCheckIn, useChecklistItems, useMedications, usePrefs, useSeizures, useSleepEntries } from '../../data/hooks';
 import { ensureDay } from '../../data/repo';
 import { useNow } from '../../ui/hooks';
 import { Button, Card, CardTitle, LinkButton, PageHeader, Progress } from '../../ui/kit';
+import { BathroomSheet } from '../bathroom/BathroomSheet';
 import { SleepLogSheet } from '../sleep/SleepLogSheet';
 import { CheckInSheet } from '../today/CheckInSheet';
 import { ChecklistRow } from '../today/Checklist';
@@ -29,6 +31,9 @@ function DayContent({ date }: { date: string }) {
   const nightBefore = addDays(date, -1);
   const sleep = useSleepEntries().find((e) => e.date === nightBefore);
   const checkIn = useCheckIn(date);
+  const trackBathroom = !!usePrefs()?.trackBathroom;
+  const bathroom = useBathroomLog(date);
+  const [bathroomOpen, setBathroomOpen] = useState(false);
   const [sleepOpen, setSleepOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -189,6 +194,26 @@ function DayContent({ date }: { date: string }) {
         </Button>
       </Card>
 
+      {trackBathroom && (
+        <Card labelledBy="dp-bt">
+          <CardTitle id="dp-bt">Bowel and bladder</CardTitle>
+          <p className="text-ink-2">
+            {bathroom
+              ? [
+                  bathroom.bowel === true ? `bowel movement${bathroom.bowelHow ? ` (${BOWEL_HOW_LABELS[bathroom.bowelHow].toLowerCase()})` : ''}` : bathroom.bowel === false ? 'no bowel movement' : null,
+                  bathroom.urinationCount ? `urinated ${bathroom.urinationCount} ${bathroom.urinationCount === 1 ? 'time' : 'times'}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || 'Nothing recorded.'
+              : 'Nothing recorded for this day.'}
+          </p>
+          <Button className="mt-3" onClick={() => setBathroomOpen(true)}>
+            {bathroom ? 'Edit' : 'Add'}
+          </Button>
+        </Card>
+      )}
+
+      {bathroomOpen && <BathroomSheet date={date} open onClose={() => setBathroomOpen(false)} />}
       {sleepOpen && <SleepLogSheet open onClose={() => setSleepOpen(false)} night={nightBefore} />}
       <CheckInSheet open={checkInOpen} onClose={() => setCheckInOpen(false)} date={date} />
     </div>

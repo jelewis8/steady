@@ -16,7 +16,7 @@ import type {
 
 export const APP_NAME = 'Steady';
 export const APP_VERSION = '1.0.0';
-export const SCHEMA_VERSION = '1.3.0';
+export const SCHEMA_VERSION = '1.4.0';
 
 export const SEIZURE_TYPE_LABELS: Record<SeizureType, { label: string; hint: string }> = {
   focal_aware: { label: 'Focal aware', hint: 'I stayed aware — I remember it' },
@@ -87,6 +87,8 @@ export const CATEGORY_LABELS: Record<RoutineCategory, string> = {
   exercise: 'Movement',
   stress_check: 'Check-in',
   mood: 'Mood',
+  bowel: 'Bowel movement',
+  bathroom: 'Bathroom break',
   custom: 'Other',
 };
 
@@ -130,6 +132,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   country: null,
   customSupportLines: [],
   defaultSupportContactId: null,
+  trackBathroom: false,
 };
 
 export const DEFAULT_SUPPORT_MESSAGE = 'I’m not feeling safe right now. Can you call me or come be with me?';

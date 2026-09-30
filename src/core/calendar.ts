@@ -4,7 +4,7 @@
  */
 import { SHORT_SLEEP_MINUTES } from './insights';
 import { addDays, dateKeyOf, dateRange, fromDateKey, toDateKey } from './time';
-import type { AuraLog, DailyCheckIn, ISODate, MedicationDose, SeizureEvent, SleepEntry } from './types';
+import type { AuraLog, BathroomLog, DailyCheckIn, ISODate, MedicationDose, SeizureEvent, SleepEntry } from './types';
 
 /** "YYYY-MM" */
 export type MonthKey = string;
@@ -20,6 +20,8 @@ export interface DayMarkers {
   /** the night before this day was under 6 hours */
   shortSleep: boolean;
   period: boolean;
+  /** a bowel movement is recorded for the day (F-006) */
+  bowel: boolean;
 }
 
 export function monthKeyOf(date: ISODate): MonthKey {
@@ -67,12 +69,13 @@ export function buildMonthMarkers(input: {
   doses: MedicationDose[];
   sleep: SleepEntry[];
   checkIns: DailyCheckIn[];
+  bathroomLogs?: BathroomLog[];
   now?: Date;
 }): Map<ISODate, DayMarkers> {
   const now = input.now ?? new Date();
   const days = daysOfMonth(input.month);
   const map = new Map<ISODate, DayMarkers>(
-    days.map((date) => [date, { date, seizures: 0, auras: 0, dosesMissed: 0, dosesNotRecorded: 0, shortSleep: false, period: false }]),
+    days.map((date) => [date, { date, seizures: 0, auras: 0, dosesMissed: 0, dosesNotRecorded: 0, shortSleep: false, period: false, bowel: false }]),
   );
   for (const s of input.seizures) {
     const m = map.get(dateKeyOf(s.timestamp));
@@ -97,6 +100,10 @@ export function buildMonthMarkers(input: {
     const m = map.get(c.date);
     if (m && c.onPeriod === true) m.period = true;
   }
+  for (const b of input.bathroomLogs ?? []) {
+    const m = map.get(b.date);
+    if (m && b.bowel === true) m.bowel = true;
+  }
   return map;
 }
 
@@ -111,6 +118,7 @@ export function describeMarkers(m: DayMarkers): string[] {
   if (m.dosesNotRecorded) out.push(`${plural(m.dosesNotRecorded, 'dose', 'doses')} not recorded`);
   if (m.shortSleep) out.push('short sleep the night before');
   if (m.period) out.push('period');
+  if (m.bowel) out.push('bowel movement');
   return out;
 }
 

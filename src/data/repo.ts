@@ -24,6 +24,8 @@ import type {
   ISODate,
   ISOTime,
   MealLog,
+  BathroomLog,
+  BowelHow,
   MealType,
   Medication,
   MedicationDose,
@@ -108,9 +110,9 @@ export async function ensureDay(date: ISODate = todayKey()): Promise<void> {
       const start = localDateTime(date, '00:00');
       const end = localDateTime(date, '23:59');
       const doses = await db.medicationDoses.where('scheduledTime').between(start, end, true, true).toArray();
-      const missing = missingDosesForDay(meds, date, doses, now);
+      const missing = missingDosesForDay(meds, date, doses, now, todayKey(), template);
       if (missing.length) await db.medicationDoses.bulkAdd(missing);
-      const orphans = orphanedPendingDoses(meds, date, doses);
+      const orphans = orphanedPendingDoses(meds, date, doses, todayKey(), template);
       if (orphans.length) await db.medicationDoses.bulkDelete(orphans);
     },
   );
@@ -336,6 +338,113 @@ export async function saveStopDetails(id: string, stop: StopDetails): Promise<Un
     await db.medications.put(med);
   };
 }
+
+// ───────────────────────── bowel and bladder (F-006) ─────────────────────────
+
+export type BathroomPatch = Partial<Pick<BathroomLog, 'bowel' | 'bowelHow' | 'bowelNotes' | 'urinationCount'>>;
+
+/**
+ * Save (or change) a day's bowel and bladder record. One record per day.
+ * Answering the bowel question (yes or no) also ticks that day's "Bowel movement" routine item, if she has one.
+ * Returns an Undo that puts the record and the routine item back exactly as they were.
+ */
+export async function saveBathroomLog(date: ISODate, patch: BathroomPatch): Promise<Undo> {
+  const at = isoNow();
+  const existing = await db.bathroomLogs.where('date').equals(date).first();
+  const item = (await db.routineChecklistItems.where('date').equals(date).toArray()).find((i) => i.category === 'bowel') ?? null;
+  const itemBefore = item ? { ...item } : null;
+  const next: BathroomLog = {
+    id: existing?.id ?? uuid(),
+    date,
+    bowel: null,
+    bowelHow: null,
+    bowelNotes: null,
+    urinationCount: 0,
+    createdAt: existing?.createdAt ?? at,
+    ...existing,
+    ...patch,
+    updatedAt: at,
+  };
+  if (next.bowel !== true) next.bowelHow = null;
+  next.urinationCount = Math.max(0, Math.round(next.urinationCount || 0));
+  next.bowelNotes = next.bowelNotes?.trim() || null;
+  await db.transaction('rw', [db.bathroomLogs, db.routineChecklistItems], async () => {
+    await db.bathroomLogs.put(next);
+    if (item && patch.bowel !== undefined && item.status !== 'done' && next.bowel !== null) {
+      await db.routineChecklistItems.put({ ...item, status: 'done', completedAt: at });
+    }
+  });
+  return async () => {
+    await db.transaction('rw', [db.bathroomLogs, db.routineChecklistItems], async () => {
+      if (existing) await db.bathroomLogs.put(existing);
+      else await db.bathroomLogs.delete(next.id);
+      if (itemBefore) await db.routineChecklistItems.put(itemBefore);
+    });
+  };
+}
+
+/** The one-tap counter. */
+export async function adjustUrination(date: ISODate, delta: number): Promise<void> {
+  const existing = await db.bathroomLogs.where('date').equals(date).first();
+  await saveBathroomLog(date, { urinationCount: Math.max(0, (existing?.urinationCount ?? 0) + delta) });
+}
+
+/** Put a daily "Bowel movement" item into every routine that doesn't have one. Returns an Undo. */
+export async function addBowelItemToRoutines(time: ISOTime = '20:00'): Promise<Undo> {
+  const before = await db.routineTemplates.toArray();
+  const { hour, minute } = { hour: Number(time.slice(0, 2)), minute: Number(time.slice(3, 5)) };
+  await db.transaction('rw', db.routineTemplates, async () => {
+    for (const t of before) {
+      if (t.items.some((i) => i.category === 'bowel')) continue;
+      await db.routineTemplates.put({
+        ...t,
+        items: [
+          ...t.items,
+          { id: uuid(), hour, minute, label: 'Bowel movement today?', category: 'bowel', linkedEntityId: null, reminderEnabled: true, reminderOffsetMinutes: 0, isOptional: false },
+        ],
+        updatedAt: isoNow(),
+      });
+    }
+  });
+  await ensureDay(todayKey());
+  return async () => {
+    await db.routineTemplates.bulkPut(before);
+    await ensureDay(todayKey());
+  };
+}
+
+/**
+ * Set the times of day for "Bathroom break" reminders (she chooses them: after waking, before bed, every few hours...).
+ * Replaces the bathroom-break items in every routine. An empty list removes them. Returns an Undo.
+ */
+export async function setBathroomBreaks(times: ISOTime[]): Promise<Undo> {
+  const before = await db.routineTemplates.toArray();
+  const unique = [...new Set(times.filter(Boolean))].sort();
+  await db.transaction('rw', db.routineTemplates, async () => {
+    for (const t of before) {
+      const kept = t.items.filter((i) => i.category !== 'bathroom');
+      const added = unique.map((time) => ({
+        id: uuid(),
+        hour: Number(time.slice(0, 2)),
+        minute: Number(time.slice(3, 5)),
+        label: 'Bathroom break',
+        category: 'bathroom' as const,
+        linkedEntityId: null,
+        reminderEnabled: true,
+        reminderOffsetMinutes: 0,
+        isOptional: false,
+      }));
+      await db.routineTemplates.put({ ...t, items: [...kept, ...added], updatedAt: isoNow() });
+    }
+  });
+  await ensureDay(todayKey());
+  return async () => {
+    await db.routineTemplates.bulkPut(before);
+    await ensureDay(todayKey());
+  };
+}
+
+export type { BowelHow };
 
 // ───────────────────────── side effects ─────────────────────────
 

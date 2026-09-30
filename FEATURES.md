@@ -16,7 +16,7 @@ New features and bigger improvements for Steady. Bugs go in [BUGS.md](BUGS.md).
 - **When shipped:** tick it, move it to **Done**, add ` → release-YYYY-MM-DD`, and mention the ID in the commit (`Add F-003: past-day logging`).
 - **Data model:** any feature that adds stored data must follow the data-safety rules in [docs/WORKFLOW.md](docs/WORKFLOW.md): a new Dexie version with an upgrade step, a `SCHEMA_VERSION` bump, and an import migration. Do **B-006** (the upgrade test) first.
 
-The next free ID is **F-010**.
+The next free ID is **F-011**.
 
 ---
 
@@ -28,14 +28,12 @@ _(none open)_
 
 ### High
 
-- [ ] **F-006** · 2026-09-30 · requested by: Jeremiah's friend (first user) · **Bowel and bladder tracking**
-  - Her words: medications can cause lasting constipation. She has a planned "toilet day" every 6 days (passion fruit tea, papaya). Dystonia means she doesn't feel the need to urinate, so she schedules bathroom times. "It would be important to ask if we pooped for the day."
-  - **Bowel:** a daily question, "Did you have a bowel movement today?", then "How was it?" (simple choices; consider plain-language labels rather than a clinical scale) and "What did you eat or drink beforehand?" (notes). Show "days since last bowel movement" discreetly.
-  - **Bladder:** "Did you urinate today? How many times?" A one-tap counter, plus optional scheduled bathroom reminders (after waking, before bed, every N hours).
-  - Include both in the report (frequency over the period), the calendar (F-004), and possibly insights (e.g. against medication changes).
-  - Keep it private and matter-of-fact. It could sit in the evening check-in and/or as routine items.
+_(none open)_
 
 ### Normal
+
+- [ ] **F-010** · 2026-09-30 · requested by: Jeremiah's friend · **Insights: bowel and bladder over time, against medication changes** (split out of F-006)
+  - F-006 lists this as "possibly". With bowel data in place, compare stretches without a bowel movement around dates a medication was started, stopped or changed. "Associated with" wording only, through the exact binomial test in `core/insights.ts`, with enough data first. The knowledge base doesn't cover this topic, so it would need a clinical source for any wording.
 
 - [ ] **F-009** · 2026-09-30 · requested by: Jeremiah · **Low-mood note in the neurologist report** (split out of F-002)
   - A gentle note in the report when low mood has been logged often. All anti-seizure medications carry a label warning about suicidal thoughts, so mood matters to the prescriber (`knowledge-base.md` §1.6 notes the FDA warning and a 2–5× increased risk).
@@ -45,20 +43,14 @@ _(none open)_
   - Today the seizure timer only logs seizures, and warning signs are logged without a duration.
   - Proposal: a single "Something's happening — start timer" button. When it's stopped, she chooses **Warning sign (aura)** or **Seizure**, and it saves with the duration. The 5-minute emergency alert still applies. The aura branch should also offer "it turned into a seizure", which links the two records.
 
-- [ ] **F-008** · 2026-09-30 · requested by: Jeremiah's friend · **Routines that repeat every N days, and timing rules**
-  - Her "toilet day" repeats **every 6 days**. Today, routines can only be tied to weekdays. Add "repeats every N days, starting from…" to routines.
-  - On toilet day she must finish her tea at least **an hour before** her medication, so her morning doses move an hour later. Allow a routine to **shift medication reminder times** on those days, or add a "keep X and Y an hour apart" reminder.
-  - **Never suggest changing medication timing.** Only schedule what she and her doctor decided.
-  - Open question: should shifted doses count as on time for adherence? (Suggestion: yes, if the shift is part of her planned routine.)
-
 ---
 
 ## Done
 
+- [x] **F-006** · 2026-09-30 · Bowel and bladder tracking (off until turned on): Today card with a quiet "days since last bowel movement" and a one-tap counter, the daily bowel question as a routine item, plain-language texture choices, optional notes on what she ate or drank, her own bathroom-break reminder times, calendar marker, report section → release-2026-09-30-6
+- [x] **F-008** · 2026-09-30 · Routines that repeat every N days from a start date, and planned medication shifts (morning or all doses, 15 min to 2 h later); shifted doses count as on time; Steady never suggests a shift → release-2026-09-30-6
 - [x] **F-003** · 2026-09-30 · Log things after the fact, clearly: "Log from an earlier day" on Today opens any past day (doses, routine, seizures, sleep, check-in), recorded at that day's times; sleep for any night → release-2026-09-30-5
 - [x] **F-004** · 2026-09-30 · Calendar: Monday-start month grid with icon-plus-words markers (seizures, warning signs, missed/unsure/unrecorded doses, short sleep, period) and a table list view; bowel days come with F-006 → release-2026-09-30-5
-
 - [x] **F-001** · 2026-09-30 · Dated side-effect log (medication or "not sure which", start and stop dates, severity, notes), in the neurologist report; the old undated list was migrated to "date unknown" → release-2026-09-30-4
 - [x] **F-007** · 2026-09-30 · Medications that didn't work out: "I no longer take this" asks the date and (optionally) why; the report has "Past medications and why they were stopped"; allergic reactions also appear on the action plan under Allergies → release-2026-09-30-4
-
 - [x] **F-002** · 2026-09-30 · Support for thoughts of suicide or self-harm: Support page (crisis lines by country, call/text a trusted person, emergency call), personal safety plan, reachable from Rescue, Calm & grounding, More and the lock screen → release-2026-09-30-3. _Wording still needs review by a clinician or peer-support organisation._

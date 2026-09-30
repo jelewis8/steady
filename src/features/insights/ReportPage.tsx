@@ -5,7 +5,8 @@ import { AURA_SYMPTOMS, POST_ICTAL_SYMPTOMS, SEIZURE_TYPE_LABELS } from '../../c
 import { adherence, doseNotesForReport } from '../../core/stats';
 import { describeSideEffectDates, groupSideEffects, pastMedicationsForReport, SEVERITY_TEXT } from '../../core/sideEffects';
 import { dateKeyOf, formatDateShort, formatDuration, formatHours, formatIsoClock } from '../../core/time';
-import { useDoses, useProfile, useSideEffects, useTriggerTags } from '../../data/hooks';
+import { useBathroomLogs, useDoses, usePrefs, useProfile, useSideEffects, useTriggerTags } from '../../data/hooks';
+import { BOWEL_HOW_LABELS, summarizeBathroom } from '../../core/bathroom';
 import { webShare } from '../../platform/share';
 import { toast } from '../../state/ui';
 import { Button, Segmented } from '../../ui/kit';
@@ -23,6 +24,18 @@ export function ReportPage() {
   const tagName = new Map(tags.map((t) => [t.id, t.label]));
   const auraName = new Map(AURA_SYMPTOMS.map((a) => [a.key, a.label]));
   const postName = new Map(POST_ICTAL_SYMPTOMS.map((a) => [a.key, a.label]));
+  const bathroomLogs = useBathroomLogs();
+  const trackBathroom = !!usePrefs()?.trackBathroom;
+  const bath = summarizeBathroom(bathroomLogs, d.start, d.end);
+  const showBath = bath.hasAnything && (trackBathroom || bathroomLogs.length > 0);
+  const bathLines = showBath
+    ? [
+        `Bowel movements recorded on ${bath.bowelDays} ${bath.bowelDays === 1 ? 'day' : 'days'}; recorded as none on ${bath.noBowelDays}.`,
+        bath.longestGapDays != null ? `Longest stretch without one: ${bath.longestGapDays} ${bath.longestGapDays === 1 ? 'day' : 'days'}.` : '',
+        bath.bowelDays ? `How they were: ${(['normal', 'hard', 'loose'] as const).map((k) => `${BOWEL_HOW_LABELS[k].toLowerCase()} ${bath.how[k]}`).join(', ')}.` : '',
+        bath.bladderAverage != null ? `Urination: about ${bath.bladderAverage} times a day, on the ${bath.bladderDays} ${bath.bladderDays === 1 ? 'day' : 'days'} it was counted.` : '',
+      ].filter(Boolean)
+    : [];
   const allSideEffects = useSideEffects();
   const sideEffectGroups = groupSideEffects(allSideEffects, d.meds);
   const pastMeds = pastMedicationsForReport(d.meds, allSideEffects);
@@ -53,6 +66,7 @@ export function ReportPage() {
     `Medication adherence (recorded doses): ${d.adherence.percent ?? '—'}%`,
     ...perMed.map(({ m, a }) => `  - ${m.name} ${m.dosage}${m.unit} at ${m.scheduledTimes.join(', ')}: ${a.percent ?? '—'}% (${a.skipped} skipped, ${a.unsure} unsure, ${a.notRecorded} not recorded)`),
     '',
+    ...(bathLines.length ? ['Bowel and bladder (self-reported):', ...bathLines.map((l) => `  - ${l}`), ''] : []),
     ...(sideEffectGroups.length
       ? [
           'Side effects noted (all dates):',
@@ -186,6 +200,18 @@ export function ReportPage() {
                   ))}
                 </tbody>
               </table>
+            </section>
+          )}
+
+          {bathLines.length > 0 && (
+            <section className="mt-5">
+              <h2 className="text-lg font-bold">Bowel and bladder</h2>
+              <p className="text-sm text-ink-2">Self-reported, for this period. Days with nothing recorded are not counted.</p>
+              <ul className="mt-1 list-disc pl-6">
+                {bathLines.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
             </section>
           )}
 

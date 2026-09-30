@@ -112,7 +112,7 @@ export function createDexieStorage(database: SteadyDB = db): StorageAdapter {
         for (const k of COLLECTION_KEYS) {
           const rows = k === 'voiceNotes' ? voice : (d[k] as unknown[]);
           if (rows.length === 0) continue;
-          if (k === 'sleepEntries' || k === 'dailyCheckIns') {
+          if (k === 'sleepEntries' || k === 'dailyCheckIns' || k === 'bathroomLogs') {
             // unique by date: the imported row wins
             const t = tableFor(database, k);
             for (const row of rows as { date: string }[]) {

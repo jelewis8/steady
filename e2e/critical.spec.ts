@@ -570,7 +570,7 @@ test('upgrade in a real browser: a database saved by the previous release opens 
     d.close();
     return { version: v, old: med.sideEffectsNoted };
   });
-  expect(db.version).toBe(20);
+  expect(db.version).toBe(30); // upgraded from version 1 through 2 to 3
   expect(db.old).toEqual(['Irritability', 'Tiredness']); // the old field is left exactly as it was
 });
 
@@ -783,4 +783,282 @@ test('F-004: calendar and day pages have no accessibility violations and no anim
   await page.waitForTimeout(300);
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
+});
+
+// ---- Release 6: F-006 bowel and bladder, F-008 routines every N days with planned dose shifts ----
+async function enableBathroom(page: Page) {
+  await page.goto('/bathroom');
+  await page.getByRole('switch', { name: /Keep track of bowel and bladder/ }).click();
+  await expect(page.getByRole('heading', { name: 'A daily question in my routine' })).toBeVisible();
+}
+
+test('F-006: off by default; turning it on adds a quiet Today card with a one-tap counter and the bowel question', async ({ page }) => {
+  await onboard(page);
+  await expect(page.getByRole('heading', { name: 'Bathroom' })).toHaveCount(0); // nothing shown until she chooses it
+  await enableBathroom(page);
+  await page.goto('/');
+  const card = page.getByRole('region', { name: 'Bathroom' });
+  await expect(card).toContainText('Not recorded yet');
+  await card.getByRole('button', { name: 'Add one urination' }).click();
+  await card.getByRole('button', { name: 'Add one urination' }).click();
+  await card.getByRole('button', { name: 'Add one urination' }).click();
+  await expect(card).toContainText('Urinated today: 3 times');
+  await card.getByRole('button', { name: 'Take one off' }).click();
+  await expect(card).toContainText('Urinated today: 2 times');
+
+  await card.getByRole('button', { name: 'Record' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Bowel and bladder today' });
+  await sheet.getByRole('radio', { name: 'Yes' }).click();
+  await sheet.getByRole('radio', { name: 'Hard or difficult' }).click();
+  await sheet.getByLabel('What did you eat or drink beforehand? (optional)').fill('Papaya and tea');
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(card).toContainText('Yes, hard or difficult');
+  await expect(card).toContainText('Last bowel movement: today');
+});
+
+test('F-006: the daily question is a routine item, and answering it ticks it off', async ({ page }) => {
+  await onboard(page);
+  await enableBathroom(page);
+  await page.getByRole('button', { name: 'Add it to my routine' }).click();
+  await expect(page.getByText('It’s in your routine.')).toBeVisible();
+  await page.goto('/');
+  await page.getByRole('button', { name: /Show later today/ }).click().catch(() => undefined);
+  const item = page.getByRole('listitem').filter({ hasText: 'Bowel movement today?' });
+  await expect(item).toBeVisible();
+  await item.getByRole('button', { name: /^Mark Bowel movement today\? .* as done$/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'Bowel and bladder today' });
+  await sheet.getByRole('radio', { name: 'No' }).click();
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Bathroom' })).toContainText('Bowel movement today: No');
+  const status = await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const rows: { category: string; status: string }[] = await new Promise((res) => {
+      const g = db.transaction('routineChecklistItems').objectStore('routineChecklistItems').getAll();
+      g.onsuccess = () => res(g.result);
+    });
+    db.close();
+    return rows.filter((r) => r.category === 'bowel').map((r) => r.status);
+  });
+  expect(status).toEqual(['done']);
+});
+
+test('F-006: days since the last bowel movement is shown quietly, and past days can be filled in', async ({ page }) => {
+  await onboard(page);
+  await enableBathroom(page);
+  const d = await dayKey(page, -3);
+  await page.goto(`/day/${d}`);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('radio', { name: 'Yes' }).click();
+  await sheet.getByRole('radio', { name: 'Normal' }).click();
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.goto('/');
+  await expect(page.getByRole('region', { name: 'Bathroom' })).toContainText('Last bowel movement: 3 days ago');
+});
+
+test('F-006: she chooses her own bathroom-break reminders', async ({ page }) => {
+  await onboard(page);
+  await enableBathroom(page);
+  await page.getByLabel('Add a time').fill('10:00');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.getByRole('button', { name: 'Before bed' }).click();
+  await expect(page.getByRole('button', { name: /Remove the 10:00 AM reminder/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Remove the .* reminder/ })).toHaveCount(2);
+  await page.goto('/schedule');
+  await expect(page.getByText(/Bathroom break/).first()).toBeVisible();
+  await page.goto('/bathroom');
+  await page.getByRole('button', { name: 'Clear all' }).click();
+  await expect(page.getByText('No bathroom break reminders yet.')).toBeVisible();
+});
+
+test('F-006: bowel days show on the calendar as words, and in the report', async ({ page }) => {
+  await onboard(page);
+  await enableBathroom(page);
+  const d = await dayKey(page, -2);
+  await page.goto(`/day/${d}`);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.getByRole('dialog').getByRole('radio', { name: 'Yes' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+
+  await page.goto(`/calendar?m=${d.slice(0, 7)}`);
+  await expect(page.getByRole('link', { name: /: bowel movement$/ })).toHaveCount(1);
+  await expect(page.getByText('Bowel movement', { exact: true })).toBeVisible(); // legend
+  await page.getByRole('radio', { name: 'List' }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'bowel movement' })).toHaveCount(1);
+
+  await page.goto('/insights/report');
+  await expect(page.getByRole('heading', { name: 'Bowel and bladder' })).toBeVisible();
+  await expect(page.getByText(/Bowel movements recorded on 1 day/)).toBeVisible();
+});
+
+test('F-006: the calendar does not mention bowel movements for someone who does not track them', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/calendar');
+  await expect(page.getByText('What the symbols mean')).toBeVisible();
+  await expect(page.getByText('Bowel movement', { exact: true })).toHaveCount(0);
+});
+
+test('F-008: a routine that repeats every 6 days moves morning doses an hour later, and explains it', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/schedule');
+  await page.getByRole('button', { name: 'New routine' }).click();
+  await page.getByLabel('Routine name').fill('Toilet day');
+  await page.waitForTimeout(900); // the name saves after a short pause
+  await page.getByRole('radio', { name: 'Every few days' }).click();
+  await expect(page.getByText('Use on these days')).toHaveCount(0); // weekdays don't apply to it
+  await expect(page.getByLabel('Every how many days?')).toHaveValue('6');
+  await expect(page.getByText(/Next:/)).toBeVisible();
+  await page.getByLabel('Medication times on these days').selectOption('morning');
+  await expect(page.getByLabel('How much later')).toHaveValue('60');
+  await expect(page.getByText(/Only use this if your doctor has agreed/)).toBeVisible();
+  await expect(page.getByText(/counts as on time/)).toBeVisible();
+
+  // today is day 1 of the cycle: the dose is at 9:00, and Today says so
+  await page.goto('/');
+  await expect(page.getByText(/Using “Toilet day”/)).toBeVisible();
+  await expect(page.getByText(/Medication times are 1 hour later today/)).toBeVisible();
+  const dose = page.getByRole('listitem').filter({ hasText: 'Lamotrigine' }).first();
+  await expect(dose).toContainText(/(9:00|09:00)/);
+  await expect(dose).not.toContainText(/(8:00 AM|08:00)/);
+
+  // taking it counts as a normal, on-time dose
+  await dose.getByRole('button', { name: /^Mark Lamotrigine .* as taken$/ }).click();
+  await page.getByRole('button', { name: /earlier today/ }).click(); // finished items are tucked away
+  await expect(page.getByRole('listitem').filter({ hasText: 'Lamotrigine' }).filter({ hasText: /Taken at/ })).toHaveCount(1);
+  const taken = await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const rows: { status: string; scheduledTime: string }[] = await new Promise((res) => {
+      const g = db.transaction('medicationDoses').objectStore('medicationDoses').getAll();
+      g.onsuccess = () => res(g.result);
+    });
+    db.close();
+    // the dose that was taken is the one scheduled for 9:00, not 8:00
+    return rows.filter((r) => r.status === 'taken' || r.status === 'taken_late').map((r) => new Date(r.scheduledTime).getHours());
+  });
+  expect(taken).toEqual([9]);
+});
+
+test('F-008: switching a routine back to weekdays turns the repeat off, and the usual day is unaffected', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/schedule');
+  await page.getByRole('button', { name: 'New routine' }).click();
+  await page.getByRole('radio', { name: 'Every few days' }).click();
+  await page.getByLabel('Every how many days?').fill('1'); // not a usable number
+  await expect(page.getByText('Use a whole number from 2 to 60.')).toBeVisible();
+  await page.getByLabel('Every how many days?').fill('4');
+  await page.getByRole('radio', { name: 'On certain weekdays' }).click();
+  await expect(page.getByText('Use on these days')).toBeVisible();
+  await page.goto('/');
+  await expect(page.getByText(/Medication times are .* later today/)).toHaveCount(0);
+  const dose = page.getByRole('listitem').filter({ hasText: 'Lamotrigine' }).first();
+  await expect(dose).toContainText(/(8:00|08:00)/);
+});
+
+test('F-006/F-008: the new screens have no accessibility violations (including the open sheet)', async ({ page }) => {
+  test.setTimeout(90_000);
+  await onboard(page);
+  await enableBathroom(page);
+  await page.getByRole('button', { name: 'Add it to my routine' }).click();
+  await page.getByRole('button', { name: 'Before bed' }).click();
+  for (const path of ['/bathroom', '/']) {
+    await page.goto(path);
+    await page.waitForTimeout(400);
+    const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(r.violations, `${path}: ${r.violations.map((v) => v.id).join(', ')}`).toEqual([]);
+  }
+  await page.getByRole('button', { name: 'Record' }).click();
+  await page.getByRole('dialog').getByRole('radio', { name: 'Yes' }).click();
+  await page.waitForTimeout(300);
+  let r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+  await page.keyboard.press('Escape');
+
+  await page.goto('/schedule');
+  await page.getByRole('button', { name: 'New routine' }).click();
+  await page.getByRole('radio', { name: 'Every few days' }).click();
+  await page.getByLabel('Medication times on these days').selectOption('all');
+  await page.waitForTimeout(300);
+  r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id), 'schedule').toEqual([]);
+});
+
+test('upgrade in a real browser (from version 2): a database saved by the previous release opens, keeps everything, and gets the bathroom table', async ({ page }) => {
+  await page.goto('/favicon.svg');
+  await page.evaluate(async () => {
+    // release-2026-09-30-5: Dexie schema version 2 (IndexedDB version 20), with the sideEffects table.
+    const stores: Record<string, string> = {
+      profile: 'id', seizureEvents: 'id, timestamp', auraLogs: 'id, timestamp, seizureEventId', medications: 'id, isActive',
+      medicationDoses: 'id, medicationId, scheduledTime, [medicationId+scheduledTime]', mealLogs: 'id, timestamp', hydrationLogs: 'id, timestamp',
+      sleepEntries: 'id, &date', routineTemplates: 'id', routineChecklistItems: 'id, date, [date+templateItemId]', triggerTags: 'id, label',
+      rescueProtocol: 'id', emergencyContacts: 'id, sortOrder', insightRules: 'id, correlationType', dailyCheckIns: 'id, &date',
+      dayPlans: 'date', voiceNotes: 'id, seizureEventId', meta: 'key', sideEffects: 'id, medicationId, startDate',
+    };
+    const db: IDBDatabase = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('steady', 20);
+      req.onupgradeneeded = () => {
+        for (const [name, spec] of Object.entries(stores)) {
+          const parts = spec.split(',').map((x) => x.trim());
+          const store = req.result.createObjectStore(name, { keyPath: parts[0] });
+          for (const p of parts.slice(1)) {
+            const unique = p.startsWith('&');
+            const n = p.replace('&', '');
+            store.createIndex(n, n.startsWith('[') ? n.slice(1, -1).split('+') : n, { unique });
+          }
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const now = new Date().toISOString();
+    const tx = db.transaction(['profile', 'medications', 'sideEffects', 'routineTemplates'], 'readwrite');
+    tx.objectStore('profile').put({
+      id: 'p1', displayName: 'Test', dateOfBirth: null, epilepsyType: 'focal', seizureFocus: null, diagnosisDate: null, timezone: 'America/New_York',
+      preferences: { theme: 'system', emergencyNumber: '911' }, onboarded: true, isSampleData: false, createdAt: now, updatedAt: now,
+    });
+    tx.objectStore('medications').put({
+      id: 'm1', name: 'Keppra', genericName: null, dosage: '500', unit: 'mg', frequency: 'twice daily', scheduledTimes: ['08:00', '20:00'], prescriber: null, pharmacy: null,
+      remainingCount: 20, unitsPerDose: 1, refillDate: null, refillReminderDays: 7, isActive: true, isRescue: false, startDate: '2026-01-01', endDate: null,
+      sideEffectsNoted: [], stopReason: null, stopReasonNote: null, notes: null, createdAt: now, updatedAt: now,
+    });
+    tx.objectStore('sideEffects').put({ id: 'se1', medicationId: 'm1', name: 'Tiredness', startDate: '2026-08-01', endDate: null, severity: 'mild', notes: null, createdAt: now, updatedAt: now });
+    tx.objectStore('routineTemplates').put({
+      id: 'r1', name: 'Everyday', isDefault: true, applicableDays: [0, 1, 2, 3, 4, 5, 6], createdAt: now, updatedAt: now,
+      items: [{ id: 'i1', hour: 7, minute: 0, label: 'Wake up', category: 'sleep', linkedEntityId: null, reminderEnabled: true, reminderOffsetMinutes: 0, isOptional: false }],
+    });
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  });
+
+  await page.goto('/meds/side-effects');
+  await expect(page.getByText('Tiredness')).toBeVisible(); // what she had is still there
+  await page.goto('/');
+  await expect(page.getByText('Wake up')).toBeVisible(); // a routine saved without the new settings behaves as before
+  await page.goto('/bathroom');
+  await page.getByRole('switch', { name: /Keep track of bowel and bladder/ }).click();
+  await expect(page.getByRole('switch', { name: /Keep track of bowel and bladder/ })).toHaveAttribute('aria-checked', 'true'); // saved before we leave
+  await page.goto('/');
+  await page.getByRole('region', { name: 'Bathroom' }).getByRole('button', { name: 'Add one urination' }).click();
+  await expect(page.getByRole('region', { name: 'Bathroom' })).toContainText('Urinated today: 1 time');
+  const version = await page.evaluate(async () => {
+    const d: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const v = { version: d.version, hasBathroom: d.objectStoreNames.contains('bathroomLogs') };
+    d.close();
+    return v;
+  });
+  expect(version).toEqual({ version: 30, hasBathroom: true });
 });

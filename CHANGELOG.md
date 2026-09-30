@@ -18,6 +18,26 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-09-30-6
+
+**F-006 and F-008: bowel and bladder tracking, and routines that repeat every few days.** Data schema is now `1.4.0` and the database moves to **version 3** (one new table; nothing existing is changed). **Ask her to save a backup first.**
+
+**Bowel and bladder (F-006)** is **off until she turns it on** (More → Bowel & bladder). Private, plain words, never scored.
+- **Today card:** "Bowel movement today: Yes, normal / No / Not recorded yet", a quiet "Last bowel movement: 3 days ago", and a one-tap counter "Urinated today: N times" with "Add one" and "Take one off".
+- **The daily question as a routine item:** one button adds "Bowel movement today?" to her routines each evening (8:00 PM, changeable in Schedule). Answering it (yes or no) ticks it off. "How was it?" is plain: hard or difficult, normal, loose, not sure. "What did you eat or drink beforehand?" is an optional note.
+- **Bathroom break reminders:** times she chooses (add any time, or quick fill: after I wake up, before bed, every 3 hours). They appear in her routine with a reminder, for when she doesn't feel the need to go.
+- **Past days:** any day can be filled in from the Day page or "Recent days" on the same screen.
+- **Report** ("Bowel and bladder", also in the text summary): days with a bowel movement, days recorded as none, the longest stretch without one, how they were, and the average number of urinations on the days counted. **Calendar:** a "Bowel movement" symbol with words.
+- The knowledge base doesn't cover bowel or bladder, so Steady makes no claims about them. It records, and the screen says to tell her doctor or pharmacist about ongoing constipation or worries.
+
+**Routines that repeat, and planned medication shifts (F-008)**
+- In Schedule, a routine can be used **"Every few days"** (every N days, counting from a start date) instead of on weekdays. It shows the next three dates. On its days it is used instead of her weekday routine. Use "New routine" to make a copy of her usual day first, then add the toilet-day items.
+- A routine can **move medication times later** on the days it's used: morning doses only, or all doses, by 15 minutes to 2 hours. Reminders, the checklist and her record all use the moved times, so **a dose taken at the moved time counts as on time.** Today says, for example, "Medication times are 1 hour later today, as set in 'Toilet day'."
+- She sets this herself. The screen says to only use it if her doctor has agreed, and Steady never suggests changing a medication time.
+- Routines saved before this release behave exactly as they did (no repeat, no shift).
+
+**Safety of the upgrade:** upgrade tests now cover a database from every earlier release (Dexie version 1 and version 2), in unit tests and in a real browser. Older backups open with routines and preferences filled in with defaults.
+
 ## release-2026-09-30-5
 
 **F-003 and F-004: log past days clearly, and a calendar.** No data changes: schema stays `1.3.0`, database stays at version 2.

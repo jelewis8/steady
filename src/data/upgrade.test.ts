@@ -17,12 +17,15 @@ import { SCHEMA_VERSION } from '../core/defaults';
 import { SteadyDB } from './db';
 import { checksumOf, createDexieStorage } from './storage';
 import backup20260927 from '../test/fixtures/backup-release-2026-09-27.json?raw';
+import backup20260930v5 from '../test/fixtures/backup-release-2026-09-30-5.json?raw';
 
-// Releases 2026-09-27 through 2026-09-30-3 all used database schema version 1, so this one entry covers them.
-// release-2026-09-30-4 added version 2 (the sideEffects table); when the NEXT schema change ships, add the version-2 stores here too.
-const PREVIOUS_RELEASES: { release: string; stores: Record<string, string> }[] = [
+// Releases 2026-09-27 through 2026-09-30-3 all used database schema version 1, so the first entry covers them.
+// Releases 2026-09-30-4 and -5 used version 2 (the sideEffects table). release-2026-09-30-6 added version 3 (bathroomLogs).
+// When the NEXT schema change ships, add the version-3 stores here too, with a fresh frozen backup.
+const PREVIOUS_RELEASES: { release: string; /** the Dexie version that release used */ version: number; stores: Record<string, string> }[] = [
   {
     release: 'release-2026-09-27',
+    version: 1,
     stores: {
       profile: 'id',
       seizureEvents: 'id, timestamp',
@@ -44,9 +47,37 @@ const PREVIOUS_RELEASES: { release: string; stores: Record<string, string> }[] =
       meta: 'key',
     },
   },
+  {
+    release: 'release-2026-09-30-5',
+    version: 2,
+    stores: {
+      profile: 'id',
+      seizureEvents: 'id, timestamp',
+      auraLogs: 'id, timestamp, seizureEventId',
+      medications: 'id, isActive',
+      medicationDoses: 'id, medicationId, scheduledTime, [medicationId+scheduledTime]',
+      mealLogs: 'id, timestamp',
+      hydrationLogs: 'id, timestamp',
+      sleepEntries: 'id, &date',
+      routineTemplates: 'id',
+      routineChecklistItems: 'id, date, [date+templateItemId]',
+      triggerTags: 'id, label',
+      rescueProtocol: 'id',
+      emergencyContacts: 'id, sortOrder',
+      insightRules: 'id, correlationType',
+      dailyCheckIns: 'id, &date',
+      dayPlans: 'date',
+      voiceNotes: 'id, seizureEventId',
+      meta: 'key',
+      sideEffects: 'id, medicationId, startDate',
+    },
+  },
 ];
 
-const FROZEN_BACKUPS: { release: string; raw: string }[] = [{ release: 'release-2026-09-27', raw: backup20260927 }];
+const FROZEN_BACKUPS: { release: string; raw: string }[] = [
+  { release: 'release-2026-09-27', raw: backup20260927 },
+  { release: 'release-2026-09-30-5', raw: backup20260930v5 },
+];
 
 const created: string[] = [];
 let n = 0;
@@ -65,7 +96,7 @@ const loadJson = (raw: string) => JSON.parse(raw) as ExportEnvelope;
 /** Collections whose stored rows should come back exactly as they went in. */
 const ROW_KEYS = COLLECTION_KEYS.filter((k) => k !== 'voiceNotes');
 
-describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, stores }) => {
+describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, version, stores }) => {
   // Collections that did not exist in that release (added later) are checked by the migration tests below.
   const rowKeys = ROW_KEYS.filter((k) => k in stores);
   const fixture = FROZEN_BACKUPS.find((f) => f.release === release);
@@ -73,7 +104,7 @@ describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, sto
 
   async function writeOldDatabase(name: string, data: ExportData) {
     const old = new Dexie(name);
-    old.version(1).stores(stores);
+    old.version(version).stores(stores);
     await old.open();
     await old.table('profile').put(data.userProfile);
     if (data.rescueProtocol) await old.table('rescueProtocol').put(data.rescueProtocol);
@@ -293,5 +324,55 @@ describe('side-effect migration (F-001)', () => {
     const parsed = parseEnvelope(raw);
     if (!parsed.ok) throw new Error(parsed.error);
     expect(parsed.envelope.data.sideEffects.map((x) => x.id)).toEqual(['se-1']);
+  });
+});
+
+/**
+ * Release 2026-09-30-6 (F-006, F-008): Dexie version 3 adds the bathroomLogs table, and routines gain repeat and dose-shift settings.
+ * Nothing existing may change, the new table starts empty, and routines saved without the new settings must behave exactly as before.
+ */
+describe('bathroom table and routine settings (F-006, F-008)', () => {
+  for (const p of PREVIOUS_RELEASES) {
+    const fixture = FROZEN_BACKUPS.find((f) => f.release === p.release)!;
+    it(`upgrading a ${p.release} database (Dexie v${p.version}) adds an empty bathroom table and keeps every routine as it was`, async () => {
+      const data = loadJson(fixture.raw).data;
+      const name = freshName('bath');
+      const old = new Dexie(name);
+      old.version(p.version).stores(p.stores);
+      await old.open();
+      await old.table('profile').put(data.userProfile);
+      await old.table('routineTemplates').bulkPut(data.routineTemplates);
+      await old.table('medications').bulkPut(data.medications);
+      old.close();
+
+      const current = new SteadyDB(name);
+      await current.open();
+      try {
+        expect(await current.bathroomLogs.count()).toBe(0);
+        expect(byId(await current.routineTemplates.toArray())).toEqual(byId(data.routineTemplates)); // untouched, no new fields added behind her back
+        expect(await current.medications.count()).toBe(data.medications.length);
+        // and the new table works, with one record per day
+        await current.bathroomLogs.add({ id: 'b1', date: '2026-09-01', bowel: true, bowelHow: 'normal', bowelNotes: null, urinationCount: 3, createdAt: '', updatedAt: '' });
+        await expect(current.bathroomLogs.add({ id: 'b2', date: '2026-09-01', bowel: false, bowelHow: null, bowelNotes: null, urinationCount: 0, createdAt: '', updatedAt: '' })).rejects.toThrow();
+        expect(current.verno).toBe(3);
+      } finally {
+        current.close();
+      }
+    });
+  }
+
+  it('a backup from before 1.4.0 gets routine defaults (no repeat, no dose shift) and no bathroom records, and nothing else changes', async () => {
+    for (const f of FROZEN_BACKUPS) {
+      const raw = loadJson(f.raw);
+      const parsed = parseEnvelope(raw);
+      if (!parsed.ok) throw new Error(parsed.error);
+      expect(parsed.warnings).toEqual([]);
+      expect(parsed.envelope.data.bathroomLogs).toEqual([]);
+      for (const t of parsed.envelope.data.routineTemplates) {
+        expect(t).toMatchObject({ repeatEveryDays: null, repeatStartDate: null, doseShiftMinutes: 0, doseShiftWhich: 'all' });
+      }
+      expect(parsed.envelope.data.routineTemplates.map((t) => t.items.length)).toEqual(raw.data.routineTemplates.map((t) => t.items.length));
+      expect(parsed.envelope.data.userProfile?.preferences.trackBathroom).toBe(false);
+    }
   });
 });

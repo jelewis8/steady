@@ -45,7 +45,7 @@ describe('F-002 data: migration 1.1.0 → 1.2.0', () => {
     expect(p.displayName).toBe(raw.data.userProfile!.displayName);
     expect(parsed.envelope.data.emergencyContacts.every((c) => c.supportPerson === false)).toBe(true);
     // everything she had is still there (the side-effect log is checked in upgrade.test.ts)
-    const without = (d: typeof raw.data) => summarizeData({ ...d, sideEffects: [] });
+    const without = (d: typeof raw.data) => summarizeData({ ...d, sideEffects: [], bathroomLogs: [] });
     expect(without(parsed.envelope.data)).toEqual(without(raw.data));
   });
 
