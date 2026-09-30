@@ -81,8 +81,9 @@ export function OnboardingPage() {
             onImported={async () => {
               await initDatabase();
               await updateProfile({ onboarded: true });
-              window.location.assign('/');
             }}
+            onContinue={() => window.location.assign('/')}
+            continueLabel="Open Steady"
           />
         )}
         <Disclaimer />

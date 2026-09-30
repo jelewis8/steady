@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, FileUp, ShieldCheck, Trash2 } from 'lucide-react';
+import { CircleCheck, Download, FileUp, ShieldCheck, Trash2 } from 'lucide-react';
 import {
+  checkRestore,
+  describeRestoredData,
   dosesCsv,
   isEncryptedEnvelope,
   parseEnvelope,
@@ -50,9 +52,10 @@ export function DataPage() {
   const [busy, setBusy] = useState(false);
   const [persisted, setPersisted] = useState<boolean | null>(null);
   const [usage, setUsage] = useState<string | null>(null);
+  const refreshCounts = () => storage.exportAll().then((env) => setCounts(summarizeData(env.data).filter((c) => c.count > 0)));
 
   useEffect(() => {
-    storage.exportAll().then((env) => setCounts(summarizeData(env.data).filter((c) => c.count > 0)));
+    void refreshCounts();
     navigator.storage?.persisted?.().then(setPersisted).catch(() => setPersisted(null));
     navigator.storage
       ?.estimate?.()
@@ -131,7 +134,7 @@ export function DataPage() {
         </div>
       </Card>
 
-      <ImportCard />
+      <ImportCard onImported={refreshCounts} />
 
       <Card labelledBy="st-h">
         <CardTitle id="st-h" icon={<ShieldCheck aria-hidden size={20} />}>
@@ -149,8 +152,19 @@ export function DataPage() {
   );
 }
 
-export function ImportCard({ onImported }: { onImported?: () => void }) {
+interface RestoreResult {
+  mode: 'merge' | 'replace';
+  backupDate: string;
+  summary: string;
+  problems: string[];
+}
+
+export function ImportCard({ onImported, onContinue, continueLabel }: { onImported?: () => void | Promise<void>; onContinue?: () => void; continueLabel?: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const resultRef = useRef<HTMLHeadingElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  const [result, setResult] = useState<RestoreResult | null>(null);
+  const lastImport = useMeta<{ at: string; mode: 'merge' | 'replace'; backupDate: string }>('lastImport');
   const [raw, setRaw] = useState<unknown>(null);
   const [needPass, setNeedPass] = useState(false);
   const [pass, setPass] = useState('');
@@ -207,20 +221,81 @@ export function ImportCard({ onImported }: { onImported?: () => void }) {
     }
   }
 
+  // A restore result or error must be seen, not just announced: bring it into view and move focus to it.
+  useEffect(() => {
+    if (result) {
+      resultRef.current?.focus();
+      resultRef.current?.scrollIntoView?.({ block: 'center' });
+    }
+  }, [result]);
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView?.({ block: 'center' });
+  }, [error]);
+
   async function doImport() {
     if (!env) return;
     setBusy(true);
+    setError(null);
     try {
       await storage.importAll(env, mode);
       await ensureDay(todayKey());
-      toast(mode === 'replace' ? 'Backup restored.' : 'Backup merged with your data.');
+      // Don't trust the import call: read back what is really stored and compare it with the file.
+      const after = await storage.exportAll();
+      const problems = checkRestore(env.data, after.data, mode);
+      const done: RestoreResult = {
+        mode,
+        backupDate: new Date(env.exportedAt).toLocaleString(),
+        summary: describeRestoredData(after.data),
+        problems,
+      };
+      await setMeta('lastImport', { at: new Date().toISOString(), mode, backupDate: env.exportedAt, summary: done.summary });
       reset();
-      onImported?.();
+      setResult(done);
+      await onImported?.();
     } catch (e) {
-      setError(`Import failed, and nothing was changed: ${e instanceof Error ? e.message : String(e)}`);
+      setError(`The restore did not work, and nothing was changed. Your backup file is fine; try again. (${e instanceof Error ? e.message : String(e)})`);
     } finally {
       setBusy(false);
     }
+  }
+
+  if (result) {
+    return (
+      <Card labelledBy="imp-h" tone={result.problems.length ? 'attn' : 'ok'}>
+        <div role="status">
+          <h2 id="imp-h" ref={resultRef} tabIndex={-1} className="flex items-center gap-2 text-xl font-bold">
+            <CircleCheck aria-hidden size={24} className="shrink-0" />
+            {result.problems.length
+              ? 'Restored, but something looks incomplete'
+              : result.mode === 'replace'
+                ? 'Backup restored'
+                : 'Backup added to your data'}
+          </h2>
+          <p className="mt-2">
+            From the backup made {result.backupDate}. {result.mode === 'replace' ? 'This device now has' : 'With what was already here, this device now has'}:{' '}
+            <strong>{result.summary}</strong>.
+          </p>
+          {result.problems.length > 0 && (
+            <div className="mt-2">
+              <p className="font-bold">Please keep your backup file and check these:</p>
+              <ul className="ml-5 list-disc">
+                {result.problems.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {onContinue && (
+            <Button variant="primary" size="lg" onClick={onContinue}>
+              {continueLabel ?? 'Continue'}
+            </Button>
+          )}
+          <Button onClick={() => setResult(null)}>{onContinue ? 'Restore another file' : 'Done'}</Button>
+        </div>
+      </Card>
+    );
   }
 
   return (
@@ -228,6 +303,12 @@ export function ImportCard({ onImported }: { onImported?: () => void }) {
       <CardTitle id="imp-h" icon={<FileUp aria-hidden size={20} />}>
         Restore from a backup
       </CardTitle>
+      {lastImport && (
+        <p className="mb-3 text-ink-2">
+          Last restore: {new Date(lastImport.at).toLocaleString()} ({lastImport.mode === 'replace' ? 'replaced everything' : 'added to existing data'}), from the backup made{' '}
+          {new Date(lastImport.backupDate).toLocaleString()}.
+        </p>
+      )}
       <Field label="Choose a Steady backup file">
         {(id) => (
           <input
@@ -241,7 +322,7 @@ export function ImportCard({ onImported }: { onImported?: () => void }) {
         )}
       </Field>
       {error && (
-        <p role="alert" className="mt-3 rounded-xl border-2 border-attn-line bg-attn-bg p-3 text-attn-ink">
+        <p role="alert" ref={errorRef} className="mt-3 rounded-xl border-2 border-attn-line bg-attn-bg p-3 text-attn-ink">
           {error}
         </p>
       )}
@@ -265,11 +346,7 @@ export function ImportCard({ onImported }: { onImported?: () => void }) {
         <div className="mt-3 grid gap-3">
           <p>
             Backup from {new Date(env.exportedAt).toLocaleString()}. It contains{' '}
-            {summarizeData(env.data)
-              .filter((c) => c.count)
-              .map((c) => `${c.count} ${c.label}`)
-              .join(', ') || 'no records'}
-            .
+            {describeRestoredData(env.data)}.
           </p>
           {warnings.map((w) => (
             <p key={w} className="text-sm text-attn-ink">

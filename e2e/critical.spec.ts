@@ -129,3 +129,61 @@ test('privacy: never contacts another origin and triggers no CSP violations', as
   expect(foreign).toEqual([]);
   expect(csp).toEqual([]);
 });
+
+// ---- B-008: restoring a backup must give a clear, persistent confirmation ----
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+const FIXTURE = join(process.cwd(), 'src/test/fixtures/backup-release-2026-09-27.json');
+const realBackup = readdirSync(process.cwd()).find((f) => /^steady-backup-.*\.json$/.test(f) && !f.includes('.encrypted'));
+const backups = [{ label: 'frozen fixture', path: FIXTURE, expect: /30 seizure events|\d+ seizure events/ }].concat(
+  realBackup && existsSync(realBackup) ? [{ label: 'real backup', path: join(process.cwd(), realBackup), expect: /0 seizure events, 2 medications, 9 dose records, 2 sleep entries/ }] : [],
+);
+
+for (const b of backups) {
+  test(`welcome screen: restoring the ${b.label} shows a confirmation that stays put`, async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'I have a backup file to restore' }).click();
+    await page.getByLabel('Choose a Steady backup file').setInputFiles(b.path);
+    await page.getByRole('radio', { name: /Replace everything/ }).check();
+    await page.getByRole('button', { name: 'Replace and restore' }).click();
+    const status = page.getByRole('status').filter({ has: page.getByRole('heading') });
+    await expect(status.getByRole('heading', { name: 'Backup restored' })).toBeVisible();
+    await expect(status).toContainText(b.expect);
+    await page.waitForTimeout(3000); // it must NOT vanish or redirect by itself
+    const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(axe.violations.map((v) => v.id)).toEqual([]);
+    await expect(status.getByRole('heading', { name: 'Backup restored' })).toBeVisible();
+    await page.getByRole('button', { name: 'Open Steady' }).click();
+    await expect(page.getByRole('button', { name: 'Log seizure' })).toBeVisible();
+  });
+
+  for (const mode of ['Replace everything', 'Add to what’s here'] as const) {
+    test(`Backup & data: restoring the ${b.label} (${mode}) shows what is now on the device`, async ({ page }) => {
+      await onboard(page);
+      await page.goto('/settings/data');
+      await page.getByLabel('Choose a Steady backup file').setInputFiles(b.path);
+      await page.getByRole('radio', { name: new RegExp(mode) }).check();
+      await page.getByRole('button', { name: /Replace and restore|^Import$/ }).click();
+      const status = page.getByRole('status').filter({ has: page.getByRole('heading') });
+      await expect(status.getByRole('heading', { name: /Backup restored|Backup added to your data/ })).toBeVisible();
+      if (mode === 'Replace everything') await expect(status).toContainText(b.expect);
+      await expect(status.getByRole('heading')).toBeFocused();
+      await page.waitForTimeout(3000);
+      await expect(status).toBeVisible();
+      await page.getByRole('button', { name: 'Done' }).click();
+      await expect(page.getByText(/Last restore:/)).toBeVisible();
+    });
+  }
+}
+
+test('restoring something that is not a backup shows a visible error and changes nothing', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/settings/data');
+  await page.getByLabel('Choose a Steady backup file').setInputFiles({ name: 'notes.json', mimeType: 'application/json', buffer: Buffer.from('{"hello":1}') });
+  await expect(page.getByRole('alert')).toContainText(/not a Steady export|missing a schema version/);
+  await page.getByLabel('Choose a Steady backup file').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('not json at all') });
+  await expect(page.getByRole('alert')).toContainText('couldn’t be read');
+  await page.goto('/meds');
+  await expect(page.getByText('Lamotrigine')).toBeVisible();
+});

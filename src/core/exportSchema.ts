@@ -195,6 +195,39 @@ export function summarizeData(data: ExportData): { label: string; count: number 
   ];
 }
 
+/** Categories always named in a restore confirmation, even when the count is 0, so "0 seizure events" is visible. */
+const ALWAYS_NAMED = new Set(['seizure events', 'medications', 'dose records', 'sleep entries']);
+
+function singular(label: string): string {
+  return label.replace(/ies$/, 'y').replace(/s$/, '');
+}
+
+/** "0 seizure events, 1 medication, 9 dose records, …" — the plain-language summary shown after a restore. */
+export function describeRestoredData(data: ExportData): string {
+  return summarizeData(data)
+    .filter((c) => c.count > 0 || ALWAYS_NAMED.has(c.label))
+    .map((c) => `${c.count} ${c.count === 1 ? singular(c.label) : c.label}`)
+    .join(', ');
+}
+
+/**
+ * After an import, compare what the file held with what is now on the device.
+ * Returns a list of problems; empty means every record from the file is present.
+ * (The device may hold MORE than the file: merge keeps existing data, and today's checklist is generated after import.)
+ */
+export function checkRestore(file: ExportData, device: ExportData, mode: 'merge' | 'replace'): string[] {
+  const problems: string[] = [];
+  const have = new Map(summarizeData(device).map((c) => [c.label, c.count]));
+  for (const c of summarizeData(file)) {
+    const n = have.get(c.label) ?? 0;
+    if (n < c.count) problems.push(`${c.label}: the backup has ${c.count} but this device has ${n}`);
+  }
+  if (mode === 'replace' && file.userProfile && device.userProfile?.id !== file.userProfile.id) {
+    problems.push('your profile was not restored');
+  }
+  return problems;
+}
+
 /** CSV (tabular subset) — seizures, doses and sleep in one file each. */
 function csvEscape(v: unknown): string {
   if (v === null || v === undefined) return '';

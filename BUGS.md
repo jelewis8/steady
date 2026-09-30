@@ -33,12 +33,6 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 ### P1 — Critical
 
-- [ ] **B-008** · 2026-09-30 · reported by: Jeremiah · **Restoring a backup gives no clear confirmation.** It either imports silently or doesn't import, and she can't tell which. Likely causes from the code:
-  - (a) The import on the **welcome/onboarding** screen shows its success message as a toast, but toasts only render inside the main app shell (`src/ui/Shell.tsx`). The page also reloads immediately (`OnboardingPage.tsx` → `window.location.assign('/')`), so the message is never visible.
-  - (b) Even in More → Backup & data, success is only a toast.
-
-  **Fix:** after an import, show a clear, persistent confirmation on the page itself ("Restored: 42 seizures, 610 doses, …"), plus a visible error message if it fails. **Verify with her actual backup file**, in both merge and replace modes.
-
 - [ ] **B-001** · 2026-09-28 · launch · Confirm Steady is **installed to her home screen** (iPhone Safari deletes site data after ~7 days unless the site is installed). Test by opening from the home-screen icon.
 - [ ] **B-002** · 2026-09-28 · launch · Make her **first backup** (More → Backup & data → Save backup file) and store the file somewhere safe that isn't the phone.
 
@@ -54,10 +48,11 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 ### P3 — Wish list
 
 - [ ] **B-005** · 2026-09-28 · meds · ~~Dated side-effect log~~ → moved to **F-001** in FEATURES.md.
-- [ ] **B-006** · 2026-09-28 · data safety · Add an automated "upgrade" test: data saved by the previous release must open intact in the new release. Run it before every deploy.
 
 ---
 
 ## Done
 
+- [x] **B-008** · 2026-09-30 · Restoring a backup now shows a clear confirmation that stays on the page ("Backup restored: 0 seizure events, 2 medications, 9 dose records, …"), checked against what is actually stored, plus a visible error if it fails. The welcome screen no longer reloads before she can read it. Tested with a real backup in merge and replace modes → release-2026-09-30
+- [x] **B-006** · 2026-09-28 · Automated upgrade test (`src/data/upgrade.test.ts`): data and backups from the previous release must open intact; runs with `npm test` before every deploy → release-2026-09-30 (test only)
 - [x] **B-000** · 2026-09-27 · Phase 1 built and deployed to https://steady.example.com → release-2026-09-27

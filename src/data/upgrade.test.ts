@@ -11,13 +11,12 @@
  * Never edit or delete an entry: they are the history the upgrade has to survive.
  */
 import Dexie from 'dexie';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { COLLECTION_KEYS, parseEnvelope, summarizeData, type ExportData, type ExportEnvelope } from '../core/exportSchema';
 import { SCHEMA_VERSION } from '../core/defaults';
 import { SteadyDB } from './db';
 import { checksumOf, createDexieStorage } from './storage';
+import backup20260927 from '../test/fixtures/backup-release-2026-09-27.json?raw';
 
 const PREVIOUS_RELEASES: { release: string; stores: Record<string, string> }[] = [
   {
@@ -45,7 +44,7 @@ const PREVIOUS_RELEASES: { release: string; stores: Record<string, string> }[] =
   },
 ];
 
-const FROZEN_BACKUPS: { release: string; file: string }[] = [{ release: 'release-2026-09-27', file: 'src/test/fixtures/backup-release-2026-09-27.json' }];
+const FROZEN_BACKUPS: { release: string; raw: string }[] = [{ release: 'release-2026-09-27', raw: backup20260927 }];
 
 const created: string[] = [];
 let n = 0;
@@ -59,7 +58,7 @@ afterEach(async () => {
 });
 
 const byId = <T extends { id?: string; date?: string }>(rows: T[]) => rows.slice().sort((a, b) => String(a.id ?? a.date).localeCompare(String(b.id ?? b.date)));
-const loadJson = (file: string) => JSON.parse(readFileSync(file, 'utf8')) as ExportEnvelope;
+const loadJson = (raw: string) => JSON.parse(raw) as ExportEnvelope;
 
 /** Collections whose stored rows should come back exactly as they went in. */
 const ROW_KEYS = COLLECTION_KEYS.filter((k) => k !== 'voiceNotes');
@@ -80,7 +79,7 @@ describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, sto
   }
 
   it('opens with the current code and every record is intact', async () => {
-    const data = loadJson(fixture.file).data;
+    const data = loadJson(fixture.raw).data;
     const name = freshName('open');
     await writeOldDatabase(name, data);
 
@@ -100,7 +99,7 @@ describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, sto
   });
 
   it('keeps every index working (time ranges, per-day lookups, unique dates)', async () => {
-    const data = loadJson(fixture.file).data;
+    const data = loadJson(fixture.raw).data;
     const name = freshName('index');
     await writeOldDatabase(name, data);
     const current = new SteadyDB(name);
@@ -125,7 +124,7 @@ describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, sto
   });
 
   it('exports the same data it was given (export still works on upgraded data)', async () => {
-    const source = loadJson(fixture.file);
+    const source = loadJson(fixture.raw);
     const name = freshName('export');
     await writeOldDatabase(name, source.data);
     const current = new SteadyDB(name);
@@ -141,9 +140,9 @@ describe.each(PREVIOUS_RELEASES)('database written by $release', ({ release, sto
   });
 });
 
-describe.each(FROZEN_BACKUPS)('backup file exported by $release', ({ file }) => {
+describe.each(FROZEN_BACKUPS)('backup file exported by $release', ({ raw: text }) => {
   it('passes its own checksum and parses with no warnings', async () => {
-    const raw = loadJson(file);
+    const raw = loadJson(text);
     expect(await checksumOf(raw.data)).toBe(raw.checksum);
     const parsed = parseEnvelope(raw);
     expect(parsed.ok).toBe(true);
@@ -151,7 +150,7 @@ describe.each(FROZEN_BACKUPS)('backup file exported by $release', ({ file }) => 
   });
 
   it('imports in replace mode with every record', async () => {
-    const raw = loadJson(file);
+    const raw = loadJson(text);
     const parsed = parseEnvelope(raw);
     if (!parsed.ok) throw new Error(parsed.error);
     const database = new SteadyDB(freshName('replace'));
@@ -163,7 +162,7 @@ describe.each(FROZEN_BACKUPS)('backup file exported by $release', ({ file }) => 
   });
 
   it('imports in merge mode without deleting what is already on the device', async () => {
-    const raw = loadJson(file);
+    const raw = loadJson(text);
     const parsed = parseEnvelope(raw);
     if (!parsed.ok) throw new Error(parsed.error);
     const database = new SteadyDB(freshName('merge'));
@@ -184,22 +183,21 @@ describe.each(FROZEN_BACKUPS)('backup file exported by $release', ({ file }) => 
  * Optional, and never committed: if a real backup is sitting in the project root
  * (steady-backup-*.json is git-ignored), prove it restores in both modes.
  */
-const realBackups = readdirSync('.').filter((f) => /^steady-backup-.*\.json$/.test(f) && !f.includes('.encrypted') && existsSync(join('.', f)));
+const realBackups = Object.entries(import.meta.glob('/steady-backup-*.json', { query: '?raw', import: 'default', eager: true }) as Record<string, string>)
+  .filter(([path]) => !path.includes('.encrypted'))
+  .map(([path, text]) => ({ path, text }));
 
-describe.skipIf(realBackups.length === 0).each(realBackups)('real backup %s', (file) => {
+describe.skipIf(realBackups.length === 0).each(realBackups)('real backup $path', ({ text }) => {
   for (const mode of ['replace', 'merge'] as const) {
     it(`restores in ${mode} mode with every record`, async () => {
-      const raw = JSON.parse(readFileSync(file, 'utf8')) as ExportEnvelope;
+      const raw = JSON.parse(text) as ExportEnvelope;
       const parsed = parseEnvelope(raw);
       if (!parsed.ok) throw new Error(parsed.error);
       const database = new SteadyDB(freshName(`real-${mode}`));
       const storage = createDexieStorage(database);
       await storage.importAll(parsed.envelope, mode);
       const after = await storage.exportAll();
-      const expected = summarizeData(raw.data);
-      const got = summarizeData(after.data);
-      // trigger tags are de-duplicated by label in merge mode; everything else must match exactly
-      expect(got).toEqual(expected);
+      expect(summarizeData(after.data)).toEqual(summarizeData(raw.data));
       expect(after.data.userProfile?.id).toBe(raw.data.userProfile?.id);
       database.close();
     });
