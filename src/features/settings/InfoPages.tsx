@@ -11,7 +11,7 @@ export function PrivacyPage() {
             <h2 className="text-lg font-bold">What Steady stores</h2>
             <p>
               Everything you enter: seizures and warning signs, voice notes, medications and doses, sleep, meals and water, your routine,
-              check-ins, your action plan and emergency contacts, and your settings. All of it is health information, and we treat it that way.
+              check-ins, your action plan and emergency contacts, your safety plan and support numbers, and your settings. All of it is health information, and we treat it that way.
             </p>
           </section>
           <section>

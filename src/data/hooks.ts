@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { DEFAULT_PREFERENCES } from '../core/defaults';
 import { addDays, localDateTime, todayKey } from '../core/time';
 import type { ISODate } from '../core/types';
 import { db } from './db';
@@ -7,8 +9,10 @@ export function useProfile() {
   return useLiveQuery(() => db.profile.toCollection().first(), []);
 }
 
+/** Preferences with defaults filled in, so fields added after a user's data was saved are never undefined. */
 export function usePrefs() {
-  return useProfile()?.preferences;
+  const saved = useProfile()?.preferences;
+  return useMemo(() => (saved ? { ...DEFAULT_PREFERENCES, ...saved } : undefined), [saved]);
 }
 
 export function useMedications() {

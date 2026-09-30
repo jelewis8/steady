@@ -57,6 +57,40 @@ export interface UserPreferences {
   trackCycle: boolean;
   /** EXT: user-defined trigger foods */
   triggerFoods: string[];
+  /** EXT (1.2.0, F-002): ISO country code chosen for crisis lines; null until chosen */
+  country: string | null;
+  /** EXT (1.2.0, F-002): crisis numbers she added herself */
+  customSupportLines: CustomSupportLine[];
+  /** EXT (1.2.0, F-002): the main person to reach out to (an EmergencyContact id) */
+  defaultSupportContactId: string | null;
+}
+
+/** A crisis or support number the user added for her own country or situation. */
+export interface CustomSupportLine {
+  id: UUID;
+  name: string;
+  phone: string;
+  /** Optional number to text instead of (or as well as) calling */
+  textNumber: string | null;
+}
+
+/**
+ * EXT (1.2.0, F-002): a personal safety plan, in the standard safety-planning sections.
+ * Free text written by the user. Stored only on the device; never scored or analysed.
+ */
+export interface SafetyPlan {
+  warningSigns: string;
+  copingStrategies: string;
+  distractions: string;
+  helpers: string;
+  professionals: string;
+  makingSafe: string;
+  reasonsForLiving: string;
+  /** The text prefilled when reaching out to a trusted person */
+  message: string;
+  /** Off by default: show this plan on the lock screen without unlocking */
+  showOnLockScreen: boolean;
+  updatedAt: ISODateTime;
 }
 
 export interface UserProfile {
@@ -72,6 +106,8 @@ export interface UserProfile {
   onboarded: boolean;
   /** EXT: true while the database holds generated sample data */
   isSampleData: boolean;
+  /** EXT (1.2.0, F-002): personal safety plan; null until she writes one */
+  safetyPlan: SafetyPlan | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
@@ -305,6 +341,8 @@ export interface EmergencyContact {
   email: string | null;
   notifyOnEmergency: boolean;
   canViewRescueProtocol: boolean;
+  /** EXT (1.2.0, F-002): someone she can reach out to when she isn't feeling safe */
+  supportPerson: boolean;
   sortOrder: number;
   createdAt: ISODateTime;
 }

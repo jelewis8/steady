@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, CardTitle, Disclaimer, PageHeader } from '../../ui/kit';
+import { Button, Card, CardTitle, Disclaimer, LinkButton, PageHeader } from '../../ui/kit';
 
 const IN = 4;
 const OUT = 6;
@@ -99,6 +99,9 @@ export function CalmPage() {
       <PageHeader title="Calm & grounding" back="/rescue" subtitle="For warning signs, or feeling shaky afterwards. Sit or lie down somewhere safe first." />
       <Breathing />
       <Grounding />
+      <LinkButton to="/support" size="lg" block>
+        Having thoughts of hurting yourself? Get support
+      </LinkButton>
       <Disclaimer>
         These exercises help some people feel calmer. They don’t stop a seizure. Follow your action plan if a seizure starts.
       </Disclaimer>

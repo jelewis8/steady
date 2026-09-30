@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { LifeBuoy, Phone, Timer } from 'lucide-react';
+import { HandHeart, LifeBuoy, Phone, Timer } from 'lucide-react';
 import type { UserPreferences } from '../../core/types';
 import { useContacts, usePrefs, useProfile, useRescueProtocol } from '../../data/hooks';
 import { useUI } from '../../state/ui';
 import { Button, Field, Input } from '../../ui/kit';
 import { SeizureTimer, startSeizureTimer } from '../rescue/SeizureTimer';
 import { telHref } from '../rescue/sms';
+import { SupportPanel } from '../support/SupportPanel';
 import { PinPad } from './PinPad';
 import { clearPasscode, verifyPin, verifyRecovery } from './passcode';
 
@@ -51,7 +52,7 @@ export function LockScreen() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState<'pin' | 'emergency' | 'recover'>('pin');
+  const [view, setView] = useState<'pin' | 'emergency' | 'support' | 'recover'>('pin');
 
   async function submit() {
     if (busy) return;
@@ -84,6 +85,9 @@ export function LockScreen() {
                 Emergency info
               </Button>
             )}
+            <Button size="lg" icon={<HandHeart aria-hidden size={22} />} onClick={() => setView('support')}>
+              I need support right now
+            </Button>
             <Button variant="ghost" onClick={() => setView('recover')}>
               Forgot passcode?
             </Button>
@@ -91,6 +95,12 @@ export function LockScreen() {
         </>
       )}
       {view === 'emergency' && <EmergencyInfo onBack={() => setView('pin')} />}
+      {view === 'support' && (
+        <>
+          <SupportPanel locked />
+          <Button onClick={() => setView('pin')}>Back</Button>
+        </>
+      )}
       {view === 'recover' && <Recover onBack={() => setView('pin')} onDone={() => setLocked(false)} />}
       <SeizureTimer allowSave={false} />
     </main>

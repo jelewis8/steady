@@ -2,7 +2,7 @@
  * Export envelope — app-blueprint.md §2.3 "Export Envelope" and Workflow 4.
  * Versioned, self-describing, no proprietary encoding. Voice notes are embedded as base64.
  */
-import { APP_VERSION, SCHEMA_VERSION } from './defaults';
+import { APP_VERSION, DEFAULT_PREFERENCES, SCHEMA_VERSION } from './defaults';
 import type {
   AuraLog,
   DailyCheckIn,
@@ -156,6 +156,11 @@ export function parseEnvelope(raw: unknown): ParseResult {
   // Migration 1.0.0 → 1.1.0: add fields introduced by extensions with safe defaults.
   data.medications = data.medications.map((m) => Object.assign({ unitsPerDose: 1, isRescue: false }, m));
   data.routineChecklistItems = data.routineChecklistItems.map((c) => Object.assign({ label: 'Routine item', category: 'custom', isOptional: false }, c));
+  // Migration 1.1.0 → 1.2.0 (F-002): support fields, all with safe defaults.
+  if (data.userProfile) {
+    data.userProfile = { ...data.userProfile, safetyPlan: data.userProfile.safetyPlan ?? null, preferences: { ...DEFAULT_PREFERENCES, ...data.userProfile.preferences } };
+  }
+  data.emergencyContacts = data.emergencyContacts.map((c) => Object.assign({ supportPerson: false }, c));
   const requireId = <T extends { id?: unknown }>(arr: T[], name: string) => {
     const bad = arr.filter((x) => typeof x?.id !== 'string').length;
     if (bad) warnings.push(`${bad} ${name} without an id were skipped.`);
@@ -267,4 +272,25 @@ export function sleepCsv(data: ExportData): string {
     data.sleepEntries.slice().sort((a, b) => (a.date < b.date ? -1 : 1)) as unknown as Record<string, unknown>[],
     ['date', 'actualBedtime', 'actualWakeTime', 'durationMinutes', 'qualityRating', 'interruptions', 'notes'],
   );
+}
+
+/**
+ * Merge-mode import keeps the device's own profile. Support settings (F-002) are the exception: a safety plan,
+ * country or own numbers in the backup are adopted when the device has none, so a restore never silently drops them.
+ * Anything already set on the device wins.
+ */
+export function mergeSupportIntoProfile(existing: UserProfile, incoming: UserProfile): UserProfile {
+  const ep = { ...DEFAULT_PREFERENCES, ...existing.preferences };
+  const ip = { ...DEFAULT_PREFERENCES, ...incoming.preferences };
+  const ownIds = new Set(ep.customSupportLines.map((l) => l.id));
+  return {
+    ...existing,
+    safetyPlan: existing.safetyPlan ?? incoming.safetyPlan ?? null,
+    preferences: {
+      ...existing.preferences,
+      country: ep.country ?? ip.country,
+      defaultSupportContactId: ep.defaultSupportContactId ?? ip.defaultSupportContactId,
+      customSupportLines: [...ep.customSupportLines, ...ip.customSupportLines.filter((l) => !ownIds.has(l.id))],
+    },
+  };
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { HeartHandshake, MapPin, MessageSquare, Phone, ShieldCheck, Timer, Wind, FileText, UserPlus } from 'lucide-react';
+import { HandHeart, HeartHandshake, MapPin, MessageSquare, Phone, ShieldCheck, Timer, Wind, FileText, UserPlus } from 'lucide-react';
 import { useContacts, usePrefs, useProfile, useRescueProtocol } from '../../data/hooks';
 import { updatePreferences } from '../../data/repo';
 import { toast } from '../../state/ui';
@@ -40,6 +40,10 @@ export function RescuePage() {
       >
         <Phone aria-hidden size={26} /> Call emergency services ({number})
       </a>
+
+      <LinkButton to="/support" size="lg" block icon={<HandHeart aria-hidden size={24} />}>
+        I’m having thoughts of hurting myself
+      </LinkButton>
 
       <Card labelledBy="contacts-h">
         <CardTitle id="contacts-h" icon={<HeartHandshake aria-hidden size={20} />}>

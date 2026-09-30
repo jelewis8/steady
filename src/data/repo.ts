@@ -10,7 +10,8 @@ import {
   selectTemplate,
   syncDayItems,
 } from '../core/checklist';
-import { buildDefaultTemplates, builtInTriggerTags, defaultProfile, defaultRescueProtocol, type RoutineSetup } from '../core/defaults';
+import { countryByCode, emergencyNumberFor } from '../core/crisisLines';
+import { buildDefaultTemplates, builtInTriggerTags, DEFAULT_PREFERENCES, defaultProfile, defaultRescueProtocol, type RoutineSetup } from '../core/defaults';
 import { uuid } from '../core/ids';
 import { dateKeyOf, isoNow, localDateTime, sleepDurationMinutes, todayKey } from '../core/time';
 import type {
@@ -29,6 +30,7 @@ import type {
   RescueProtocol,
   RoutineChecklistItem,
   RoutineTemplate,
+  SafetyPlan,
   SeizureEvent,
   SleepEntry,
   TriggerCategory,
@@ -604,6 +606,17 @@ export async function saveContact(c: EmergencyContact): Promise<void> {
   await db.emergencyContacts.put(c);
 }
 
+export async function saveSafetyPlan(plan: SafetyPlan | null): Promise<Undo> {
+  const p = await getProfile();
+  if (!p) return noop;
+  const before = p.safetyPlan ?? null;
+  await db.profile.put({ ...p, safetyPlan: plan ? { ...plan, updatedAt: isoNow() } : null, updatedAt: isoNow() });
+  return async () => {
+    const cur = await getProfile();
+    if (cur) await db.profile.put({ ...cur, safetyPlan: before });
+  };
+}
+
 export async function deleteContact(id: string): Promise<Undo> {
   const c = await db.emergencyContacts.get(id);
   if (!c) return noop;
@@ -622,6 +635,7 @@ export function newContact(sortOrder: number): EmergencyContact {
     email: null,
     notifyOnEmergency: true,
     canViewRescueProtocol: true,
+    supportPerson: false,
     sortOrder,
     createdAt: isoNow(),
   };
@@ -680,4 +694,19 @@ export async function dayCompletion(date: ISODate) {
   ]);
   const v = buildChecklistView({ date, items, doses, meds, now: new Date(), isToday: false });
   return { date, percent: v.percent, total: v.total };
+}
+
+/**
+ * Choose the country used for crisis lines. If her emergency number is still the previous country's default
+ * (or the 911 starting value), switch it to the new country's default. A number she set herself is left alone.
+ */
+export async function setCountry(code: string | null): Promise<Undo> {
+  const p = await getProfile();
+  if (!p) return noop;
+  const prefs = { ...DEFAULT_PREFERENCES, ...p.preferences };
+  const patch: Partial<UserPreferences> = { country: code };
+  if (code && countryByCode(code) && prefs.emergencyNumber === emergencyNumberFor(prefs.country)) {
+    patch.emergencyNumber = emergencyNumberFor(code);
+  }
+  return updatePreferences(patch);
 }

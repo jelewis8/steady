@@ -23,6 +23,7 @@ The first user is an adult with partial epilepsy who struggles to maintain daily
 - `docs/WORKFLOW.md` — Bug → fix → commit → release loop, data-safety rules for schema changes, and session handoff.
 - `docs/DEPLOY.md` — Production server details (Apache on the shared droplet) and release steps.
 - `docs/DATA-MODEL.md` — Entities and extensions to the blueprint schema.
+- `docs/CRISIS-LINES.md` — Crisis-line and emergency-number data: sources, verification log, how to re-check. **Never add a number from memory.**
 
 ## Hard Constraints (Never Violate)
 
@@ -52,7 +53,7 @@ All platform-specific APIs are behind interfaces (`StorageAdapter`, `Notificatio
 Entities are defined as JSON schemas in `app-blueprint.md` §2.3:
 `UserProfile`, `SeizureEvent`, `AuraLog`, `Medication`, `MedicationDose`, `MealLog`, `SleepEntry`, `RoutineTemplate`, `RoutineChecklistItem`, `TriggerTag`, `RescueProtocol`, `EmergencyContact`, `InsightRule`.
 
-Extensions (schema 1.1.0): `HydrationLog`, `DailyCheckIn` (stress/mood/cycle; the blueprint's insights needed them), `DayPlan`, `VoiceNote`, plus extra preference fields. All are documented in `docs/DATA-MODEL.md`. Any schema change must bump `SCHEMA_VERSION` in `src/core/defaults.ts` and add a migration in `parseEnvelope`.
+Extensions (schema 1.2.0): `HydrationLog`, `DailyCheckIn` (stress/mood/cycle; the blueprint's insights needed them), `DayPlan`, `VoiceNote`, plus extra preference fields; 1.2.0 adds the personal `SafetyPlan`, country and own crisis numbers, and `EmergencyContact.supportPerson` (F-002). All are documented in `docs/DATA-MODEL.md`. Any schema change must bump `SCHEMA_VERSION` in `src/core/defaults.ts` and add a migration in `parseEnvelope`.
 
 All timestamps are ISO 8601. All IDs are UUIDs v4. Schema version field required on every export.
 

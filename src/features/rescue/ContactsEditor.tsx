@@ -28,6 +28,12 @@ export function ContactsEditor() {
         <TextField label="Phone" type="tel" value={draft.phone} onChange={(v) => set({ phone: v })} required autoComplete="off" />
         <Toggle label="Include in “Text everyone”" checked={draft.notifyOnEmergency} onChange={(v) => set({ notifyOnEmergency: v })} />
         <Toggle label="Show on my action plan" checked={draft.canViewRescueProtocol} onChange={(v) => set({ canViewRescueProtocol: v })} />
+        <Toggle
+          label="Someone I can reach when I’m not feeling safe"
+          hint="Appears on the Support page with Call and Text buttons."
+          checked={!!draft.supportPerson}
+          onChange={(v) => set({ supportPerson: v })}
+        />
         <div className="flex gap-2">
           <Button type="submit" variant="primary">
             Save contact

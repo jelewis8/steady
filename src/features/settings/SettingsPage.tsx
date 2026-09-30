@@ -3,6 +3,7 @@ import { usePrefs, useProfile } from '../../data/hooks';
 import { updatePreferences, updateProfile } from '../../data/repo';
 import { notifications } from '../reminders/ReminderEngine';
 import type { DietMode, ThemePref, UserProfile } from '../../core/types';
+import { CountryPicker } from '../support/SupportPanel';
 import { Button, Card, CardTitle, Disclaimer, Field, Input, PageHeader, Segmented, Select, Toggle } from '../../ui/kit';
 
 /** Text input that keeps local state while typing and saves after a pause. */
@@ -193,6 +194,7 @@ export function SettingsPage() {
       <Card labelledBy="safe-h">
         <CardTitle id="safe-h">Safety</CardTitle>
         <div className="grid gap-4">
+          <CountryPicker label="Country" hint="Used for crisis lines and your emergency number." />
           <SavedInput label="Emergency number" value={prefs.emergencyNumber} onSave={(v) => up({ emergencyNumber: v.trim() || '911' })} inputMode="tel" hint="911 in the US, 999 in the UK, 112 in the EU." />
           <NumberSelect
             label="Seizure timer alert after"

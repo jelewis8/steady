@@ -16,7 +16,7 @@ import type {
 
 export const APP_NAME = 'Steady';
 export const APP_VERSION = '1.0.0';
-export const SCHEMA_VERSION = '1.1.0';
+export const SCHEMA_VERSION = '1.2.0';
 
 export const SEIZURE_TYPE_LABELS: Record<SeizureType, { label: string; hint: string }> = {
   focal_aware: { label: 'Focal aware', hint: 'I stayed aware — I remember it' },
@@ -127,7 +127,12 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   emergencyAfterMinutes: 5,
   trackCycle: false,
   triggerFoods: [],
+  country: null,
+  customSupportLines: [],
+  defaultSupportContactId: null,
 };
+
+export const DEFAULT_SUPPORT_MESSAGE = 'I’m not feeling safe right now. Can you call me or come be with me?';
 
 export function defaultProfile(now: string): UserProfile {
   return {
@@ -141,6 +146,7 @@ export function defaultProfile(now: string): UserProfile {
     preferences: { ...DEFAULT_PREFERENCES },
     onboarded: false,
     isSampleData: false,
+    safetyPlan: null,
     createdAt: now,
     updatedAt: now,
   };

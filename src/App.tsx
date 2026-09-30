@@ -19,6 +19,8 @@ import { SeizureFormPage } from './features/seizures/SeizureFormPage';
 import { RescuePage } from './features/rescue/RescuePage';
 import { CalmPage } from './features/rescue/CalmPage';
 
+const SupportPage = lazy(() => import('./features/support/SupportPage').then((m) => ({ default: m.SupportPage })));
+const SafetyPlanPage = lazy(() => import('./features/support/SafetyPlanPage').then((m) => ({ default: m.SafetyPlanPage })));
 const SchedulePage = lazy(() => import('./features/routine/SchedulePage').then((m) => ({ default: m.SchedulePage })));
 const DietPage = lazy(() => import('./features/diet/DietPage').then((m) => ({ default: m.DietPage })));
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
@@ -149,6 +151,8 @@ export default function App() {
           <Route path="rescue" element={<RescuePage />} />
           <Route path="rescue/plan" element={<PlanEditorPage />} />
           <Route path="rescue/calm" element={<CalmPage />} />
+          <Route path="support" element={<SupportPage />} />
+          <Route path="support/plan" element={<SafetyPlanPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/data" element={<DataPage />} />
           <Route path="settings/passcode" element={<PasscodePage />} />

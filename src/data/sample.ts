@@ -219,8 +219,8 @@ export async function loadSampleData(days = 90): Promise<void> {
   }
 
   const contacts: EmergencyContact[] = [
-    { id: uuid(), name: 'Jordan', relationship: 'Partner', phone: '+1 555 0100', email: null, notifyOnEmergency: true, canViewRescueProtocol: true, sortOrder: 0, createdAt: nowIso },
-    { id: uuid(), name: 'Mom', relationship: 'Mother', phone: '+1 555 0101', email: null, notifyOnEmergency: true, canViewRescueProtocol: true, sortOrder: 1, createdAt: nowIso },
+    { id: uuid(), name: 'Jordan', relationship: 'Partner', phone: '+1 555 0100', email: null, notifyOnEmergency: true, canViewRescueProtocol: true, supportPerson: false, sortOrder: 0, createdAt: nowIso },
+    { id: uuid(), name: 'Mom', relationship: 'Mother', phone: '+1 555 0101', email: null, notifyOnEmergency: true, canViewRescueProtocol: true, supportPerson: false, sortOrder: 1, createdAt: nowIso },
   ];
   const rescue = defaultRescueProtocol(nowIso);
   rescue.seizureDescription =

@@ -10,7 +10,8 @@ import { usePrefs } from '../../data/hooks';
 import { ensureDay, initDatabase, newContact, newMedication, replaceRoutineFromSetup, saveContact, saveMedication, updatePreferences, updateProfile } from '../../data/repo';
 import { loadSampleData } from '../../data/sample';
 import { notifications } from '../reminders/ReminderEngine';
-import { Button, Card, Chip, Disclaimer, Field, IconButton, Input, Progress, TextField } from '../../ui/kit';
+import { COUNTRIES, emergencyNumberFor } from '../../core/crisisLines';
+import { Button, Card, Chip, Disclaimer, Field, IconButton, Input, Progress, Select, TextField } from '../../ui/kit';
 import { RoutineSetupForm } from '../routine/RoutineSetupForm';
 import { ImportCard } from '../settings/DataPage';
 
@@ -26,6 +27,7 @@ export function OnboardingPage() {
   const [meds, setMeds] = useState<QuickMed[]>([]);
   const [contact, setContact] = useState({ name: '', phone: '' });
   const [number, setNumber] = useState('911');
+  const [country, setCountry] = useState('');
   const [restoring, setRestoring] = useState(false);
   const [loadingSample, setLoadingSample] = useState(false);
 
@@ -34,7 +36,7 @@ export function OnboardingPage() {
 
   async function finish() {
     await updateProfile({ displayName: name.trim(), onboarded: true });
-    await updatePreferences({ targetWakeTime: setup.wakeTime, targetBedtime: setup.bedTime, emergencyNumber: number.trim() || '911' });
+    await updatePreferences({ targetWakeTime: setup.wakeTime, targetBedtime: setup.bedTime, emergencyNumber: number.trim() || '911', country: country || null });
     await replaceRoutineFromSetup(setup);
     for (const q of meds.filter((m) => m.name.trim() && m.dosage.trim())) {
       const m: Medication = { ...newMedication(), name: q.name.trim(), dosage: q.dosage.trim(), unit: q.unit.trim(), scheduledTimes: sortTimes(q.times), unitsPerDose: parseUnitsPerDose(q.perDose) ?? 1 };
@@ -169,7 +171,28 @@ export function OnboardingPage() {
           <p className="text-ink-2">Who should be easy to reach? This person appears on your SOS screen. You can add more, and fill in your action plan, later.</p>
           <TextField label="Their name" value={contact.name} onChange={(v) => setContact({ ...contact, name: v })} autoComplete="off" />
           <TextField label="Their phone number" type="tel" value={contact.phone} onChange={(v) => setContact({ ...contact, phone: v })} autoComplete="off" />
-          <Field label="Emergency number where you live" hint="911 in the US, 999 in the UK, 112 in the EU.">
+          <Field label="Country" hint="So Steady can show the right emergency number and crisis lines. You can skip this and choose later.">
+            {(id, d) => (
+              <Select
+                id={id}
+                aria-describedby={d}
+                value={country}
+                onChange={(e) => {
+                  setCountry(e.target.value);
+                  if (e.target.value && e.target.value !== 'other') setNumber(emergencyNumberFor(e.target.value));
+                }}
+              >
+                <option value="">Choose a country…</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value="other">Somewhere else</option>
+              </Select>
+            )}
+          </Field>
+          <Field label="Emergency number where you live" hint="Filled in from your country. Change it if yours is different.">
             {(id, d) => <Input id={id} aria-describedby={d} inputMode="tel" value={number} onChange={(e) => setNumber(e.target.value)} />}
           </Field>
         </section>

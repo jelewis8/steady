@@ -16,7 +16,7 @@ New features and bigger improvements for Steady. Bugs go in [BUGS.md](BUGS.md).
 - **When shipped:** tick it, move it to **Done**, add ` → release-YYYY-MM-DD`, and mention the ID in the commit (`Add F-003: past-day logging`).
 - **Data model:** any feature that adds stored data must follow the data-safety rules in [docs/WORKFLOW.md](docs/WORKFLOW.md): a new Dexie version with an upgrade step, a `SCHEMA_VERSION` bump, and an import migration. Do **B-006** (the upgrade test) first.
 
-The next free ID is **F-009**.
+The next free ID is **F-010**.
 
 ---
 
@@ -24,22 +24,7 @@ The next free ID is **F-009**.
 
 ### Safety
 
-- [ ] **F-002** · 2026-09-30 · requested by: Jeremiah · **Support for thoughts of suicide or self-harm**
-  - Why: depression, anxiety and suicidal thoughts are common alongside epilepsy (see `knowledge-base.md` §1.6, "Psychiatric Comorbidity"). Someone frightened by their own thoughts may want to be **watched over or talked out of it**, and should be able to reach help as easily as the SOS seizure tools.
-  - **Proposed entry point:** a clearly worded button on the Rescue/SOS screen, and in Calm & grounding, e.g. "I'm having thoughts of hurting myself".
-  - **Proposed screen (calm, no judgment):**
-    - Call or text a crisis line. The number must be configurable by country. **Verify every number against the official source; do not invent any.**
-    - Tap to call or text a trusted person, with a prefilled message such as "I'm not feeling safe right now. Can you call me or come be with me?"
-    - A personal **safety plan** she fills in ahead of time, based on the standard safety-planning structure: warning signs, things that help, people and places for distraction, people to ask for help, professionals, making the environment safe, and reasons for living.
-    - Emergency services (the existing call button).
-  - **Constraints:**
-    - Nothing leaves the device.
-    - No automated "risk detection" and no scoring (CLAUDE.md: no AI/diagnosis).
-    - No clinical advice; add the medical disclaimer.
-    - Wording should be reviewed by a clinician or peer-support organisation if possible.
-    - Must be reachable from the lock screen emergency view.
-  - **Possible later addition:** a gentle note in the neurologist report when low mood has been logged often. All anti-seizure medications carry a label warning about suicidal thoughts, so mood matters to the prescriber. **Verify this wording against the knowledge base or a clinical source before shipping.**
-  - Open questions for Jeremiah: which country's crisis lines to include by default; whether the trusted-person text should be sent to one person or several.
+_(none open)_
 
 ### High
 
@@ -77,6 +62,10 @@ The next free ID is **F-009**.
 
 ### Normal
 
+- [ ] **F-009** · 2026-09-30 · requested by: Jeremiah · **Low-mood note in the neurologist report** (split out of F-002)
+  - A gentle note in the report when low mood has been logged often. All anti-seizure medications carry a label warning about suicidal thoughts, so mood matters to the prescriber (`knowledge-base.md` §1.6 notes the FDA warning and a 2–5× increased risk).
+  - **Verify the wording against the knowledge base or a clinical source before shipping.** Explore after release 3. Decide what counts as "often" and what the note says, with no scoring or diagnosis.
+
 - [ ] **F-005** · 2026-09-30 · requested by: Jeremiah · **Aura timer, or one timer for both auras and seizures**
   - Today the seizure timer only logs seizures, and warning signs are logged without a duration.
   - Proposal: a single "Something's happening — start timer" button. When it's stopped, she chooses **Warning sign (aura)** or **Seizure**, and it saves with the duration. The 5-minute emergency alert still applies. The aura branch should also offer "it turned into a seizure", which links the two records.
@@ -91,4 +80,4 @@ The next free ID is **F-009**.
 
 ## Done
 
-_(none yet)_
+- [x] **F-002** · 2026-09-30 · Support for thoughts of suicide or self-harm: Support page (crisis lines by country, call/text a trusted person, emergency call), personal safety plan, reachable from Rescue, Calm & grounding, More and the lock screen → release-2026-09-30-3. _Wording still needs review by a clinician or peer-support organisation._

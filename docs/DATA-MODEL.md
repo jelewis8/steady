@@ -2,12 +2,12 @@
 
 Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamps are ISO 8601 UTC, local calendar dates are `YYYY-MM-DD`, and times are `HH:mm`. IDs are UUID v4.
 
-## Export envelope (schema 1.1.0)
+## Export envelope (schema 1.2.0)
 
 ```json
 {
   "$schema": "https://steady.example.com/schema/export-v1.json",
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "exportedAt": "…",
   "appVersion": "1.0.0",
   "checksum": "<sha-256 hex of JSON.stringify(data)>",
@@ -18,7 +18,7 @@ Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamp
 Encrypted exports wrap the entire envelope:
 
 ```json
-{ "format": "steady-encrypted-export", "schemaVersion": "1.1.0", "exportedAt": "…",
+{ "format": "steady-encrypted-export", "schemaVersion": "1.2.0", "exportedAt": "…",
   "kdf": { "name": "PBKDF2", "hash": "SHA-256", "iterations": 310000, "saltBase64": "…" },
   "cipher": { "name": "AES-GCM", "ivBase64": "…" }, "ciphertextBase64": "…" }
 ```
@@ -41,6 +41,20 @@ All additions are optional in imports and are filled with defaults.
 | **New** `DailyCheckIn` | `{ date, stress, mood, onPeriod, illness, alcoholDrinks, seizureActivityReported, notes }` | The blueprint's insights use stress and the menstrual cycle, but no entity captured them. It also stores the answer to “Any seizure activity today?”. |
 | **New** `DayPlan` | `{ date, templateId }` | “Use my Rest day routine today”. |
 | **New** `VoiceNote` | `{ id, seizureEventId, blob, mimeType, durationMs }`; exported as base64 | `SeizureEvent.voiceNoteUri` is `voicenote:<id>`. |
+
+## Extensions in 1.2.0 (F-002: support for thoughts of suicide or self-harm)
+
+No Dexie version change: nothing is indexed. New fields are optional and read with defaults (`usePrefs` fills preferences from `DEFAULT_PREFERENCES`). `parseEnvelope` migrates 1.1.0 files by filling the same defaults.
+
+| Where | Addition | Notes |
+|---|---|---|
+| `UserProfile` | `safetyPlan: SafetyPlan | null` | Seven free-text sections in the standard safety-planning structure, the message to send, and `showOnLockScreen` (default off). Written by the user, never analysed. |
+| `UserProfile.preferences` | `country` (ISO code, `'other'`, or null), `customSupportLines[]`, `defaultSupportContactId` | Country drives the crisis lines and the default emergency number. |
+| `EmergencyContact` | `supportPerson: boolean` | Someone she can reach out to when she isn't feeling safe. |
+
+Crisis-line and emergency-number data is **not** stored per user. It ships in the app (`src/core/crisisLines.ts`, see [CRISIS-LINES.md](CRISIS-LINES.md)).
+
+**Merge-mode import** keeps the device's own profile. The exception is support data: a safety plan, country, own numbers or main person in the backup are adopted when the device has none (`mergeSupportIntoProfile`). Anything already on the device wins.
 
 ## Linked records
 

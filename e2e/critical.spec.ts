@@ -218,7 +218,7 @@ test('B-007: pills per dose can be set during onboarding', async ({ page }) => {
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Finish' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByText(/Today’s routine/)).toBeVisible();
   await page.goto('/meds');
   await page.getByRole('link', { name: /Keppra/ }).first().click();
   await expect(page.getByLabel('Used per dose')).toHaveValue('2');
@@ -238,4 +238,140 @@ test('B-011: a note recorded with a dose appears in the neurologist report', asy
   await page.goto('/insights/report');
   await expect(page.getByRole('heading', { name: 'Notes recorded with doses' })).toBeVisible();
   await expect(page.getByRole('cell', { name: /Felt dizzy an hour after/ })).toBeVisible();
+});
+
+// ---- Release 3: F-002 support for thoughts of suicide or self-harm ----
+async function setPasscodeAndLock(page: Page) {
+  await page.goto('/settings/passcode');
+  await page.getByRole('button', { name: 'Set up a passcode' }).click();
+  const enterPin = async () => {
+    for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+    await page.getByRole('button', { name: 'OK', exact: true }).click();
+  };
+  await enterPin(); // choose
+  await enterPin(); // confirm
+  await page.getByRole('button', { name: /turn on passcode/ }).click();
+  // Steady locks as soon as a passcode is first turned on
+  await expect(page.getByRole('heading', { name: 'Steady is locked' })).toBeVisible();
+}
+
+test('F-002: reachable from Rescue; choosing a country shows its verified lines and emergency number', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/rescue');
+  await page.getByRole('link', { name: /thoughts of hurting myself/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Support' })).toBeVisible();
+  await expect(page.getByText('You’re not alone.')).toBeVisible();
+  // no country yet: it asks, and the emergency call still works
+  await expect(page.locator('a[href="tel:911"]').first()).toBeVisible();
+  await page.getByLabel('Which country are you in?').selectOption('PH');
+  await expect(page.getByText('NCMH Crisis Hotline', { exact: true })).toBeVisible();
+  await expect(page.locator('a[href="tel:1553"]')).toBeVisible();
+  await page.getByLabel('Change country').selectOption('US');
+  await expect(page.locator('a[href="tel:988"]')).toBeVisible();
+  await expect(page.locator('a[href^="sms:741741"]')).toHaveAttribute('href', /body=HOME/);
+  await page.getByLabel('Change country').selectOption('DE');
+  await expect(page.locator('a[href="tel:08001110111"]')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Call emergency services on 112/ })).toBeVisible(); // the number followed the country
+  await expect(page.getByText(/not a crisis or emergency service/)).toBeVisible();
+});
+
+test('F-002: a country not in the list can add its own number', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/support');
+  await page.getByLabel('Which country are you in?').selectOption('other');
+  await expect(page.getByText(/findahelpline\.com/).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Add a number' }).click();
+  await page.getByLabel('Name of the line or service').fill('Local helpline');
+  await page.getByLabel('Phone number').fill('0800 123 456');
+  await page.getByRole('button', { name: 'Save number' }).click();
+  await expect(page.locator('a[href="tel:0800123456"]')).toBeVisible();
+});
+
+test('F-002: safety plan and a trusted person, with a prefilled text and nothing sent by the app', async ({ page }) => {
+  const posts: string[] = [];
+  page.on('request', (r) => ['POST', 'PUT'].includes(r.method()) && posts.push(r.url()));
+  await onboard(page);
+  await page.goto('/support/plan');
+  await page.getByRole('switch', { name: /Alex/ }).click();
+  await page.getByLabel('My warning signs').fill('Not sleeping for two nights');
+  await page.getByLabel('What matters most to me').fill('My sister');
+  await page.getByLabel('The message I’d send').fill('Please call me now');
+  await page.getByRole('button', { name: 'Save my plan' }).click();
+  await expect(page.getByText('Safety plan saved.')).toBeVisible();
+  await page.goto('/support');
+  await expect(page.getByText('Alex', { exact: true })).toBeVisible();
+  await expect(page.locator('a[href^="tel:+15550100"]')).toBeVisible();
+  await expect(page.locator('a[href^="sms:+15550100"]')).toHaveAttribute('href', /body=Please%20call%20me%20now/);
+  await expect(page.getByText('Not sleeping for two nights')).toBeVisible();
+  await expect(page.getByText('My sister')).toBeVisible();
+  expect(posts).toEqual([]);
+});
+
+test('F-002: reachable from the lock screen; the detailed plan stays private unless she allows it', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/support/plan');
+  await page.getByRole('switch', { name: /Alex/ }).click();
+  await page.getByLabel('My warning signs').fill('Private warning signs');
+  await page.getByRole('button', { name: 'Save my plan' }).click();
+  await expect(page.getByText('Safety plan saved.')).toBeVisible();
+  await page.goto('/support');
+  await page.getByLabel('Which country are you in?').selectOption('GB');
+  await expect(page.locator('a[href="tel:116123"]')).toBeVisible();
+  await setPasscodeAndLock(page);
+  await page.getByRole('button', { name: 'I need support right now' }).click();
+  await expect(page.getByText('You’re not alone.')).toBeVisible();
+  await expect(page.locator('a[href="tel:999"]').first()).toBeVisible();
+  await expect(page.locator('a[href="tel:116123"]')).toBeVisible();
+  await expect(page.locator('a[href^="tel:+15550100"]')).toBeVisible();
+  await expect(page.getByText('Private warning signs')).toHaveCount(0);
+  await expect(page.getByText(/Unlock Steady to read it/)).toBeVisible();
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(axe.violations.map((v) => v.id)).toEqual([]);
+});
+
+test('F-002: if she allows it, the plan is shown on the lock screen', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/support/plan');
+  await page.getByLabel('My warning signs').fill('Visible warning signs');
+  await page.getByRole('switch', { name: /Show this plan on the lock screen/ }).click();
+  await page.getByRole('button', { name: 'Save my plan' }).click();
+  await expect(page.getByText('Safety plan saved.')).toBeVisible();
+  await setPasscodeAndLock(page);
+  await page.getByRole('button', { name: 'I need support right now' }).click();
+  await expect(page.getByText('Visible warning signs')).toBeVisible();
+});
+
+test('F-002: onboarding asks for a country and fills the emergency number', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Set up/ }).click();
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Next', exact: true }).click(); // name, day, meds, then safety
+  await page.getByLabel('Country').selectOption('GB');
+  await expect(page.getByLabel('Emergency number where you live')).toHaveValue('999');
+  await page.getByLabel('Country').selectOption('DE');
+  await expect(page.getByLabel('Emergency number where you live')).toHaveValue('112');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Finish' }).click();
+  await expect(page.getByText(/Today’s routine/)).toBeVisible();
+  await page.goto('/support');
+  await expect(page.locator('a[href="tel:08001110111"]')).toBeVisible();
+  await page.goto('/settings');
+  await expect(page.getByLabel('Country')).toHaveValue('DE');
+});
+
+test('F-002: support pages have no accessibility violations and never contact another origin', async ({ page }) => {
+  const foreign: string[] = [];
+  page.on('request', (r) => {
+    const u = new URL(r.url());
+    if (!['localhost', '127.0.0.1'].includes(u.hostname) && !u.protocol.startsWith('blob') && !u.protocol.startsWith('data')) foreign.push(r.url());
+  });
+  await onboard(page);
+  await page.goto('/support');
+  await page.getByLabel('Which country are you in?').selectOption('PH');
+  for (const path of ['/support', '/support/plan', '/rescue', '/rescue/calm']) {
+    await page.goto(path);
+    await page.waitForTimeout(400);
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(results.violations, `${path}: ${results.violations.map((v) => v.id).join(', ')}`).toEqual([]);
+  }
+  expect(foreign).toEqual([]);
 });

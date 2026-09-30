@@ -28,3 +28,11 @@ export function getLocationUrl(): Promise<string | null> {
     );
   });
 }
+
+/** sms: link to a single number (for text-based crisis lines), with an optional prefilled body. */
+export function smsNumberHref(to: string, body?: string) {
+  const n = to.replace(/[^\d+]/g, '');
+  if (!body) return `sms:${n}`;
+  const isApple = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
+  return isApple ? `sms:${n}&body=${encodeURIComponent(body)}` : `sms:${n}?body=${encodeURIComponent(body)}`;
+}

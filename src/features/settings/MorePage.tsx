@@ -1,4 +1,4 @@
-import { BedDouble, BookOpen, Database, FileText, Info, LifeBuoy, List, Pill, Settings, Shield, Utensils } from 'lucide-react';
+import { BedDouble, BookOpen, Database, FileText, HandHeart, Info, LifeBuoy, List, Pill, Settings, Shield, Utensils } from 'lucide-react';
 import { usePrefs } from '../../data/hooks';
 import { updatePreferences } from '../../data/repo';
 import { Card, ListLink, PageHeader, Toggle } from '../../ui/kit';
@@ -24,6 +24,7 @@ export function MorePage() {
           <ListLink to="/sleep" icon={<BedDouble size={22} />} title="Sleep" sub="Diary and targets" />
           <ListLink to="/diet" icon={<Utensils size={22} />} title="Food & water" sub="Meals, hydration, foods to watch" />
           <ListLink to="/rescue" icon={<LifeBuoy size={22} />} title="Rescue plan" sub="Action plan, contacts, calm tools" />
+          <ListLink to="/support" icon={<HandHeart size={22} />} title="Support & safety plan" sub="Crisis lines, people to reach, my plan" />
           <ListLink to="/insights/report" icon={<FileText size={22} />} title="Report for my neurologist" sub="Print or share a summary" />
         </Card>
         <Card className="mt-4 p-2 sm:p-2">

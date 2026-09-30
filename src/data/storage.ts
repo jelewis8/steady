@@ -3,6 +3,7 @@ import {
   buildEnvelope,
   COLLECTION_KEYS,
   emptyExportData,
+  mergeSupportIntoProfile,
   type CollectionKey,
   type ExportData,
   type ExportEnvelope,
@@ -97,8 +98,11 @@ export function createDexieStorage(database: SteadyDB = db): StorageAdapter {
           for (const t of allTables()) await t.clear();
         }
         if (d.userProfile) {
-          if (mode === 'replace' || (await database.profile.count()) === 0) {
+          const existingProfile = await database.profile.toCollection().first();
+          if (mode === 'replace' || !existingProfile) {
             await database.profile.put(d.userProfile);
+          } else {
+            await database.profile.put(mergeSupportIntoProfile(existingProfile, d.userProfile));
           }
         }
         if (d.rescueProtocol) {
