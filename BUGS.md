@@ -36,7 +36,6 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 ### P2 — Annoying
 
-- [ ] **B-003** · 2026-09-28 · server · Port **5173** is open to the internet in the droplet firewall (a Vite dev-server port). Close it if nothing needs it: `ufw delete allow 5173`.
 - [ ] **B-004** · 2026-09-28 · testing · Manual screen-reader pass with a real reader (VoiceOver on iPhone, TalkBack on Android, NVDA on Windows) is still to do: follow `docs/SCREEN-READER-CHECK.md`. Done without a reader on 2026-10-01 (shipped in release-2026-10-01-5): every page now has its own title, focus always lands on the page heading (it was lost on a page opened for the first time), and one skipped heading level was fixed. axe passes.
 
 
@@ -47,6 +46,7 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 ## Done
 
+- [x] **B-003** · 2026-10-01 · Port 5173 (a development-server port, not used in production) was open to the internet on the droplet firewall. Closed by Jeremiah on 2026-10-01 with `ufw delete allow 5173`
 - [x] **B-002** · 2026-10-01 · Her first backup (More → Backup & data → Save backup file) was tested by Jeremiah and works
 - [x] **B-001** · 2026-10-01 · Install to the home screen was tested by Jeremiah and works
 - [x] **B-013** · 2026-10-01 · reported by: Jeremiah · Cycle tracking wasn't visible anywhere except as a Settings toggle. Now, with it on, Today has a "Period today?" Yes/No card that works at any hour (it used to appear only inside the evening check-in, after 17:00), every past day page has the same card, the Today check-in summary mentions a period day, and the calendar marks it. Same stored field as before, so no database change and nothing to migrate → release-2026-10-01-4
