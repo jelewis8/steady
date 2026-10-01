@@ -37,7 +37,7 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 ### P2 — Annoying
 
 - [ ] **B-003** · 2026-09-28 · server · Port **5173** is open to the internet in the droplet firewall (a Vite dev-server port). Close it if nothing needs it: `ufw delete allow 5173`.
-- [ ] **B-004** · 2026-09-28 · testing · Manual screen-reader pass not done yet (VoiceOver on iPhone, TalkBack on Android, NVDA on Windows). Automated axe checks pass.
+- [ ] **B-004** · 2026-09-28 · testing · Manual screen-reader pass with a real reader (VoiceOver on iPhone, TalkBack on Android, NVDA on Windows) is still to do: follow `docs/SCREEN-READER-CHECK.md`. Done without a reader on 2026-10-01 (shipped in release-2026-10-01-5): every page now has its own title, focus always lands on the page heading (it was lost on a page opened for the first time), and one skipped heading level was fixed. axe passes.
 
 
 ### P3 — Wish list

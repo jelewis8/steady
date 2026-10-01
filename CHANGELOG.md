@@ -20,13 +20,18 @@ The folder that `current` points at is the release name.
 
 ## release-2026-10-01-5
 
-One feature. **This release changes the database** (Dexie version 4, data schema `1.6.0`), so she should **save a backup first** (More → Backup & data → Save backup file). The change only adds an empty table: nothing she has is edited or moved, and an automated test proves a database saved by release-2026-10-01-4 opens with every record intact.
+Two things. **This release changes the database** (Dexie version 4, data schema `1.6.0`), so she should **save a backup first** (More → Backup & data → Save backup file). The change only adds an empty table: nothing she has is edited or moved, and an automated test proves a database saved by release-2026-10-01-4 opens with every record intact.
 
 **F-011: dated dose changes.**
 - Change a dose on a medication and Steady now asks: **"A new dose"** (and from which day, today unless she says otherwise) or **"Fixing a mistake"** (nothing is added to the history). It never suggests a change.
 - Each medication has a **Dose changes** card: the history, newest first, with **Add a dose change** for past ones, and Edit or Remove (with undo) on each.
 - Dose changes are now dates in the **bowel and bladder comparison** (Insights) and are listed in the **neurologist report**, with the same plain, non-causal wording as before.
 - Backups include dose changes ("dose changes" in the restore summary). Older backups open with none, and nothing else in them changes.
+
+**B-004 (part): what a screen reader needs when a page changes.** Found by checking the structure of 19 screens; the hands-on pass with real readers is still open (`docs/SCREEN-READER-CHECK.md`).
+- Every page had the same title, "Steady". Each page now has its own ("Medications – Steady", "Today – Steady"), so a reader says where you are. While the app is locked the title is just "Steady".
+- When a page opened for the first time, focus could be lost (it landed on nothing). It now waits for the new page and always lands on the page heading.
+- On the side-effects page the medication names were a heading level too deep. Fixed.
 
 ## release-2026-10-01-4
 

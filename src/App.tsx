@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { pageTitle } from './core/pageTitle';
 import { todayKey } from './core/time';
 import { requestPersistentStorage } from './data/db';
 import { usePrefs, useProfile } from './data/hooks';
@@ -98,15 +99,37 @@ export default function App() {
     }
   }, [now, day]);
 
-  // Move focus to the main heading on route change (screen reader + keyboard users).
+  // On route change (screen reader + keyboard users): set the page title (B-004) and move focus to the main heading.
+  // A page that loads for the first time is lazy, and React keeps the OLD page on screen until it is ready. If the heading is still
+  // the one we focused last time, wait (up to 2 s) for the new page's heading instead of focusing one that is about to disappear.
+  const lastH1 = useRef<{ el: HTMLElement; text: string } | null>(null);
+  const lockedNow = locked && !!prefs?.passcodeEnabled;
   useEffect(() => {
-    const h = document.querySelector<HTMLElement>('main h1');
-    if (h) {
+    let timer = 0;
+    let tries = 0;
+    const apply = () => {
+      if (lockedNow) {
+        document.title = 'Steady'; // nothing about what she was reading while the app is locked
+        return;
+      }
+      const h = document.querySelector<HTMLElement>('main h1');
+      const last = lastH1.current;
+      const stale = !h || (last != null && last.el === h && last.text === h.textContent);
+      if (stale && tries++ < 40) {
+        timer = window.setTimeout(apply, 50);
+        return;
+      }
+      if (!h) return;
+      lastH1.current = { el: h, text: h.textContent ?? '' };
+      document.title = pageTitle(loc.pathname, h.textContent);
       h.tabIndex = -1;
       h.focus({ preventScroll: false });
-    }
+      window.scrollTo({ top: 0 });
+    };
     window.scrollTo({ top: 0 });
-  }, [loc.pathname]);
+    apply();
+    return () => window.clearTimeout(timer);
+  }, [loc.pathname, lockedNow]);
 
   useEffect(() => {
     if (ready && profile && !profile.onboarded && loc.pathname !== '/welcome') nav('/welcome', { replace: true });

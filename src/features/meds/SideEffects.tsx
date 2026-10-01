@@ -145,7 +145,7 @@ export function SideEffectsList({ medicationId, showAddLabel = 'Add a side effec
       ) : (
         groups.map((g) => (
           <section key={g.medication?.id ?? 'unsure'} aria-label={g.medication ? medLabel(g.medication) : 'Not sure which medication'}>
-            <h3 className="mb-1.5 font-bold">{g.medication ? medLabel(g.medication) : 'Not sure which medication'}</h3>
+            <h2 className="mb-1.5 font-bold">{g.medication ? medLabel(g.medication) : 'Not sure which medication'}</h2>
             <ul className="grid gap-2">
               {g.entries.map((se) => (
                 <Entry key={se.id} se={se} onEdit={() => setEditing({ se, isNew: false })} />

@@ -1641,3 +1641,29 @@ test('upgrade in a real browser (from version 3, the release before F-011): ever
   });
   expect(state).toEqual({ version: 40, hasDoseChanges: true, bathroom: 1 });
 });
+
+// ---- B-004: what a screen reader needs when a page changes ----
+test('B-004: each page has its own title and focus moves to its heading, including pages that load for the first time', async ({ page }) => {
+  await onboard(page);
+  await expect(page).toHaveTitle('Today – Steady');
+  const goTo = (path: string) =>
+    page.evaluate((p) => {
+      window.history.pushState({}, '', p);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, path);
+  for (const [path, heading] of [
+    ['/settings', 'Settings'],
+    ['/insights', 'Insights'],
+    ['/meds', 'Medications'],
+    ['/support', 'Support'],
+    ['/rescue/calm', 'Calm & grounding'],
+    ['/meds/side-effects', 'Side effects'],
+  ] as const) {
+    await goTo(path);
+    await expect(page.locator('main h1')).toHaveText(heading);
+    await expect(page).toHaveTitle(`${heading} – Steady`);
+    await expect(page.locator('main h1')).toBeFocused();
+  }
+  // the grouped side-effect list is a second-level heading under the page heading, not a third
+  await expect(page.locator('main h3')).toHaveCount(0);
+});
