@@ -1,27 +1,27 @@
 import { useMemo } from 'react';
-import { BOWEL_BLADDER_NOTE, COMPARE_MIN_DAYS, COMPARE_WINDOW_DAYS, compareAroundMedicationDates, comparisonRows, medicationDateEvents } from '../../core/bathroom';
+import { BOWEL_BLADDER_NOTE, COMPARE_MIN_DAYS, COMPARE_WINDOW_DAYS, compareAroundMedicationDates, comparisonRows, comparisonTitle, medicationDateEvents } from '../../core/bathroom';
 import { addDays, dateRange, formatDateShort, fromDateKey, todayKey } from '../../core/time';
-import type { BathroomLog, ISODate, Medication } from '../../core/types';
+import type { BathroomLog, DoseChange, ISODate, Medication } from '../../core/types';
 import { ChartFrame } from '../../ui/charts';
 import { Card, CardTitle, cx } from '../../ui/kit';
 
 /** Day grid: bowel movement answered yes / no / nothing, with a ▲ on days a medication was started or stopped. */
-function DayGrid({ logs, meds, start, end }: { logs: BathroomLog[]; meds: Medication[]; start: ISODate; end: ISODate }) {
+function DayGrid({ logs, meds, doseChanges, start, end }: { logs: BathroomLog[]; meds: Medication[]; doseChanges: DoseChange[]; start: ISODate; end: ISODate }) {
   const from = addDays(end, -83) > start ? addDays(end, -83) : start;
   const days = dateRange(from, end);
   const byDate = new Map(logs.map((l) => [l.date, l]));
-  const events = medicationDateEvents(meds, from, end);
+  const events = medicationDateEvents(meds, from, end, doseChanges);
   const eventsByDate = new Map<ISODate, string[]>();
-  for (const e of events) eventsByDate.set(e.date, [...(eventsByDate.get(e.date) ?? []), `${e.medication} ${e.event}`]);
+  for (const e of events) eventsByDate.set(e.date, [...(eventsByDate.get(e.date) ?? []), `${e.medication} ${e.event}${e.detail ? ` (${e.detail})` : ''}`]);
   const lead = (fromDateKey(from).getDay() + 6) % 7;
   const word = (l: BathroomLog | undefined) => (l?.bowel === true ? 'bowel movement' : l?.bowel === false ? 'no bowel movement' : 'nothing recorded');
   const symbol = (l: BathroomLog | undefined) => (l?.bowel === true ? '✓' : l?.bowel === false ? '○' : '');
   return (
     <ChartFrame
-      title="Bowel movement by day, with medication start and stop dates"
-      description="Tick means a bowel movement was recorded, open circle means recorded as none, blank means nothing recorded. A triangle marks a day a medication was started or stopped."
+      title="Bowel movement by day, with medication start, stop and dose-change dates"
+      description="Tick means a bowel movement was recorded, open circle means recorded as none, blank means nothing recorded. A triangle marks a day a medication was started, stopped or had its dose changed."
       table={{
-        columns: ['Date', 'Bowel movement', 'Urinations', 'Medication started or stopped'],
+        columns: ['Date', 'Bowel movement', 'Urinations', 'Medication started, stopped or dose changed'],
         rows: [...days]
           .reverse()
           .filter((d) => byDate.has(d) || eventsByDate.has(d))
@@ -56,7 +56,7 @@ function DayGrid({ logs, meds, start, end }: { logs: BathroomLog[]; meds: Medica
           );
         })}
       </div>
-      <p className="mt-2 text-sm text-ink-2">✓ bowel movement · ○ recorded as none · blank: nothing recorded · ▲ a medication was started or stopped</p>
+      <p className="mt-2 text-sm text-ink-2">✓ bowel movement · ○ recorded as none · blank: nothing recorded · ▲ a medication was started, stopped or had its dose changed</p>
     </ChartFrame>
   );
 }
@@ -65,29 +65,29 @@ function DayGrid({ logs, meds, start, end }: { logs: BathroomLog[]; meds: Medica
  * Bowel and bladder next to the dates medications were started or stopped (F-010).
  * Her own counts, side by side. Deliberately says nothing about what any drug does.
  */
-export function BathroomMedCard({ logs, meds, start, end }: { logs: BathroomLog[]; meds: Medication[]; start: ISODate; end: ISODate }) {
+export function BathroomMedCard({ logs, meds, doseChanges, start, end }: { logs: BathroomLog[]; meds: Medication[]; doseChanges: DoseChange[]; start: ISODate; end: ISODate }) {
   const today = todayKey();
-  const comparisons = useMemo(() => compareAroundMedicationDates(logs, meds, start, end, today), [logs, meds, start, end, today]);
+  const comparisons = useMemo(() => compareAroundMedicationDates(logs, meds, start, end, today, doseChanges), [logs, meds, doseChanges, start, end, today]);
   const anyRecord = logs.some((l) => l.date >= start && l.date <= end && (l.bowel !== null || l.urinationCount > 0));
   if (!anyRecord) return null;
   return (
     <Card labelledBy="bm-h">
       <CardTitle id="bm-h">Bowel and bladder, and medication dates</CardTitle>
       <p className="mb-3 text-ink-2">
-        Your records for the {COMPARE_WINDOW_DAYS} days before, and from, the day a medication was started or stopped, using the dates saved with each medication.
+        Your records for the {COMPARE_WINDOW_DAYS} days before, and from, the day a medication was started, stopped or had its dose changed, using the dates you saved.
       </p>
-      <DayGrid logs={logs} meds={meds} start={start} end={end} />
+      <DayGrid logs={logs} meds={meds} doseChanges={doseChanges} start={start} end={end} />
       <div className="mt-4 grid gap-4">
-        {comparisons.length === 0 && <p>No medication was started or stopped in this time range.</p>}
+        {comparisons.length === 0 && <p>No medication was started, stopped or had its dose changed in this time range.</p>}
         {comparisons.map((c) => (
-          <section key={`${c.medicationId}-${c.event}-${c.date}`} aria-label={`${c.medication} ${c.event} ${formatDateShort(c.date)}`}>
+          <section key={`${c.medicationId}-${c.event}-${c.date}`} aria-label={comparisonTitle(c, formatDateShort)}>
             <h3 className="font-bold">
-              {c.medication} {c.event} on {formatDateShort(c.date)}
+              {comparisonTitle(c, formatDateShort)}
             </h3>
             {c.enough ? (
               <table className="mt-1 w-full border-collapse text-left text-sm">
                 <caption className="sr-only">
-                  {c.medication} {c.event} on {formatDateShort(c.date)}: your records before and after
+                  {comparisonTitle(c, formatDateShort)}: your records before and after
                 </caption>
                 <thead>
                   <tr className="border-b border-line">

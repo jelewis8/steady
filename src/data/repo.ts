@@ -18,6 +18,7 @@ import type {
   AuraLog,
   ChecklistStatus,
   DailyCheckIn,
+  DoseChange,
   DoseStatus,
   EmergencyContact,
   InsightRule,
@@ -288,6 +289,36 @@ export function newMedication(): Medication {
 export async function saveMedication(med: Medication): Promise<void> {
   await db.medications.put({ ...med, updatedAt: isoNow() });
   await ensureDay(todayKey());
+}
+
+/**
+ * Save a medication and, in the same step, the dated dose change that goes with it (F-011).
+ * Both are written together or not at all, so the record of a change never disagrees with the dose.
+ */
+export async function saveMedicationWithDoseChange(med: Medication, change: DoseChange | null): Promise<void> {
+  await db.transaction('rw', [db.medications, db.doseChanges], async () => {
+    await db.medications.put({ ...med, updatedAt: isoNow() });
+    if (change) await db.doseChanges.put(change);
+  });
+  await ensureDay(todayKey());
+}
+
+export async function saveDoseChange(c: DoseChange): Promise<Undo> {
+  const before = await db.doseChanges.get(c.id);
+  await db.doseChanges.put({ ...c, from: c.from.trim(), to: c.to.trim(), note: c.note?.trim() || null, updatedAt: isoNow() });
+  return async () => {
+    if (before) await db.doseChanges.put(before);
+    else await db.doseChanges.delete(c.id);
+  };
+}
+
+export async function deleteDoseChange(id: string): Promise<Undo> {
+  const c = await db.doseChanges.get(id);
+  if (!c) return noop;
+  await db.doseChanges.delete(id);
+  return async () => {
+    await db.doseChanges.put(c);
+  };
 }
 
 export interface StopDetails {

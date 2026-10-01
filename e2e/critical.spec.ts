@@ -571,7 +571,7 @@ test('upgrade in a real browser: a database saved by the previous release opens 
     d.close();
     return { version: v, old: med.sideEffectsNoted };
   });
-  expect(db.version).toBe(30); // upgraded from version 1 through 2 to 3
+  expect(db.version).toBe(40); // upgraded from version 1 through 2 and 3 to 4
   expect(db.old).toEqual(['Irritability', 'Tiredness']); // the old field is left exactly as it was
 });
 
@@ -1060,11 +1060,11 @@ test('upgrade in a real browser (from version 2): a database saved by the previo
       r.onsuccess = () => res(r.result);
       r.onerror = () => rej(r.error);
     });
-    const v = { version: d.version, hasBathroom: d.objectStoreNames.contains('bathroomLogs') };
+    const v = { version: d.version, hasBathroom: d.objectStoreNames.contains('bathroomLogs'), hasDoseChanges: d.objectStoreNames.contains('doseChanges') };
     d.close();
     return v;
   });
-  expect(version).toEqual({ version: 30, hasBathroom: true });
+  expect(version).toEqual({ version: 40, hasBathroom: true, hasDoseChanges: true });
 });
 
 // ---- Release 7: F-005 one timer for a warning sign or a seizure ----
@@ -1475,8 +1475,169 @@ test('F-010: Insights and the report show before/after counts around a medicatio
   expect(r.violations.map((v) => v.id), 'insights').toEqual([]);
 
   await page.goto('/insights/report?days=90');
-  await expect(page.getByRole('heading', { name: 'Around medication start and stop dates' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Around medication start, stop and dose-change dates' })).toBeVisible();
   await expect(page.getByText('They don’t show whether a medication made any difference').first()).toBeVisible();
   r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
   expect(r.violations.map((v) => v.id), 'report').toEqual([]);
+});
+
+// ---- F-011: dated dose changes ----
+test('F-011: changing a dose asks from which day and keeps a history; fixing a mistake does not', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await expect(page.getByRole('heading', { name: 'Dose changes' })).toBeVisible();
+  await expect(page.getByText(/No dose changes recorded/)).toBeVisible();
+  await expect(page.getByRole('group', { name: /The dose is now/ })).toHaveCount(0); // nothing asked until the dose changes
+
+  // 1. a new dose, from a chosen day
+  await page.getByLabel('Dose', { exact: true }).fill('150');
+  const ask = page.getByRole('group', { name: 'The dose is now 150 mg (it was 100 mg)' });
+  await expect(ask).toBeVisible();
+  await ask.getByLabel('From which day?').fill('2026-09-20');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.waitForURL('**/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await expect(page.getByText('100 mg to 150 mg')).toBeVisible();
+  await expect(page.getByText(/^From .*20/)).toBeVisible();
+
+  // 2. choosing "Fixing a mistake" changes the dose but adds nothing to the history
+  await page.getByLabel('Dose', { exact: true }).fill('15');
+  const ask2 = page.getByRole('group', { name: /The dose is now 15 mg/ });
+  await ask2.getByRole('radio', { name: /Fixing a mistake/ }).click();
+  await expect(ask2.getByLabel('From which day?')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.waitForURL('**/meds');
+  await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
+  await expect(page.getByText(/to 15 mg/)).toHaveCount(0);
+  await expect(page.getByText('100 mg to 150 mg')).toBeVisible();
+
+  // 3. add a past change by hand
+  await page.getByRole('button', { name: 'Add a dose change' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Add a dose change' });
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(sheet.getByText('Add the new dose, for example 150 mg.')).toBeVisible();
+  await sheet.getByLabel('From which day?').fill('2026-08-01');
+  await sheet.getByLabel('Dose before (optional)').fill('50 mg');
+  await sheet.getByLabel('Dose after').fill('100 mg');
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('50 mg to 100 mg')).toBeVisible();
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+});
+
+test('F-011: dose changes appear in the report and in the bowel and bladder comparison', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/');
+  await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const p = (n: number) => String(n).padStart(2, '0');
+    const key = (off: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + off);
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    };
+    const meds: { id: string; isRescue: boolean }[] = await new Promise((res) => {
+      const rq = db.transaction('medications').objectStore('medications').getAll();
+      rq.onsuccess = () => res(rq.result);
+    });
+    const med = meds.find((m) => !m.isRescue)!;
+    await new Promise<void>((res) => {
+      const tx = db.transaction(['doseChanges', 'bathroomLogs'], 'readwrite');
+      tx.objectStore('doseChanges').put({ id: 'dc1', medicationId: med.id, date: key(-14), from: '100 mg', to: '150 mg', note: 'with food', createdAt: '', updatedAt: '' });
+      for (let off = -27; off <= -1; off++) tx.objectStore('bathroomLogs').put({ id: `b${off}`, date: key(off), bowel: off % 2 === 0, bowelHow: null, bowelNotes: null, urinationCount: 4, createdAt: '', updatedAt: '' });
+      tx.oncomplete = () => res();
+    });
+    db.close();
+  });
+  await page.goto('/insights');
+  const card = page.getByRole('region', { name: 'Bowel and bladder, and medication dates' });
+  await expect(card.getByRole('heading', { name: /dose changed on .* \(100 mg to 150 mg\)/ })).toBeVisible();
+  await page.goto('/insights/report?days=90');
+  await expect(page.getByRole('heading', { name: 'Dose changes recorded' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '100 mg to 150 mg' }).first()).toBeVisible();
+  await expect(page.getByText('with food').first()).toBeVisible();
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+});
+
+test('upgrade in a real browser (from version 3, the release before F-011): everything is kept and the dose-change table is added', async ({ page }) => {
+  await page.goto('/favicon.svg');
+  await page.evaluate(async () => {
+    // release-2026-10-01-4: Dexie schema version 3 (IndexedDB version 30), with sideEffects and bathroomLogs.
+    const stores: Record<string, string> = {
+      profile: 'id', seizureEvents: 'id, timestamp', auraLogs: 'id, timestamp, seizureEventId', medications: 'id, isActive',
+      medicationDoses: 'id, medicationId, scheduledTime, [medicationId+scheduledTime]', mealLogs: 'id, timestamp', hydrationLogs: 'id, timestamp',
+      sleepEntries: 'id, &date', routineTemplates: 'id', routineChecklistItems: 'id, date, [date+templateItemId]', triggerTags: 'id, label',
+      rescueProtocol: 'id', emergencyContacts: 'id, sortOrder', insightRules: 'id, correlationType', dailyCheckIns: 'id, &date',
+      dayPlans: 'date', voiceNotes: 'id, seizureEventId', meta: 'key', sideEffects: 'id, medicationId, startDate', bathroomLogs: 'id, &date',
+    };
+    const db: IDBDatabase = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('steady', 30);
+      req.onupgradeneeded = () => {
+        for (const [name, spec] of Object.entries(stores)) {
+          const parts = spec.split(',').map((x) => x.trim());
+          const store = req.result.createObjectStore(name, { keyPath: parts[0] });
+          for (const p of parts.slice(1)) {
+            const unique = p.startsWith('&');
+            const n = p.replace('&', '');
+            store.createIndex(n, n.startsWith('[') ? n.slice(1, -1).split('+') : n, { unique });
+          }
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const now = new Date().toISOString();
+    const tx = db.transaction(['profile', 'medications', 'bathroomLogs', 'routineTemplates'], 'readwrite');
+    tx.objectStore('profile').put({
+      id: 'p1', displayName: 'Test', dateOfBirth: null, epilepsyType: 'focal', seizureFocus: null, diagnosisDate: null, timezone: 'America/New_York',
+      preferences: { theme: 'system', emergencyNumber: '911', trackBathroom: true }, onboarded: true, isSampleData: false, createdAt: now, updatedAt: now,
+    });
+    tx.objectStore('medications').put({
+      id: 'm1', name: 'Keppra', genericName: null, dosage: '500', unit: 'mg', frequency: 'twice daily', scheduledTimes: ['08:00', '20:00'], prescriber: null, pharmacy: null,
+      remainingCount: 20, unitsPerDose: 1, refillDate: null, refillReminderDays: 7, isActive: true, isRescue: false, startDate: '2026-01-01', endDate: null,
+      sideEffectsNoted: [], stopReason: null, stopReasonNote: null, notes: null, createdAt: now, updatedAt: now,
+    });
+    tx.objectStore('bathroomLogs').put({ id: 'b1', date: '2026-09-01', bowel: true, bowelHow: 'normal', bowelNotes: null, urinationCount: 4, createdAt: now, updatedAt: now });
+    tx.objectStore('routineTemplates').put({
+      id: 'r1', name: 'Everyday', isDefault: true, applicableDays: [0, 1, 2, 3, 4, 5, 6], createdAt: now, updatedAt: now,
+      repeatEveryDays: null, repeatStartDate: null, doseShiftMinutes: 0, doseShiftWhich: 'all',
+      items: [{ id: 'i1', hour: 7, minute: 0, label: 'Wake up', category: 'sleep', linkedEntityId: null, reminderEnabled: true, reminderOffsetMinutes: 0, isOptional: false }],
+    });
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  });
+
+  await page.goto('/');
+  await expect(page.getByText('Wake up')).toBeVisible();
+  await page.goto('/meds/m1');
+  await expect(page.getByRole('heading', { name: 'Dose changes' })).toBeVisible();
+  await page.getByLabel('Dose', { exact: true }).fill('750');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.waitForURL('**/meds');
+  await page.goto('/meds/m1');
+  await expect(page.getByText('500 mg to 750 mg')).toBeVisible();
+  const state = await page.evaluate(async () => {
+    const d: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const bath: unknown[] = await new Promise((res) => {
+      const rq = d.transaction('bathroomLogs').objectStore('bathroomLogs').getAll();
+      rq.onsuccess = () => res(rq.result);
+    });
+    const v = { version: d.version, hasDoseChanges: d.objectStoreNames.contains('doseChanges'), bathroom: bath.length };
+    d.close();
+    return v;
+  });
+  expect(state).toEqual({ version: 40, hasDoseChanges: true, bathroom: 1 });
 });

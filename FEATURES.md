@@ -32,10 +32,6 @@ _(none open)_
 
 ### Normal
 
-- [ ] **F-011** · 2026-10-01 · from F-010 · **Remember dose changes (date, from, to)**
-  - F-010 only knows the start and stop dates saved with each medication. Changing the dose on a medication overwrites it and keeps no history, so a dose change can't be compared. Needs a small dated "dose changed" record (a new Dexie version, `SCHEMA_VERSION` bump, import migration, upgrade test, and a backup first), and then the F-010 comparison can include those dates.
-  - Open question: ask for the date when she edits a dose, or let her add "dose changed on…" by hand? The first is less to remember but adds a question to every edit.
-
 - [ ] **F-012** · 2026-10-01 · from F-010 · **Label-backed notes about a drug and bowel or bladder** (parked until a clinical reviewer is available)
   - "Drug X lists constipation / urinary retention among adverse reactions in its prescribing information." This is the only part of F-010 that says something about a drug, so it is **not built**. Plan: for each recognised medication, copy the GI and urinary lines from the current DailyMed label (store the label date, section and citation next to each string), show it only when her records overlap a start or dose change of that drug, and have a clinical pharmacist or epileptologist approve the strings and the report footnote before it ships. Sources and wording rules are in the F-010 notes below. Never treat a FAERS signal as a labelled reaction.
 
@@ -43,6 +39,7 @@ _(none open)_
 
 ## Done
 
+- [x] **F-011** · 2026-10-01 · Dated dose changes. Editing a dose now asks "A new dose (from which day)" or "Fixing a mistake" (a correction adds nothing); the medication screen has a "Dose changes" history with add, edit and remove (undo offered), so past changes can be entered by hand too. Dose changes are comparison dates in the F-010 bowel and bladder card (shown as "dose changed on … (100 mg to 150 mg)"), and the neurologist report lists them. New table (Dexie version 4, schema 1.6.0); nothing existing is changed; older backups open with no dose changes → release-2026-10-01-5
 - [x] **F-010** · 2026-10-01 · Bowel and bladder next to medication dates: an Insights card with a day grid (bowel movement per day, ▲ on days a medication was started or stopped, with a table view) and, for each start or stop date, her own counts for the 14 days before and from that day (days recorded, bowel movements, longest stretch without one, average urinations), only when each side has at least 5 recorded days. Other starts or stops in the same weeks are named. The same table is in the neurologist report. **Plain counts only, with a fixed non-causal note, no test, no claim about any drug, no dose advice, so it needs no clinical sign-off.** Label-backed statements are parked as F-012; dose-change dates as F-011 → release-2026-10-01-4
 
 - [x] **F-009** · 2026-10-01 · Mood, depression and anxiety: the daily check-in gains "how low or depressed" and "how anxious" (1 to 5) and a private "why" diary note; Day page shows them; the neurologist report gets "Mood and anxiety" (counts and averages only, notes only if she chooses); a support link is always in the check-in, never triggered by a score → release-2026-10-01-2

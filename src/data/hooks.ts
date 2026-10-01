@@ -102,6 +102,10 @@ export function useBathroomLog(date: ISODate) {
   return useLiveQuery(async () => (await db.bathroomLogs.where('date').equals(date).first()) ?? null, [date]);
 }
 
+export function useDoseChanges() {
+  return useLiveQuery(() => db.doseChanges.toArray(), []) ?? [];
+}
+
 export function useSideEffects() {
   return useLiveQuery(() => db.sideEffects.toArray(), []) ?? [];
 }

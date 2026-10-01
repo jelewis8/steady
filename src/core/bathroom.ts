@@ -2,7 +2,10 @@
  * Bowel and bladder tracking (F-006). Pure logic. Kept private and matter-of-fact: plain words, no scoring.
  */
 import { addDays, dateRange, daysBetween, todayKey } from './time';
-import type { BathroomLog, BowelHow, ISODate, Medication } from './types';
+import { describeChange } from './doseChanges';
+import type { BathroomLog, BowelHow, DoseChange, ISODate, Medication } from './types';
+
+export type MedicationEvent = 'started' | 'stopped' | 'dose changed';
 
 export const BOWEL_HOW_LABELS: Record<BowelHow, string> = {
   hard: 'Hard or difficult',
@@ -90,7 +93,7 @@ export function bowelDates(logs: BathroomLog[], from: ISODate, to: ISODate): Set
 }
 
 /**
- * Her own bowel and bladder records on either side of a date a medication was started or stopped (F-010).
+ * Her own bowel and bladder records on either side of a date a medication was started, stopped or had its dose changed (F-010).
  * Plain counts only. No test, no "associated with", and no statement about any drug: nothing here claims
  * a medication affects bowel or bladder, so it needs no clinical source. The note below is shown with it.
  */
@@ -110,7 +113,9 @@ export interface BathroomSide {
 export interface MedicationDateComparison {
   medicationId: string;
   medication: string;
-  event: 'started' | 'stopped';
+  event: MedicationEvent;
+  /** for a dose change: "100 mg to 150 mg" */
+  detail: string | null;
   date: ISODate;
   before: BathroomSide;
   after: BathroomSide;
@@ -120,13 +125,26 @@ export interface MedicationDateComparison {
   otherChanges: string[];
 }
 
-/** Dates in [from, to] on which a (non-rescue) medication was started or stopped, from the dates saved with each medication. */
-export function medicationDateEvents(meds: Medication[], from: ISODate, to: ISODate): { medicationId: string; medication: string; event: 'started' | 'stopped'; date: ISODate }[] {
-  const out: { medicationId: string; medication: string; event: 'started' | 'stopped'; date: ISODate }[] = [];
+export interface MedicationDateEvent {
+  medicationId: string;
+  medication: string;
+  event: MedicationEvent;
+  detail: string | null;
+  date: ISODate;
+}
+
+/** Dates in [from, to] on which a (non-rescue) medication was started, stopped or had its dose changed, from the dates she saved. */
+export function medicationDateEvents(meds: Medication[], from: ISODate, to: ISODate, doseChanges: DoseChange[] = []): MedicationDateEvent[] {
+  const out: MedicationDateEvent[] = [];
   for (const m of meds) {
     if (m.isRescue) continue;
-    if (m.startDate && m.startDate >= from && m.startDate <= to) out.push({ medicationId: m.id, medication: m.name, event: 'started', date: m.startDate });
-    if (m.endDate && m.endDate >= from && m.endDate <= to) out.push({ medicationId: m.id, medication: m.name, event: 'stopped', date: m.endDate });
+    if (m.startDate && m.startDate >= from && m.startDate <= to) out.push({ medicationId: m.id, medication: m.name, event: 'started', detail: null, date: m.startDate });
+    if (m.endDate && m.endDate >= from && m.endDate <= to) out.push({ medicationId: m.id, medication: m.name, event: 'stopped', detail: null, date: m.endDate });
+  }
+  for (const c of doseChanges) {
+    const m = meds.find((x) => x.id === c.medicationId);
+    if (!m || m.isRescue || c.date < from || c.date > to) continue;
+    out.push({ medicationId: m.id, medication: m.name, event: 'dose changed', detail: describeChange(c), date: c.date });
   }
   return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.medication.localeCompare(b.medication)));
 }
@@ -137,9 +155,10 @@ export function compareAroundMedicationDates(
   from: ISODate,
   to: ISODate,
   today: ISODate = todayKey(),
+  doseChanges: DoseChange[] = [],
 ): MedicationDateComparison[] {
-  const events = medicationDateEvents(meds, from, to);
-  const all = medicationDateEvents(meds, '0000-01-01', '9999-12-31');
+  const events = medicationDateEvents(meds, from, to, doseChanges);
+  const all = medicationDateEvents(meds, '0000-01-01', '9999-12-31', doseChanges);
   return events.map((e) => {
     const beforeFrom = addDays(e.date, -COMPARE_WINDOW_DAYS);
     const beforeTo = addDays(e.date, -1);
@@ -149,7 +168,7 @@ export function compareAroundMedicationDates(
     const before = { from: beforeFrom, to: beforeTo, summary: summarizeBathroom(logs, beforeFrom, beforeTo, today) };
     const after = { from: afterFrom, to: afterEnd, summary: summarizeBathroom(logs, afterFrom, afterEnd, today) };
     const otherChanges = all
-      .filter((o) => !(o.medicationId === e.medicationId && o.event === e.event) && o.date >= beforeFrom && o.date <= afterTo)
+      .filter((o) => !(o.medicationId === e.medicationId && o.event === e.event && o.date === e.date) && o.date >= beforeFrom && o.date <= afterTo)
       .map((o) => `${o.medication} ${o.event}`);
     return {
       ...e,
@@ -169,6 +188,11 @@ export function describeSide(s: BathroomSummary): string[] {
   if (s.longestGapDays != null) out.push(`Longest stretch without one: ${days(s.longestGapDays)}.`);
   if (s.bladderAverage != null) out.push(`Urination: about ${s.bladderAverage} times a day (${days(s.bladderDays)} counted).`);
   return out;
+}
+
+/** "Lamotrigine started on 4 Sep", "Lamotrigine dose changed on 4 Sep (100 mg to 150 mg)". */
+export function comparisonTitle(c: Pick<MedicationDateComparison, 'medication' | 'event' | 'detail' | 'date'>, formatDate: (d: ISODate) => string): string {
+  return `${c.medication} ${c.event} on ${formatDate(c.date)}${c.detail ? ` (${c.detail})` : ''}`;
 }
 
 /** Table rows for one comparison: [measure, before, after]. */

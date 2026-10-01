@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import { sortTimes } from '../../core/checklist';
+import { doseDiffers, doseText, newDoseChange } from '../../core/doseChanges';
 import { parseUnitsPerDose } from '../../core/stats';
 import { STOP_REASON_SHORT } from '../../core/sideEffects';
 import { addDays, dateKeyOf, formatDateShort, formatIsoClock, relativeDay, todayKey } from '../../core/time';
 import type { DoseStatus, Medication } from '../../core/types';
 import { db } from '../../data/db';
 import { useDoses } from '../../data/hooks';
-import { deleteMedication, newMedication, saveMedication, saveStopDetails } from '../../data/repo';
+import { deleteMedication, newMedication, saveMedicationWithDoseChange, saveStopDetails } from '../../data/repo';
 import { toast } from '../../state/ui';
+import { DoseHistory } from './DoseHistory';
 import { SideEffectsList } from './SideEffects';
 import { StopMedicationSheet } from './StopMedication';
-import { Button, Card, Disclaimer, Field, IconButton, Input, PageHeader, TextArea, TextField, Toggle } from '../../ui/kit';
+import { Button, Card, Disclaimer, Field, IconButton, Input, PageHeader, Segmented, TextArea, TextField, Toggle } from '../../ui/kit';
 
 const STATUS_TEXT: Record<DoseStatus, string> = {
   pending: 'Not recorded',
@@ -27,6 +29,10 @@ export function MedEditorPage() {
   const isNew = id === 'new';
   const nav = useNavigate();
   const [m, setM] = useState<Medication | null>(null);
+  // the medication as it was saved, to notice when the dose is changed (F-011)
+  const [saved, setSaved] = useState<Medication | null>(null);
+  const [changeKind, setChangeKind] = useState<'change' | 'fix'>('change');
+  const [changeDate, setChangeDate] = useState(todayKey());
   const [stopSheet, setStopSheet] = useState<'stop' | 'edit' | null>(null);
   // Keep what she types as text while editing (so the field can be cleared and retyped); check it on save.
   const [unitsText, setUnitsText] = useState('1');
@@ -41,6 +47,7 @@ export function MedEditorPage() {
         if (!found) nav('/meds', { replace: true });
         else {
           setM(found);
+          setSaved(found);
           setUnitsText(String(found.unitsPerDose ?? 1));
         }
       }
@@ -50,19 +57,22 @@ export function MedEditorPage() {
   if (!m) return <p className="text-ink-2">Loading…</p>;
   const set = (p: Partial<Medication>) => setM({ ...m, ...p });
   const unitsPerDose = parseUnitsPerDose(unitsText);
+  const doseChanged = !isNew && saved != null && doseDiffers(saved, { ...m, unitsPerDose: unitsPerDose ?? m.unitsPerDose });
   const valid = m.name.trim() && m.dosage.trim() && unitsPerDose != null && (m.isRescue || m.scheduledTimes.length > 0);
 
   async function save() {
     if (!m || !valid || unitsPerDose == null) return;
-    await saveMedication({
+    const next: Medication = {
       ...m,
       unitsPerDose,
       name: m.name.trim(),
       dosage: m.dosage.trim(),
       scheduledTimes: m.isRescue ? [] : sortTimes(m.scheduledTimes),
       frequency: m.isRescue ? 'as needed' : m.scheduledTimes.length === 1 ? 'once daily' : m.scheduledTimes.length === 2 ? 'twice daily' : `${m.scheduledTimes.length} times daily`,
-    });
-    toast(isNew ? `${m.name} added. It’s now on your daily checklist.` : 'Medication saved.');
+    };
+    const change = doseChanged && saved && changeKind === 'change' && changeDate ? newDoseChange(m.id, changeDate, doseText(saved), doseText(next)) : null;
+    await saveMedicationWithDoseChange(next, change);
+    toast(isNew ? `${m.name} added. It’s now on your daily checklist.` : change ? 'Medication saved. The dose change is in its history.' : 'Medication saved.');
     nav('/meds');
   }
 
@@ -133,8 +143,25 @@ export function MedEditorPage() {
             </Field>
           </div>
           {unitsPerDose == null && <p className="text-sm text-attn-ink">Enter how many you take each time, for example 1 or 2 (or 0.5 for half).</p>}
-          {!isNew && unitsPerDose != null && unitsPerDose !== m.unitsPerDose && (
+          {!isNew && unitsPerDose != null && unitsPerDose !== (saved?.unitsPerDose ?? m.unitsPerDose) && (
             <p className="text-sm text-ink-2">If you change this, check that “Pills/doses left” still matches what you have, so the refill reminder stays right.</p>
+          )}
+          {doseChanged && saved && (
+            <fieldset className="grid gap-3 rounded-2xl border-2 border-line bg-surface-2 p-3">
+              <legend className="px-1 font-bold">
+                The dose is now {doseText({ ...m, unitsPerDose: unitsPerDose ?? m.unitsPerDose })} (it was {doseText(saved)})
+              </legend>
+              <Segmented<'change' | 'fix'>
+                label="What is this?"
+                value={changeKind}
+                onChange={setChangeKind}
+                options={[
+                  { value: 'change', label: 'A new dose', hint: 'keep it in the history' },
+                  { value: 'fix', label: 'Fixing a mistake', hint: 'don’t add to the history' },
+                ]}
+              />
+              {changeKind === 'change' && <TextField label="From which day?" type="date" value={changeDate} onChange={setChangeDate} hint="Today unless it started on another day." />}
+            </fieldset>
           )}
           <Field label="Remind me to refill when this many days are left">
             {(fid) => <Input id={fid} type="number" inputMode="numeric" min={0} value={m.refillReminderDays} onChange={(e) => set({ refillReminderDays: Math.max(0, Number(e.target.value) || 0) })} />}
@@ -151,6 +178,15 @@ export function MedEditorPage() {
           {!valid && <p className="text-sm text-ink-2">Add a name, a dose{m.isRescue ? '' : ' and at least one time'}, and how many you take each time, to save.</p>}
         </form>
       </Card>
+
+      {!isNew && (
+        <Card labelledBy="dc-h">
+          <h2 id="dc-h" className="mb-2 text-lg font-bold">
+            Dose changes
+          </h2>
+          <DoseHistory med={m} />
+        </Card>
+      )}
 
       {!isNew && (
         <Card labelledBy="se-h">

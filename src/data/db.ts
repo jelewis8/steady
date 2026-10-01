@@ -5,6 +5,7 @@ import type {
   BathroomLog,
   DailyCheckIn,
   DayPlan,
+  DoseChange,
   EmergencyContact,
   HydrationLog,
   InsightRule,
@@ -47,6 +48,7 @@ export class SteadyDB extends Dexie {
   voiceNotes!: EntityTable<VoiceNote, 'id'>;
   sideEffects!: EntityTable<SideEffectLog, 'id'>;
   bathroomLogs!: EntityTable<BathroomLog, 'id'>;
+  doseChanges!: EntityTable<DoseChange, 'id'>;
   meta!: Table<MetaRow, string>;
 
   constructor(name = 'steady') {
@@ -83,6 +85,9 @@ export class SteadyDB extends Dexie {
       });
     // Release 2026-09-30-6 (F-006): a table for bowel and bladder records, one per day. Nothing existing is changed or migrated.
     this.version(3).stores({ bathroomLogs: 'id, &date' });
+    // Release 2026-10-01-5 (F-011): a table for dated dose changes. Nothing existing is changed or migrated: the table starts empty,
+    // and a medication's current dose stays on the medication exactly as before.
+    this.version(4).stores({ doseChanges: 'id, medicationId, date' });
   }
 }
 

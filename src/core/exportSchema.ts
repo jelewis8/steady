@@ -19,6 +19,7 @@ import type {
   RoutineChecklistItem,
   RoutineTemplate,
   SeizureEvent,
+  DoseChange,
   SideEffectLog,
   SleepEntry,
   TriggerTag,
@@ -54,6 +55,7 @@ export interface ExportData {
   voiceNotes: ExportedVoiceNote[];
   sideEffects: SideEffectLog[];
   bathroomLogs: BathroomLog[];
+  doseChanges: DoseChange[];
 }
 
 export interface ExportEnvelope {
@@ -95,6 +97,7 @@ export const COLLECTION_KEYS = [
   'voiceNotes',
   'sideEffects',
   'bathroomLogs',
+  'doseChanges',
 ] as const;
 export type CollectionKey = (typeof COLLECTION_KEYS)[number];
 
@@ -119,6 +122,7 @@ export function emptyExportData(): ExportData {
     voiceNotes: [],
     sideEffects: [],
     bathroomLogs: [],
+    doseChanges: [],
   };
 }
 
@@ -192,6 +196,8 @@ export function parseEnvelope(raw: unknown): ParseResult {
   data.medicationDoses = requireId(data.medicationDoses, 'doses');
   data.sideEffects = requireId(data.sideEffects, 'side effects');
   data.bathroomLogs = requireId(data.bathroomLogs, 'bathroom records');
+  // Migration 1.5.0 → 1.6.0 (F-011): dated dose changes. Older files have none; the list starts empty.
+  data.doseChanges = requireId(data.doseChanges, 'dose changes');
   return {
     ok: true,
     envelope: {
@@ -213,6 +219,7 @@ export function summarizeData(data: ExportData): { label: string; count: number 
     { label: 'medications', count: data.medications.length },
     { label: 'side effects', count: data.sideEffects.length },
     { label: 'bathroom records', count: data.bathroomLogs.length },
+    { label: 'dose changes', count: data.doseChanges.length },
     { label: 'dose records', count: data.medicationDoses.length },
     { label: 'sleep entries', count: data.sleepEntries.length },
     { label: 'meal logs', count: data.mealLogs.length },

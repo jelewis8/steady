@@ -5,6 +5,7 @@
 import { missingDosesForDay, selectTemplate, syncDayItems } from '../core/checklist';
 import { buildDefaultTemplates, builtInTriggerTags, defaultProfile, defaultRescueProtocol } from '../core/defaults';
 import { uuid } from '../core/ids';
+import { newDoseChange } from '../core/doseChanges';
 import { addDays, localDateTime, sleepDurationMinutes, todayKey } from '../core/time';
 import type {
   DailyCheckIn,
@@ -104,6 +105,8 @@ export async function loadSampleData(days = 90): Promise<void> {
     { id: uuid(), medicationId: meds[3].id, name: 'Sleepiness', startDate: null, endDate: null, severity: null, notes: null, createdAt: nowIso, updatedAt: nowIso },
     { id: uuid(), medicationId: null, name: 'Headaches', startDate: addDays(start, -40), endDate: null, severity: 'mild', notes: 'Not sure which medication', createdAt: nowIso, updatedAt: nowIso },
   ];
+
+  const doseChanges = [newDoseChange(meds[0].id, addDays(start, 30), '75 mg', '100 mg', 'Illustrative sample entry')];
 
   const sleep: SleepEntry[] = [];
   const doses: MedicationDose[] = [];
@@ -266,6 +269,7 @@ export async function loadSampleData(days = 90): Promise<void> {
     await db.medications.bulkPut(meds);
     await db.sideEffects.bulkPut(sideEffects);
     await db.bathroomLogs.bulkPut(bathroom);
+    await db.doseChanges.bulkPut(doseChanges);
     await db.medicationDoses.bulkPut(doses);
     await db.routineChecklistItems.bulkPut(items);
     await db.sleepEntries.bulkPut(sleep);

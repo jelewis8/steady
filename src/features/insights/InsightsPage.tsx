@@ -3,7 +3,7 @@ import { FileText, Lightbulb } from 'lucide-react';
 import { SEIZURE_TYPE_LABELS } from '../../core/defaults';
 import type { Insight } from '../../core/insights';
 import { addDays, dateRange, formatDateShort, formatHours, fromDateKey } from '../../core/time';
-import { useBathroomLogs, useInsightRules, usePrefs } from '../../data/hooks';
+import { useBathroomLogs, useDoseChanges, useInsightRules, usePrefs } from '../../data/hooks';
 import { persistInsights, setInsightDismissed } from '../../data/repo';
 import { toast } from '../../state/ui';
 import { BarChart, ChartFrame, HBars } from '../../ui/charts';
@@ -91,6 +91,7 @@ export function InsightsPage() {
   const d = useInsightData(days);
   const rules = useInsightRules();
   const bathroomLogs = useBathroomLogs();
+  const doseChanges = useDoseChanges();
   const showBathroom = !!usePrefs()?.trackBathroom || bathroomLogs.length > 0;
   const dismissed = useMemo(() => new Set(rules.filter((r) => r.dismissedByUser).map((r) => String(r.variables?.key))), [rules]);
   const visible = d.insights.filter((i) => !dismissed.has(`${i.correlationType}:${i.title}`));
@@ -184,7 +185,7 @@ export function InsightsPage() {
         <Heatmap map={d.adherenceByDay} start={d.start} end={d.end} />
       </Card>
 
-      {showBathroom && <BathroomMedCard logs={bathroomLogs} meds={d.meds} start={d.start} end={d.end} />}
+      {showBathroom && <BathroomMedCard logs={bathroomLogs} meds={d.meds} doseChanges={doseChanges} start={d.start} end={d.end} />}
 
       <Card labelledBy="trig-h">
         <CardTitle id="trig-h">Triggers you noted</CardTitle>

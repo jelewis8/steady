@@ -33,8 +33,6 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 ### P1 — Critical
 
-- [ ] **B-001** · 2026-09-28 · launch · Confirm Steady is **installed to her home screen** (iPhone Safari deletes site data after ~7 days unless the site is installed). Test by opening from the home-screen icon.
-- [ ] **B-002** · 2026-09-28 · launch · Make her **first backup** (More → Backup & data → Save backup file) and store the file somewhere safe that isn't the phone.
 
 ### P2 — Annoying
 
@@ -49,7 +47,9 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 ## Done
 
-- [x] **B-013** · 2026-10-01 · reported by: Jeremiah · Cycle tracking wasn't visible anywhere except as a Settings toggle. Now, with it on, Today has a "Period today?" Yes/No card that works at any hour (it used to appear only inside the evening check-in, after 17:00), every past day page has the same card, the Today check-in summary mentions a period day, and the calendar marks it. Same stored field as before, so no database change and nothing to migrate → release-2026-10-01-3
+- [x] **B-002** · 2026-10-01 · Her first backup (More → Backup & data → Save backup file) was tested by Jeremiah and works
+- [x] **B-001** · 2026-10-01 · Install to the home screen was tested by Jeremiah and works
+- [x] **B-013** · 2026-10-01 · reported by: Jeremiah · Cycle tracking wasn't visible anywhere except as a Settings toggle. Now, with it on, Today has a "Period today?" Yes/No card that works at any hour (it used to appear only inside the evening check-in, after 17:00), every past day page has the same card, the Today check-in summary mentions a period day, and the calendar marks it. Same stored field as before, so no database change and nothing to migrate → release-2026-10-01-4
 - [x] **B-012** · 2026-10-01 · reported by: Jeremiah · Restoring a backup changed her breakfast from 9:30 back to the default 7:30. A new device's own default routines were kept next to the restored ones and both claimed every weekday, so which one won was random. The restored routines are now the ones used (nothing deleted on a set-up device; the new device's placeholders are removed). Re-restoring the same backup repairs a device already affected → release-2026-10-01-2
 - [x] **B-010** · 2026-09-30 · Side effects now have a start and stop date (and severity), and the old undated ones are kept as "date unknown" → release-2026-09-30-4 (F-001)
 - [x] **B-005** · 2026-09-28 · Dated side-effect log → release-2026-09-30-4 (F-001)

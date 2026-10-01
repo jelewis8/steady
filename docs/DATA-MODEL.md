@@ -2,12 +2,12 @@
 
 Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamps are ISO 8601 UTC, local calendar dates are `YYYY-MM-DD`, and times are `HH:mm`. IDs are UUID v4.
 
-## Export envelope (schema 1.5.0)
+## Export envelope (schema 1.6.0)
 
 ```json
 {
   "$schema": "https://steady.example.com/schema/export-v1.json",
-  "schemaVersion": "1.5.0",
+  "schemaVersion": "1.6.0",
   "exportedAt": "…",
   "appVersion": "1.0.0",
   "checksum": "<sha-256 hex of JSON.stringify(data)>",
@@ -18,7 +18,7 @@ Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamp
 Encrypted exports wrap the entire envelope:
 
 ```json
-{ "format": "steady-encrypted-export", "schemaVersion": "1.5.0", "exportedAt": "…",
+{ "format": "steady-encrypted-export", "schemaVersion": "1.6.0", "exportedAt": "…",
   "kdf": { "name": "PBKDF2", "hash": "SHA-256", "iterations": 310000, "saltBase64": "…" },
   "cipher": { "name": "AES-GCM", "ivBase64": "…" }, "ciphertextBase64": "…" }
 ```
@@ -92,6 +92,17 @@ No database change: `dailyCheckIns` keeps its indexes, and the new fields are op
 **Import migration** (`parseEnvelope`): check-ins without the new fields get `depression: null`, `anxiety: null`, `feelingsNote: null`.
 
 **Merge-mode import of routines** (`reconcileTemplates`, B-012): the backup's routines are the ones used. On a never-set-up device its own default routines are removed; on a set-up device they are kept but stop claiming the weekdays and the default flag the backup's routines use. A device that was never set up also takes the backup's profile and settings.
+
+## Extensions in 1.6.0 (F-011 dated dose changes)
+
+Database change: **Dexie version 4** adds the `doseChanges` table (`id, medicationId, date`). It starts empty and nothing existing is migrated or edited. A medication still holds only its **current** dose.
+
+| Where | Addition | Notes |
+|---|---|---|
+| `DoseChange` | `id`, `medicationId`, `date` (the day the new dose started), `from`, `to` (text, e.g. "100 mg" or "50 mg × 2"), `note`, `createdAt`, `updatedAt` | Written when she edits a dose and says it is a new dose (not a correction), or added by hand from the medication screen. Used by the F-010 bowel and bladder comparison and listed in the neurologist report. Steady never suggests a change. |
+| `ExportData` | `doseChanges: DoseChange[]` | In the backup file and in the restore summary ("dose changes"). |
+
+**Import migration** (`parseEnvelope`): files from before 1.6.0 have no `doseChanges`; the list starts empty. Entries without an id are skipped with a warning.
 
 ## Linked records
 

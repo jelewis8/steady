@@ -5,8 +5,9 @@ import { AURA_SYMPTOMS, POST_ICTAL_SYMPTOMS, SEIZURE_TYPE_LABELS } from '../../c
 import { adherence, doseNotesForReport } from '../../core/stats';
 import { describeSideEffectDates, groupSideEffects, pastMedicationsForReport, SEVERITY_TEXT } from '../../core/sideEffects';
 import { dateKeyOf, formatDateShort, formatDuration, formatHours, formatIsoClock } from '../../core/time';
-import { useBathroomLogs, useDoses, usePrefs, useProfile, useSideEffects, useTriggerTags } from '../../data/hooks';
-import { BOWEL_BLADDER_NOTE, BOWEL_HOW_LABELS, compareAroundMedicationDates, comparisonRows, summarizeBathroom } from '../../core/bathroom';
+import { useBathroomLogs, useDoseChanges, useDoses, usePrefs, useProfile, useSideEffects, useTriggerTags } from '../../data/hooks';
+import { BOWEL_BLADDER_NOTE, BOWEL_HOW_LABELS, compareAroundMedicationDates, comparisonRows, comparisonTitle, summarizeBathroom } from '../../core/bathroom';
+import { describeChange, sortDoseChanges } from '../../core/doseChanges';
 import { feelingsLines, summarizeFeelings } from '../../core/feelings';
 import { webShare } from '../../platform/share';
 import { toast } from '../../state/ui';
@@ -40,9 +41,12 @@ export function ReportPage() {
         bath.bladderAverage != null ? `Urination: about ${bath.bladderAverage} times a day, on the ${bath.bladderDays} ${bath.bladderDays === 1 ? 'day' : 'days'} it was counted.` : '',
       ].filter(Boolean)
     : [];
-  const bathCompare = showBath ? compareAroundMedicationDates(bathroomLogs, d.meds, d.start, d.end) : [];
+  const doseChanges = useDoseChanges();
+  const doseChangesInRange = sortDoseChanges(doseChanges.filter((c) => c.date >= d.start && c.date <= d.end && d.meds.some((m) => m.id === c.medicationId)));
+  const medName = (id: string) => d.meds.find((m) => m.id === id)?.name ?? 'Medication';
+  const bathCompare = showBath ? compareAroundMedicationDates(bathroomLogs, d.meds, d.start, d.end, undefined, doseChanges) : [];
   const bathCompareText = bathCompare.flatMap((c) => [
-    `  - ${c.medication} ${c.event} on ${formatDateShort(c.date)}:${c.enough ? '' : ' not enough records on both sides to compare.'}`,
+    `  - ${comparisonTitle(c, formatDateShort)}:${c.enough ? '' : ' not enough records on both sides to compare.'}`,
     ...(c.enough ? comparisonRows(c).map(([label, b, a]) => `      ${label}: before ${b}; from that day ${a}`) : []),
     ...(c.otherChanges.length ? [`      Also in these weeks: ${c.otherChanges.join(', ')}.`] : []),
   ]);
@@ -88,7 +92,7 @@ export function ReportPage() {
       ? [
           'Bowel and bladder (self-reported):',
           ...bathLines.map((l) => `  - ${l}`),
-          ...(bathCompareText.length ? ['  Around medication start and stop dates (14 days before, and from that day):', ...bathCompareText, `  Note: ${BOWEL_BLADDER_NOTE}`] : []),
+          ...(bathCompareText.length ? ['  Around medication start, stop and dose-change dates (14 days before, and from that day):', ...bathCompareText, `  Note: ${BOWEL_BLADDER_NOTE}`] : []),
           '',
         ]
       : []),
@@ -100,6 +104,9 @@ export function ReportPage() {
           ),
           '',
         ]
+      : []),
+    ...(doseChangesInRange.length
+      ? ['Dose changes recorded (by the patient):', ...doseChangesInRange.map((c) => `  - ${formatDateShort(c.date)}, ${medName(c.medicationId)}: ${describeChange(c)}${c.note ? ` (${c.note})` : ''}`), '']
       : []),
     ...(pastMeds.length
       ? [
@@ -268,17 +275,17 @@ export function ReportPage() {
               </ul>
               {bathCompare.length > 0 && (
                 <div className="mt-3">
-                  <h3 className="font-bold">Around medication start and stop dates</h3>
+                  <h3 className="font-bold">Around medication start, stop and dose-change dates</h3>
                   <p className="text-sm text-ink-2">The 14 days before, and from, the date saved with the medication.</p>
                   {bathCompare.map((c) => (
                     <div key={`${c.medicationId}-${c.event}-${c.date}`} className="mt-2">
                       <p className="font-bold">
-                        {c.medication} {c.event} on {formatDateShort(c.date)}
+                        {comparisonTitle(c, formatDateShort)}
                       </p>
                       {c.enough ? (
                         <table className="w-full border-collapse text-left text-sm">
                           <caption className="sr-only">
-                            {c.medication} {c.event} on {formatDateShort(c.date)}: records before and after
+                            {comparisonTitle(c, formatDateShort)}: records before and after
                           </caption>
                           <thead>
                             <tr className="border-b border-line">
@@ -336,6 +343,33 @@ export function ReportPage() {
                       </tr>
                     )),
                   )}
+                </tbody>
+              </table>
+            </section>
+          )}
+
+          {doseChangesInRange.length > 0 && (
+            <section className="mt-5">
+              <h2 className="text-lg font-bold">Dose changes recorded</h2>
+              <p className="text-sm text-ink-2">Entered by the patient, with the day the new dose started.</p>
+              <table className="mt-2 w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th scope="col" className="py-1 pr-2">From</th>
+                    <th scope="col" className="py-1 pr-2">Medication</th>
+                    <th scope="col" className="py-1 pr-2">Change</th>
+                    <th scope="col" className="py-1">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doseChangesInRange.map((c) => (
+                    <tr key={c.id} className="border-b border-line align-top">
+                      <th scope="row" className="py-1 pr-2 font-normal">{formatDateShort(c.date)}</th>
+                      <td className="py-1 pr-2">{medName(c.medicationId)}</td>
+                      <td className="py-1 pr-2">{describeChange(c)}</td>
+                      <td className="py-1">{c.note ?? ''}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </section>

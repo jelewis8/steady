@@ -18,10 +18,12 @@ import { SteadyDB } from './db';
 import { checksumOf, createDexieStorage } from './storage';
 import backup20260927 from '../test/fixtures/backup-release-2026-09-27.json?raw';
 import backup20260930v5 from '../test/fixtures/backup-release-2026-09-30-5.json?raw';
+import backup20261001v4 from '../test/fixtures/backup-release-2026-10-01-4.json?raw';
 
 // Releases 2026-09-27 through 2026-09-30-3 all used database schema version 1, so the first entry covers them.
 // Releases 2026-09-30-4 and -5 used version 2 (the sideEffects table). release-2026-09-30-6 added version 3 (bathroomLogs).
-// When the NEXT schema change ships, add the version-3 stores here too, with a fresh frozen backup.
+// release-2026-10-01-4 is the last release on version 3 (bathroomLogs). release-2026-10-01-5 added version 4 (doseChanges, F-011).
+// When the NEXT schema change ships, add the version-4 stores here too, with a fresh frozen backup.
 const PREVIOUS_RELEASES: { release: string; /** the Dexie version that release used */ version: number; stores: Record<string, string> }[] = [
   {
     release: 'release-2026-09-27',
@@ -72,11 +74,38 @@ const PREVIOUS_RELEASES: { release: string; /** the Dexie version that release u
       sideEffects: 'id, medicationId, startDate',
     },
   },
+  {
+    release: 'release-2026-10-01-4',
+    version: 3,
+    stores: {
+      profile: 'id',
+      seizureEvents: 'id, timestamp',
+      auraLogs: 'id, timestamp, seizureEventId',
+      medications: 'id, isActive',
+      medicationDoses: 'id, medicationId, scheduledTime, [medicationId+scheduledTime]',
+      mealLogs: 'id, timestamp',
+      hydrationLogs: 'id, timestamp',
+      sleepEntries: 'id, &date',
+      routineTemplates: 'id',
+      routineChecklistItems: 'id, date, [date+templateItemId]',
+      triggerTags: 'id, label',
+      rescueProtocol: 'id',
+      emergencyContacts: 'id, sortOrder',
+      insightRules: 'id, correlationType',
+      dailyCheckIns: 'id, &date',
+      dayPlans: 'date',
+      voiceNotes: 'id, seizureEventId',
+      meta: 'key',
+      sideEffects: 'id, medicationId, startDate',
+      bathroomLogs: 'id, &date',
+    },
+  },
 ];
 
 const FROZEN_BACKUPS: { release: string; raw: string }[] = [
   { release: 'release-2026-09-27', raw: backup20260927 },
   { release: 'release-2026-09-30-5', raw: backup20260930v5 },
+  { release: 'release-2026-10-01-4', raw: backup20261001v4 },
 ];
 
 const created: string[] = [];
@@ -354,7 +383,7 @@ describe('bathroom table and routine settings (F-006, F-008)', () => {
         // and the new table works, with one record per day
         await current.bathroomLogs.add({ id: 'b1', date: '2026-09-01', bowel: true, bowelHow: 'normal', bowelNotes: null, urinationCount: 3, createdAt: '', updatedAt: '' });
         await expect(current.bathroomLogs.add({ id: 'b2', date: '2026-09-01', bowel: false, bowelHow: null, bowelNotes: null, urinationCount: 0, createdAt: '', updatedAt: '' })).rejects.toThrow();
-        expect(current.verno).toBe(3);
+        expect(current.verno).toBeGreaterThanOrEqual(3); // the table exists from version 3; later versions only add
       } finally {
         current.close();
       }
@@ -362,7 +391,7 @@ describe('bathroom table and routine settings (F-006, F-008)', () => {
   }
 
   it('a backup from before 1.4.0 gets routine defaults (no repeat, no dose shift) and no bathroom records, and nothing else changes', async () => {
-    for (const f of FROZEN_BACKUPS) {
+    for (const f of FROZEN_BACKUPS.filter((x) => !x.release.includes('2026-10-01'))) {
       const raw = loadJson(f.raw);
       const parsed = parseEnvelope(raw);
       if (!parsed.ok) throw new Error(parsed.error);
@@ -373,6 +402,74 @@ describe('bathroom table and routine settings (F-006, F-008)', () => {
       }
       expect(parsed.envelope.data.routineTemplates.map((t) => t.items.length)).toEqual(raw.data.routineTemplates.map((t) => t.items.length));
       expect(parsed.envelope.data.userProfile?.preferences.trackBathroom).toBe(false);
+    }
+  });
+});
+
+/**
+ * Release 2026-10-01-5 (F-011): a table for dated dose changes. It starts empty, and a medication keeps its current dose
+ * on the medication itself, exactly as before. Nothing existing may change.
+ */
+describe('dose-change table (F-011)', () => {
+  for (const p of PREVIOUS_RELEASES) {
+    const fixture = FROZEN_BACKUPS.find((f) => f.release === p.release)!;
+    it(`upgrading a ${p.release} database (Dexie v${p.version}) adds an empty dose-change table and leaves every record as it was`, async () => {
+      const data = loadJson(fixture.raw).data;
+      const rowKeys = ROW_KEYS.filter((k) => k in p.stores);
+      const name = freshName('dose');
+      const old = new Dexie(name);
+      old.version(p.version).stores(p.stores);
+      await old.open();
+      await old.table('profile').put(data.userProfile);
+      for (const k of rowKeys) await old.table(k).bulkPut(data[k] as unknown[]);
+      old.close();
+
+      const current = new SteadyDB(name);
+      await current.open();
+      try {
+        expect(await current.doseChanges.count()).toBe(0);
+        for (const k of rowKeys) {
+          const rows = await (current[k] as unknown as Dexie.Table).toArray();
+          expect(byId(rows), `${k} changed after upgrade`).toEqual(byId(data[k] as { id?: string }[]));
+        }
+        const med = data.medications[0];
+        await current.doseChanges.add({ id: 'd1', medicationId: med.id, date: '2026-09-01', from: '75 mg', to: '100 mg', note: null, createdAt: '', updatedAt: '' });
+        expect((await current.doseChanges.where('medicationId').equals(med.id).toArray()).map((c) => c.id)).toEqual(['d1']);
+        expect((await current.doseChanges.where('date').equals('2026-09-01').first())?.id).toBe('d1');
+        expect(current.verno).toBe(4);
+      } finally {
+        current.close();
+      }
+    });
+  }
+
+  it('every older backup opens with no dose changes, no warnings, and nothing else changed', () => {
+    for (const f of FROZEN_BACKUPS) {
+      const raw = loadJson(f.raw);
+      const parsed = parseEnvelope(raw);
+      if (!parsed.ok) throw new Error(parsed.error);
+      expect(parsed.warnings).toEqual([]);
+      expect(parsed.envelope.data.doseChanges).toEqual([]);
+      expect(parsed.envelope.schemaVersion).toBe(SCHEMA_VERSION);
+      expect(parsed.envelope.data.medications.map((m) => m.dosage)).toEqual(raw.data.medications.map((m) => m.dosage));
+    }
+  });
+
+  it('dose changes survive export and import in both modes, once only', async () => {
+    const raw = loadJson(backup20261001v4);
+    const parsed = parseEnvelope(raw);
+    if (!parsed.ok) throw new Error(parsed.error);
+    const med = parsed.envelope.data.medications[0];
+    parsed.envelope.data.doseChanges = [{ id: 'dc1', medicationId: med.id, date: '2026-09-01', from: '75 mg', to: '100 mg', note: 'with food', createdAt: '', updatedAt: '' }];
+    for (const mode of ['replace', 'merge'] as const) {
+      const database = new SteadyDB(freshName(`dose-${mode}`));
+      const storage = createDexieStorage(database);
+      await storage.importAll(parsed.envelope, mode);
+      await storage.importAll(parsed.envelope, mode);
+      const out = await storage.exportAll();
+      expect(out.data.doseChanges).toEqual(parsed.envelope.data.doseChanges);
+      expect(summarizeData(out.data).find((s) => s.label === 'dose changes')?.count).toBe(1);
+      database.close();
     }
   });
 });

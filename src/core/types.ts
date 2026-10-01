@@ -192,6 +192,20 @@ export type StopReason = (typeof STOP_REASONS)[number];
 export type SideEffectSeverity = 'mild' | 'moderate' | 'severe';
 
 /** EXT (1.3.0, F-001): one side effect, with when it started and stopped. */
+/** EXT (1.6.0, F-011): a dated change of dose on one medication. Kept apart from Medication, which only holds the current dose. */
+export interface DoseChange {
+  id: UUID;
+  medicationId: UUID;
+  /** the day the new dose started */
+  date: ISODate;
+  /** the dose before and after, as text, e.g. "100 mg" or "50 mg × 2" */
+  from: string;
+  to: string;
+  note: string | null;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
 export interface SideEffectLog {
   id: UUID;
   /** null = "not sure which medication" */

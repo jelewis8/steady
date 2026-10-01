@@ -18,9 +18,24 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-01-5
+
+One feature. **This release changes the database** (Dexie version 4, data schema `1.6.0`), so she should **save a backup first** (More → Backup & data → Save backup file). The change only adds an empty table: nothing she has is edited or moved, and an automated test proves a database saved by release-2026-10-01-4 opens with every record intact.
+
+**F-011: dated dose changes.**
+- Change a dose on a medication and Steady now asks: **"A new dose"** (and from which day, today unless she says otherwise) or **"Fixing a mistake"** (nothing is added to the history). It never suggests a change.
+- Each medication has a **Dose changes** card: the history, newest first, with **Add a dose change** for past ones, and Edit or Remove (with undo) on each.
+- Dose changes are now dates in the **bowel and bladder comparison** (Insights) and are listed in the **neurologist report**, with the same plain, non-causal wording as before.
+- Backups include dose changes ("dose changes" in the restore summary). Older backups open with none, and nothing else in them changes.
+
 ## release-2026-10-01-4
 
-Two things. No database change and no new stored fields (schema stays `1.5.0`), so no backup is needed first, though one is always a good idea. This release also contains release-2026-10-01-3 (B-013), so deploying it on its own is fine.
+Three things. No database change and no new stored fields (schema stays `1.5.0`), so no backup is needed first, though one is always a good idea. 
+
+**B-013 fix: cycle tracking was invisible** (reported: "Track my menstrual cycle" was only a toggle in Settings).
+- Cause: the toggle only added "On your period today?" to the evening check-in sheet, and that sheet's card on Today only appears after 17:00. Nothing else showed it, so the calendar's Period marker and the cycle insight had nothing to read.
+- Now, with the toggle on, **Today has a "Period today?" Yes / No card at any hour.** Every past day page has the same card. The evening check-in summary mentions a period day, the calendar marks period days, and the Settings text now says all this. Answers are saved as before, so existing check-ins keep working.
+- With the toggle off, nothing changes and nothing is shown.
 
 **F-010: bowel and bladder next to medication dates.**
 - **Insights → "Bowel and bladder, and medication dates"** (shown once there are bowel or bladder records): a day grid with a ✓ for a bowel movement, ○ for recorded as none, and ▲ on days a medication was started or stopped (with a "View as table" alternative). Below it, for each start or stop date in the range, her own counts for the 14 days before and from that day: days with something recorded, bowel movements, longest stretch without one, and average urinations.
@@ -30,15 +45,6 @@ Two things. No database change and no new stored fields (schema stays `1.5.0`), 
 - It uses the start and stop dates saved with each medication. Dose changes aren't kept, so they aren't included (F-011).
 
 **Philippines crisis numbers, confirmed against the NCMH site text.** Nationwide **1553 or 1800-1888-1553** (new), **Smart/TNT 0919 057 1553** (this replaces 0908 639 2672, which was not on the NCMH page), Globe/TM 0917 899 8727 and 0966 351 4518. The trunk line and Emergency Section are unchanged. `docs/CRISIS-LINES.md` has the log.
-
-## release-2026-10-01-3
-
-One fix. No database change and no new fields (`onPeriod` already existed on the daily check-in), so no backup is needed first, though one is always a good idea. Schema stays `1.5.0`.
-
-**B-013 fix: cycle tracking was invisible** (reported: "Track my menstrual cycle" was only a toggle in Settings).
-- Cause: the toggle only added "On your period today?" to the evening check-in sheet, and that sheet's card on Today only appears after 17:00. Nothing else showed it, so the calendar's Period marker and the cycle insight had nothing to read.
-- Now, with the toggle on, **Today has a "Period today?" Yes / No card at any hour.** Every past day page has the same card. The evening check-in summary mentions a period day, the calendar marks period days, and the Settings text now says all this. Answers are saved as before, so existing check-ins keep working.
-- With the toggle off, nothing changes and nothing is shown.
 
 ## release-2026-10-01-2
 
