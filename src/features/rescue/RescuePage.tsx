@@ -31,7 +31,7 @@ export function RescuePage() {
       <PageHeader title="Rescue" subtitle="Help, fast. Everything here works without signal except calls and texts." />
 
       <Button variant="primary" size="xl" block icon={<Timer aria-hidden size={28} />} onClick={startSeizureTimer}>
-        Seizure happening now — start timer
+        Something’s happening — start timer
       </Button>
 
       <a

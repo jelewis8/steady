@@ -18,6 +18,21 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-01
+
+**F-005: one timer for a warning sign (aura) or a seizure.** No data changes: schema stays `1.4.0`, database stays at version 3.
+
+- **One button, "Something's happening — start timer"** (Rescue; on the lock screen it's "Start timer"). Nobody has to decide what it is while it's happening. The timer, the 5-minute emergency alert, the call button, the rescue plan and "how to help" are all as before.
+- **When it stops** ("It has stopped"), she (or whoever is with her) chooses:
+  - **A seizure**: saved to the seizure log as before.
+  - **A warning sign (aura) only**: pick what she noticed (optional) and save. It's saved as a warning sign **with how long it lasted** (the Warning signs list now shows "lasted 52 s"). It is not put in the seizure log.
+  - "It started again, keep timing" and "Close without saving" are still there, and "It wasn't a seizure" goes back a step.
+- **A warning sign that turns into a seizure:** while it's running, **"It's turning into a seizure"** records how long the warning lasted (measured at that tap) and carries on timing. The result is **one seizure plus a linked warning sign that starts at the same moment** (as agreed). It isn't also counted as a warning sign on its own. The same happens if she stops, picks "warning sign", and then taps "It turned into a seizure after all". The timer keeps running.
+- **On the lock screen** the timer works for anyone who needs it, but it never asks what it was or saves anything (as before).
+- The timer and what it recorded survive a reload.
+- **Fix found along the way:** editing a seizure that began with a timed warning sign (and ticking no warning-sign options) would have quietly removed the warning sign and its duration. It now keeps both.
+- **Fix found along the way:** switching a routine to "Every few days" (or editing any routine field) now applies to the latest saved copy of the routine, so two quick edits, such as a rename and a repeat change, can no longer overwrite each other.
+
 ## release-2026-09-30-6
 
 **F-006 and F-008: bowel and bladder tracking, and routines that repeat every few days.** Data schema is now `1.4.0` and the database moves to **version 3** (one new table; nothing existing is changed). **Ask her to save a backup first.**

@@ -70,7 +70,7 @@ export function AboutPage() {
             <ul className="list-disc pl-6">
               <li>“Log seizure” is on every screen. Two taps is enough — add details later, or never.</li>
               <li>After a seizure, safe mode keeps only the essentials on screen.</li>
-              <li>The SOS button opens the seizure timer, your people, and your action plan.</li>
+              <li>The SOS button opens a timer for a seizure or a warning sign, your people, and your action plan.</li>
               <li>Having a rough day? Switch today to your “Rest day” routine, or turn on Essentials only.</li>
               <li>Install Steady to your home screen for offline use and more reliable reminders.</li>
               <li>Keyboard: Tab moves between controls, Enter or Space presses, arrow keys choose options, Escape closes panels.</li>

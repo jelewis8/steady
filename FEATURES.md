@@ -39,13 +39,11 @@ _(none open)_
   - A gentle note in the report when low mood has been logged often. All anti-seizure medications carry a label warning about suicidal thoughts, so mood matters to the prescriber (`knowledge-base.md` §1.6 notes the FDA warning and a 2–5× increased risk).
   - **Verify the wording against the knowledge base or a clinical source before shipping.** Explore after release 3. Decide what counts as "often" and what the note says, with no scoring or diagnosis.
 
-- [ ] **F-005** · 2026-09-30 · requested by: Jeremiah · **Aura timer, or one timer for both auras and seizures**
-  - Today the seizure timer only logs seizures, and warning signs are logged without a duration.
-  - Proposal: a single "Something's happening — start timer" button. When it's stopped, she chooses **Warning sign (aura)** or **Seizure**, and it saves with the duration. The 5-minute emergency alert still applies. The aura branch should also offer "it turned into a seizure", which links the two records.
-
 ---
 
 ## Done
+
+- [x] **F-005** · 2026-10-01 · One timer for a warning sign or a seizure: "Something's happening — start timer"; when stopped she chooses a seizure or a warning sign (saved with how long it lasted); "It's turning into a seizure" records the warning's length, keeps timing, and saves one seizure with a linked warning sign at the same start → release-2026-10-01
 
 - [x] **F-006** · 2026-09-30 · Bowel and bladder tracking (off until turned on): Today card with a quiet "days since last bowel movement" and a one-tap counter, the daily bowel question as a routine item, plain-language texture choices, optional notes on what she ate or drank, her own bathroom-break reminder times, calendar marker, report section → release-2026-09-30-6
 - [x] **F-008** · 2026-09-30 · Routines that repeat every N days from a start date, and planned medication shifts (morning or all doses, 15 min to 2 h later); shifted doses count as on time; Steady never suggests a shift → release-2026-09-30-6

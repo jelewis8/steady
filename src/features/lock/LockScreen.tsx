@@ -120,7 +120,7 @@ function EmergencyInfo({ onBack }: { onBack: () => void }) {
         Emergency information{profile?.displayName ? ` for ${profile.displayName}` : ''}
       </h2>
       <Button variant="primary" size="xl" icon={<Timer aria-hidden size={26} />} onClick={startSeizureTimer}>
-        Start seizure timer
+        Start timer
       </Button>
       <a href={`tel:${number}`} className="tap flex items-center justify-center gap-2 rounded-2xl border-2 border-sos bg-sos px-6 py-4 text-xl font-bold text-sos-ink no-underline">
         <Phone aria-hidden size={24} /> Call {number}

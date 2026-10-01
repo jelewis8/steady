@@ -505,19 +505,22 @@ export async function saveSeizure(ev: SeizureEvent, auraSymptoms?: string[]): Pr
     let auraIds = ev.auraIds;
     if (auraSymptoms !== undefined) {
       const existingId = auraIds[0];
-      if (auraSymptoms.length === 0) {
+      const existing = existingId ? await db.auraLogs.get(existingId) : undefined;
+      // A warning sign that was timed (F-005) keeps its duration even if no symptom chips are ticked.
+      const timed = existing?.durationSeconds != null;
+      if (auraSymptoms.length === 0 && !timed) {
         if (existingId) await db.auraLogs.delete(existingId);
         auraIds = [];
       } else {
         const aura: AuraLog = {
           id: existingId ?? uuid(),
           seizureEventId: ev.id,
-          timestamp: ev.timestamp,
+          timestamp: existing?.timestamp ?? ev.timestamp,
           symptoms: auraSymptoms,
-          durationSeconds: null,
+          durationSeconds: existing?.durationSeconds ?? null,
           progressedToSeizure: true,
-          notes: null,
-          createdAt: isoNow(),
+          notes: existing?.notes ?? null,
+          createdAt: existing?.createdAt ?? isoNow(),
         };
         await db.auraLogs.put(aura);
         auraIds = [aura.id];
@@ -525,6 +528,59 @@ export async function saveSeizure(ev: SeizureEvent, auraSymptoms?: string[]): Pr
     }
     await db.seizureEvents.put({ ...ev, auraIds, updatedAt: isoNow() });
   });
+}
+
+/**
+ * Save a seizure that was timed (F-005). If a warning sign came first, it is saved as a linked warning sign that starts
+ * at the same moment and lasted `auraSeconds`. Returns the new seizure's id.
+ */
+export async function saveTimedSeizure(opts: { start: Date; end: Date; auraSeconds: number | null }): Promise<string> {
+  const { start, end } = opts;
+  const ev = newSeizure({
+    timestamp: start.toISOString(),
+    endTimestamp: end.toISOString(),
+    durationSeconds: Math.max(0, Math.round((end.getTime() - start.getTime()) / 1000)),
+    observerPresent: true,
+    type: 'unknown',
+    severity: 3,
+    isQuickLog: true,
+  });
+  await db.transaction('rw', [db.seizureEvents, db.auraLogs], async () => {
+    let auraIds: string[] = [];
+    if (opts.auraSeconds != null) {
+      const aura: AuraLog = {
+        id: uuid(),
+        seizureEventId: ev.id,
+        timestamp: ev.timestamp,
+        symptoms: [],
+        durationSeconds: Math.max(0, Math.round(opts.auraSeconds)),
+        progressedToSeizure: true,
+        notes: null,
+        createdAt: isoNow(),
+      };
+      await db.auraLogs.put(aura);
+      auraIds = [aura.id];
+    }
+    await db.seizureEvents.put({ ...ev, auraIds });
+  });
+  return ev.id;
+}
+
+/** Save a warning sign (aura) that was timed and did not turn into a seizure (F-005). */
+export async function saveTimedAura(opts: { start: Date; seconds: number; symptoms: string[] }): Promise<Undo> {
+  const now = isoNow();
+  const aura: AuraLog = {
+    id: uuid(),
+    seizureEventId: null,
+    timestamp: opts.start.toISOString(),
+    symptoms: opts.symptoms,
+    durationSeconds: Math.max(0, Math.round(opts.seconds)),
+    progressedToSeizure: false,
+    notes: null,
+    createdAt: now,
+  };
+  await db.auraLogs.add(aura);
+  return async () => db.auraLogs.delete(aura.id);
 }
 
 export async function deleteSeizure(id: string): Promise<Undo> {
@@ -720,8 +776,9 @@ export async function saveCheckIn(date: ISODate, patch: Partial<Omit<DailyCheckI
 
 // ───────────────────────── routines ─────────────────────────
 
-export async function saveTemplate(t: RoutineTemplate): Promise<void> {
-  await db.transaction('rw', db.routineTemplates, async () => {
+/** Write a routine (and keep "one default" and "a weekday belongs to one routine" true). Must run inside a transaction on routineTemplates. */
+async function writeTemplate(t: RoutineTemplate): Promise<void> {
+  {
     if (t.isDefault) {
       const others = await db.routineTemplates.toArray();
       for (const o of others) if (o.id !== t.id && o.isDefault) await db.routineTemplates.put({ ...o, isDefault: false });
@@ -734,6 +791,22 @@ export async function saveTemplate(t: RoutineTemplate): Promise<void> {
       if (days.length !== o.applicableDays.length) await db.routineTemplates.put({ ...o, applicableDays: days });
     }
     await db.routineTemplates.put({ ...t, updatedAt: isoNow() });
+  }
+}
+
+export async function saveTemplate(t: RoutineTemplate): Promise<void> {
+  await db.transaction('rw', db.routineTemplates, () => writeTemplate(t));
+  await ensureDay(todayKey());
+}
+
+/**
+ * Change some fields of a routine, applied to the LATEST saved copy. Two quick edits (for example renaming it and then
+ * switching it to "every few days") each keep the other, instead of one overwriting the other from an older copy.
+ */
+export async function patchTemplate(id: string, patch: Partial<RoutineTemplate>): Promise<void> {
+  await db.transaction('rw', db.routineTemplates, async () => {
+    const latest = await db.routineTemplates.get(id);
+    if (latest) await writeTemplate({ ...latest, ...patch, id });
   });
   await ensureDay(todayKey());
 }

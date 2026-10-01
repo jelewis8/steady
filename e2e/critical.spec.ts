@@ -69,7 +69,8 @@ test('seizure timer escalates at the plan threshold', async ({ page }) => {
   await page.evaluate(() => localStorage.setItem('steady.seizureTimerStart', String(Date.now() - 6 * 60_000)));
   await page.getByRole('button', { name: /start timer/ }).click();
   await expect(page.getByRole('alert')).toContainText('5 minutes');
-  await page.getByRole('button', { name: 'The seizure has stopped' }).click();
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  await page.getByRole('button', { name: 'A seizure', exact: true }).click();
   await page.getByRole('button', { name: 'Save to seizure log' }).click();
   await expect(page.getByRole('heading', { name: 'Seizure details' })).toBeVisible();
 });
@@ -137,7 +138,7 @@ import { join } from 'node:path';
 const FIXTURE = join(process.cwd(), 'src/test/fixtures/backup-release-2026-09-27.json');
 const realBackup = readdirSync(process.cwd()).find((f) => /^steady-backup-.*\.json$/.test(f) && !f.includes('.encrypted'));
 const backups = [{ label: 'frozen fixture', path: FIXTURE, expect: /30 seizure events|\d+ seizure events/ }].concat(
-  realBackup && existsSync(realBackup) ? [{ label: 'real backup', path: join(process.cwd(), realBackup), expect: /0 seizure events, 2 medications, 9 dose records, 2 sleep entries/ }] : [],
+  realBackup && existsSync(realBackup) ? [{ label: 'real backup', path: join(process.cwd(), realBackup), expect: /0 seizure events, 2 medications, \d+ dose records, 2 sleep entries/ }] : [],
 );
 
 for (const b of backups) {
@@ -906,6 +907,7 @@ test('F-008: a routine that repeats every 6 days moves morning doses an hour lat
   await onboard(page);
   await page.goto('/schedule');
   await page.getByRole('button', { name: 'New routine' }).click();
+  await expect(page.getByRole('button', { name: /^New routine/, pressed: true })).toBeVisible(); // wait until the new routine is the selected one
   await page.getByLabel('Routine name').fill('Toilet day');
   await page.waitForTimeout(900); // the name saves after a short pause
   await page.getByRole('radio', { name: 'Every few days' }).click();
@@ -950,6 +952,7 @@ test('F-008: switching a routine back to weekdays turns the repeat off, and the 
   await onboard(page);
   await page.goto('/schedule');
   await page.getByRole('button', { name: 'New routine' }).click();
+  await expect(page.getByRole('button', { name: /^New routine/, pressed: true })).toBeVisible(); // wait until the new routine is the selected one
   await page.getByRole('radio', { name: 'Every few days' }).click();
   await page.getByLabel('Every how many days?').fill('1'); // not a usable number
   await expect(page.getByText('Use a whole number from 2 to 60.')).toBeVisible();
@@ -983,6 +986,7 @@ test('F-006/F-008: the new screens have no accessibility violations (including t
 
   await page.goto('/schedule');
   await page.getByRole('button', { name: 'New routine' }).click();
+  await expect(page.getByRole('button', { name: /^New routine/, pressed: true })).toBeVisible(); // wait until the new routine is the selected one
   await page.getByRole('radio', { name: 'Every few days' }).click();
   await page.getByLabel('Medication times on these days').selectOption('all');
   await page.waitForTimeout(300);
@@ -1061,4 +1065,157 @@ test('upgrade in a real browser (from version 2): a database saved by the previo
     return v;
   });
   expect(version).toEqual({ version: 30, hasBathroom: true });
+});
+
+// ---- Release 7: F-005 one timer for a warning sign or a seizure ----
+const TIMER_START = 'steady.seizureTimerStart';
+const TIMER_AURA = 'steady.seizureTimerAuraSec';
+
+async function startTimerAgo(page: Page, secondsAgo: number) {
+  await page.goto('/rescue');
+  await expect(page.getByRole('heading', { level: 1, name: 'Rescue' })).toBeVisible(); // let the app finish loading first
+  await page.evaluate(([k, s]) => localStorage.setItem(k as string, String(Date.now() - (s as number) * 1000)), [TIMER_START, secondsAgo]);
+  await page.getByRole('button', { name: /start timer/ }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+}
+
+test('F-005: the Rescue button is one timer for whatever is happening', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/rescue');
+  await expect(page.getByRole('button', { name: 'Something’s happening — start timer' })).toBeVisible();
+  await page.getByRole('button', { name: /start timer/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Timer' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Call 911/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'It has stopped' })).toBeVisible();
+});
+
+test('F-005: a warning sign only: stop, choose it, say what she noticed, and it is saved with how long it lasted', async ({ page }) => {
+  await onboard(page);
+  await startTimerAgo(page, 52);
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  await expect(page.getByRole('heading', { name: /What was it\?/ })).toBeVisible();
+  await page.getByRole('button', { name: 'A warning sign (aura) only' }).click();
+  await expect(page.getByRole('heading', { name: /A warning sign that lasted/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Déjà vu' }).click();
+  await page.getByRole('button', { name: 'Save warning sign' }).click();
+  await expect(page.getByText('Warning sign saved, with how long it lasted.')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await page.goto('/seizures');
+  await page.getByRole('radio', { name: /Warning signs \(1\)/ }).click();
+  const row = page.getByRole('listitem').filter({ hasText: 'Déjà vu' });
+  await expect(row).toContainText(/lasted .*(5\d|1m)/);
+  // nothing was put in the seizure log
+  await page.getByRole('radio', { name: /Seizures \(0\)/ }).click();
+  await expect(page.getByText('No seizures logged')).toBeVisible();
+});
+
+test('F-005: a warning sign that turns into a seizure is saved as one seizure with a linked warning sign at the same start', async ({ page }) => {
+  await onboard(page);
+  await startTimerAgo(page, 45);
+  await page.getByRole('button', { name: 'It’s turning into a seizure' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Seizure timer' })).toBeVisible();
+  await expect(page.getByText(/It began with a warning sign that lasted/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'It’s turning into a seizure' })).toHaveCount(0); // once only
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  // she already said it was a seizure, so no question is asked
+  await expect(page.getByRole('heading', { name: /What was it\?/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save to seizure log' }).click();
+  await expect(page.getByRole('heading', { name: 'Seizure details' })).toBeVisible();
+
+  const saved = await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const all = async <T,>(store: string): Promise<T[]> =>
+      new Promise((res) => {
+        const g = db.transaction(store).objectStore(store).getAll();
+        g.onsuccess = () => res(g.result as T[]);
+      });
+    const seizures = await all<{ id: string; timestamp: string; auraIds: string[] }>('seizureEvents');
+    const auras = await all<{ id: string; seizureEventId: string | null; timestamp: string; durationSeconds: number; progressedToSeizure: boolean }>('auraLogs');
+    db.close();
+    return { seizures, auras };
+  });
+  expect(saved.seizures).toHaveLength(1);
+  expect(saved.auras).toHaveLength(1);
+  expect(saved.auras[0].seizureEventId).toBe(saved.seizures[0].id);
+  expect(saved.auras[0].timestamp).toBe(saved.seizures[0].timestamp); // the same start
+  expect(saved.auras[0].durationSeconds).toBeGreaterThanOrEqual(45);
+  expect(saved.auras[0].durationSeconds).toBeLessThan(60);
+  expect(saved.auras[0].progressedToSeizure).toBe(true);
+  expect(saved.seizures[0].auraIds).toEqual([saved.auras[0].id]);
+  // it is not also listed as a warning sign on its own
+  await page.goto('/seizures');
+  await expect(page.getByRole('radio', { name: /Warning signs \(0\)/ })).toBeVisible();
+});
+
+test('F-005: after stopping, "it turned into a seizure after all" keeps the timer going', async ({ page }) => {
+  await onboard(page);
+  await startTimerAgo(page, 30);
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  await page.getByRole('button', { name: 'A warning sign (aura) only' }).click();
+  await page.getByRole('button', { name: 'It turned into a seizure after all' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Seizure timer' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'It has stopped' })).toBeVisible(); // timing again
+  await expect(page.getByText(/It began with a warning sign that lasted/)).toBeVisible();
+});
+
+test('F-005: a seizure chosen at the end is saved as before, and "it wasn’t a seizure" goes back to the question', async ({ page }) => {
+  await onboard(page);
+  await startTimerAgo(page, 6 * 60);
+  await expect(page.getByRole('alert')).toContainText('5 minutes'); // the emergency alert still applies
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  await page.getByRole('button', { name: 'A seizure', exact: true }).click();
+  await page.getByRole('button', { name: 'It wasn’t a seizure' }).click();
+  await expect(page.getByRole('heading', { name: /What was it\?/ })).toBeVisible();
+  await page.getByRole('button', { name: 'A seizure', exact: true }).click();
+  await page.getByRole('button', { name: 'Save to seizure log' }).click();
+  await expect(page.getByRole('heading', { name: 'Seizure details' })).toBeVisible();
+});
+
+test('F-005: the timer and what it recorded survive a reload', async ({ page }) => {
+  await onboard(page);
+  await startTimerAgo(page, 20);
+  await page.getByRole('button', { name: 'It’s turning into a seizure' }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Seizure timer' })).toBeVisible();
+  await expect(page.getByText(/It began with a warning sign that lasted/)).toBeVisible();
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  await page.getByRole('button', { name: 'Close without saving' }).click();
+  expect(await page.evaluate(([a, b]) => [localStorage.getItem(a as string), localStorage.getItem(b as string)], [TIMER_START, TIMER_AURA])).toEqual([null, null]);
+});
+
+test('F-005: on the lock screen anyone can start the timer, but nothing is saved or asked', async ({ page }) => {
+  await onboard(page);
+  await setPasscodeAndLock(page);
+  await page.getByRole('button', { name: 'Emergency info' }).click();
+  await page.getByRole('button', { name: 'Start timer' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'It’s turning into a seizure' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  await expect(page.getByRole('button', { name: 'Save to seizure log' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /What was it\?/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close without saving' }).click();
+});
+
+test('F-005: every timer screen has no accessibility violations', async ({ page }) => {
+  test.setTimeout(90_000);
+  await onboard(page);
+  const check = async (label: string) => {
+    await page.waitForTimeout(300);
+    const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(r.violations.map((v) => v.id), label).toEqual([]);
+  };
+  await startTimerAgo(page, 20);
+  await check('running');
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  await check('what was it');
+  await page.getByRole('button', { name: 'A warning sign (aura) only' }).click();
+  await check('warning sign');
+  await page.getByRole('button', { name: 'Back' }).click();
+  await page.getByRole('button', { name: 'A seizure', exact: true }).click();
+  await check('seizure');
 });

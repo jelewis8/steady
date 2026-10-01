@@ -7,7 +7,7 @@ import { formatClock, formatDateLong, isoNow, parseTime, prefers24h, todayKey } 
 import { ROUTINE_CATEGORIES, type MealType, type RoutineCategory, type RoutineTemplate, type RoutineTemplateItem } from '../../core/types';
 import { isRepeating, nextRepeatDates, selectTemplate, shiftedDoseTime } from '../../core/checklist';
 import { useDayPlan, useMedications, usePrefs, useTemplates } from '../../data/hooks';
-import { deleteTemplate, replaceRoutineFromSetup, saveTemplate, setDayTemplate } from '../../data/repo';
+import { deleteTemplate, patchTemplate, replaceRoutineFromSetup, saveTemplate, setDayTemplate } from '../../data/repo';
 import { toast } from '../../state/ui';
 import { CategoryIcon } from '../../ui/icons';
 import { Button, Card, Disclaimer, Field, IconButton, Input, PageHeader, Segmented, Select, Sheet, TextField, Toggle, cx } from '../../ui/kit';
@@ -68,7 +68,7 @@ export function SchedulePage() {
   if (!templates) return <p className="text-ink-2">Loading…</p>;
   if (!t) return null;
 
-  const update = (patch: Partial<RoutineTemplate>) => saveTemplate({ ...t, ...patch });
+  const update = (patch: Partial<RoutineTemplate>) => patchTemplate(t.id, patch);
 
   async function saveItem(item: RoutineTemplateItem) {
     if (!t) return;

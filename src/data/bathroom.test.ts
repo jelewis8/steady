@@ -8,6 +8,7 @@ import {
   ensureDay,
   initDatabase,
   newMedication,
+  patchTemplate,
   saveBathroomLog,
   saveMedication,
   saveTemplate,
@@ -183,5 +184,23 @@ describe('a routine that repeats and moves doses later (F-008), end to end', () 
     await ensureDay(today());
     const after = await db.medicationDoses.where('medicationId').equals(med.id).toArray();
     expect(after.map((d) => d.scheduledTime)).toEqual([localDateTime(today(), '09:00')]);
+  });
+});
+
+describe('routine edits never overwrite each other (F-008)', () => {
+  it('a rename and a switch to "every few days" made at nearly the same moment both stick', async () => {
+    const base = (await db.routineTemplates.toArray()).find((t) => t.isDefault)!;
+    await saveTemplate({ ...base, id: 'copy', name: 'New routine', isDefault: false, applicableDays: [] });
+    await Promise.all([
+      patchTemplate('copy', { name: 'Toilet day' }),
+      patchTemplate('copy', { repeatEveryDays: 6, repeatStartDate: today(), applicableDays: [] }),
+      patchTemplate('copy', { doseShiftMinutes: 60, doseShiftWhich: 'morning' }),
+    ]);
+    expect(await db.routineTemplates.get('copy')).toMatchObject({ name: 'Toilet day', repeatEveryDays: 6, repeatStartDate: today(), doseShiftMinutes: 60, doseShiftWhich: 'morning' });
+  });
+
+  it('patching a routine that no longer exists does nothing', async () => {
+    await patchTemplate('gone', { name: 'x' });
+    expect(await db.routineTemplates.get('gone')).toBeUndefined();
   });
 });

@@ -113,7 +113,10 @@ export function SeizureListPage() {
                 <div className="font-bold">
                   {relativeDay(dateKeyOf(a.timestamp))} · {formatIsoClock(a.timestamp)}
                 </div>
-                <div className="text-ink-2">{a.symptoms.map((s) => auraLabel.get(s) ?? s).join(', ') || 'No details'}</div>
+                <div className="text-ink-2">
+                  {a.symptoms.map((s) => auraLabel.get(s) ?? s).join(', ') || 'No details'}
+                  {a.durationSeconds != null && <span> · lasted {formatDuration(a.durationSeconds)}</span>}
+                </div>
               </div>
               <IconButton
                 label="Delete this warning sign"
