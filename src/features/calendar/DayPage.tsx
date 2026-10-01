@@ -186,7 +186,15 @@ function DayContent({ date }: { date: string }) {
         <CardTitle id="dp-ci">How the day was</CardTitle>
         <p className="text-ink-2">
           {checkIn
-            ? [checkIn.mood != null && `mood ${checkIn.mood}/5`, checkIn.stress != null && `stress ${checkIn.stress}/5`, checkIn.onPeriod && 'period'].filter(Boolean).join(' · ') || 'Check-in saved.'
+            ? [
+                checkIn.mood != null && `mood ${checkIn.mood}/5`,
+                checkIn.depression != null && `low mood or depression ${checkIn.depression}/5`,
+                checkIn.anxiety != null && `anxiety ${checkIn.anxiety}/5`,
+                checkIn.stress != null && `stress ${checkIn.stress}/5`,
+                checkIn.onPeriod && 'period',
+              ]
+                .filter(Boolean)
+                .join(' · ') || 'Check-in saved.'
             : 'No check-in for this day.'}
         </p>
         <Button className="mt-3" onClick={() => setCheckInOpen(true)}>

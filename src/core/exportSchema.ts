@@ -173,6 +173,8 @@ export function parseEnvelope(raw: unknown): ParseResult {
   // Migration 1.2.0 → 1.3.0 (F-001, F-007): the dated side-effect log and why a medication was stopped.
   // Files from before 1.3.0 carry undated side-effect names on each medication; they become "date unknown" entries.
   // (The old names stay on the medication, untouched.) Files from 1.3.0 on carry their own log, so nothing is added.
+  // Migration 1.4.0 → 1.5.0 (F-009): check-ins gain depression, anxiety and a "why" note (empty by default).
+  data.dailyCheckIns = data.dailyCheckIns.map((c) => Object.assign({ depression: null, anxiety: null, feelingsNote: null }, c));
   // Migration 1.3.0 → 1.4.0 (F-006, F-008): routines get repeat and dose-shift settings (none by default).
   data.routineTemplates = data.routineTemplates.map((t) =>
     Object.assign({ repeatEveryDays: null, repeatStartDate: null, doseShiftMinutes: 0, doseShiftWhich: 'all' as const }, t),
@@ -316,4 +318,36 @@ export function mergeSupportIntoProfile(existing: UserProfile, incoming: UserPro
       customSupportLines: [...ep.customSupportLines, ...ip.customSupportLines.filter((l) => !ownIds.has(l.id))],
     },
   };
+}
+
+/**
+ * Merge-mode import of routines (B-012). A device always has routines of its own (a new install creates "Everyday" and
+ * "Rest day"), and both sets claim every weekday and the "default" flag. Left alone, whichever sorts first wins, which
+ * is how a restored 9:30 breakfast turned back into the default 7:30 (and why it only happened sometimes).
+ *
+ * Rules:
+ * - The backup's routines are used. Anything the device has that conflicts with them (the same weekdays, or being the
+ *   default) is kept but no longer claims those days, so it can still be picked by hand. Nothing is deleted...
+ * - ...except on a brand-new device (never set up), where its own just-created default routines are redundant and are removed.
+ * - A backup with no routines changes nothing.
+ * - Routines with the same id are simply updated.
+ */
+export function reconcileTemplates(
+  existing: RoutineTemplate[],
+  incoming: RoutineTemplate[],
+  deviceIsNew: boolean,
+): { put: RoutineTemplate[]; deleteIds: string[] } {
+  if (incoming.length === 0) return { put: [], deleteIds: [] };
+  const incomingIds = new Set(incoming.map((t) => t.id));
+  const others = existing.filter((t) => !incomingIds.has(t.id));
+  if (deviceIsNew) return { put: incoming, deleteIds: others.map((t) => t.id) };
+  const claimed = new Set(incoming.flatMap((t) => t.applicableDays));
+  const incomingHasDefault = incoming.some((t) => t.isDefault);
+  const demoted: RoutineTemplate[] = [];
+  for (const t of others) {
+    const days = t.applicableDays.filter((d) => !claimed.has(d));
+    const isDefault = incomingHasDefault ? false : t.isDefault;
+    if (days.length !== t.applicableDays.length || isDefault !== t.isDefault) demoted.push({ ...t, applicableDays: days, isDefault });
+  }
+  return { put: [...incoming, ...demoted], deleteIds: [] };
 }

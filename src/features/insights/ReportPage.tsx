@@ -7,6 +7,7 @@ import { describeSideEffectDates, groupSideEffects, pastMedicationsForReport, SE
 import { dateKeyOf, formatDateShort, formatDuration, formatHours, formatIsoClock } from '../../core/time';
 import { useBathroomLogs, useDoses, usePrefs, useProfile, useSideEffects, useTriggerTags } from '../../data/hooks';
 import { BOWEL_HOW_LABELS, summarizeBathroom } from '../../core/bathroom';
+import { feelingsLines, summarizeFeelings } from '../../core/feelings';
 import { webShare } from '../../platform/share';
 import { toast } from '../../state/ui';
 import { Button, Segmented } from '../../ui/kit';
@@ -24,6 +25,9 @@ export function ReportPage() {
   const tagName = new Map(tags.map((t) => [t.id, t.label]));
   const auraName = new Map(AURA_SYMPTOMS.map((a) => [a.key, a.label]));
   const postName = new Map(POST_ICTAL_SYMPTOMS.map((a) => [a.key, a.label]));
+  const [withFeelingNotes, setWithFeelingNotes] = useState(false);
+  const feelings = summarizeFeelings(d.checkIns, d.start, d.end);
+  const feelingLines = feelingsLines(feelings);
   const bathroomLogs = useBathroomLogs();
   const trackBathroom = !!usePrefs()?.trackBathroom;
   const bath = summarizeBathroom(bathroomLogs, d.start, d.end);
@@ -66,6 +70,14 @@ export function ReportPage() {
     `Medication adherence (recorded doses): ${d.adherence.percent ?? '—'}%`,
     ...perMed.map(({ m, a }) => `  - ${m.name} ${m.dosage}${m.unit} at ${m.scheduledTimes.join(', ')}: ${a.percent ?? '—'}% (${a.skipped} skipped, ${a.unsure} unsure, ${a.notRecorded} not recorded)`),
     '',
+    ...(feelingLines.length
+      ? [
+          'Mood and anxiety (self-rated):',
+          ...feelingLines.map((l) => `  - ${l}`),
+          ...(withFeelingNotes && feelings.notes.length ? ['  Her own notes:', ...feelings.notes.map((n) => `    ${formatDateShort(n.date)}: ${n.text}`)] : []),
+          '',
+        ]
+      : []),
     ...(bathLines.length ? ['Bowel and bladder (self-reported):', ...bathLines.map((l) => `  - ${l}`), ''] : []),
     ...(sideEffectGroups.length
       ? [
@@ -114,6 +126,11 @@ export function ReportPage() {
           >
             Share as text
           </Button>
+          {feelings.notes.length > 0 && (
+            <Button aria-pressed={withFeelingNotes} onClick={() => setWithFeelingNotes((v) => !v)}>
+              {withFeelingNotes ? '✓ ' : ''}Include my notes about feelings
+            </Button>
+          )}
           <Button variant="primary" icon={<Printer aria-hidden size={20} />} onClick={() => window.print()}>
             Print / save PDF
           </Button>
@@ -200,6 +217,30 @@ export function ReportPage() {
                   ))}
                 </tbody>
               </table>
+            </section>
+          )}
+
+          {feelingLines.length > 0 && (
+            <section className="mt-5">
+              <h2 className="text-lg font-bold">Mood and anxiety</h2>
+              <p className="text-sm text-ink-2">Self-rated by the patient from 1 to 5, for this period. Depression and anxiety are more common in people with epilepsy, so this is shared for the care team to see. It is not a screening result or a diagnosis.</p>
+              <ul className="mt-1 list-disc pl-6">
+                {feelingLines.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+              {withFeelingNotes && feelings.notes.length > 0 && (
+                <div className="mt-2">
+                  <h3 className="font-bold">Her own notes</h3>
+                  <ul className="mt-1 grid gap-1">
+                    {feelings.notes.map((n) => (
+                      <li key={n.date}>
+                        <strong>{formatDateShort(n.date)}:</strong> {n.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </section>
           )}
 

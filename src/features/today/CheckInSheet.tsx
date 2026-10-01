@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatDateLong, todayKey } from '../../core/time';
+import { Link } from 'react-router-dom';
 import type { DailyCheckIn } from '../../core/types';
 import { useCheckIn, usePrefs } from '../../data/hooks';
 import { saveCheckIn } from '../../data/repo';
@@ -26,6 +27,9 @@ export function CheckInSheet({ open, onClose, date }: { open: boolean; onClose: 
     await saveCheckIn(date, {
       stress: form.stress ?? null,
       mood: form.mood ?? null,
+      depression: form.depression ?? null,
+      anxiety: form.anxiety ?? null,
+      feelingsNote: form.feelingsNote?.trim() || null,
       onPeriod: form.onPeriod ?? null,
       illness: form.illness ?? null,
       alcoholDrinks: form.alcoholDrinks ?? null,
@@ -52,6 +56,16 @@ export function CheckInSheet({ open, onClose, date }: { open: boolean; onClose: 
         <p className="text-ink-2">Every question is optional. Answer only what feels easy.</p>
         <Rating label="Stress" value={form.stress ?? null} onChange={(v) => set('stress', v)} low="1 · calm" high="5 · very stressed" />
         <Rating label="Mood" value={form.mood ?? null} onChange={(v) => set('mood', v)} low="1 · very low" high="5 · great" />
+        <Rating label="How low or depressed have you felt?" value={form.depression ?? null} onChange={(v) => set('depression', v)} low="1 · not at all" high="5 · very" />
+        <Rating label="How anxious have you felt?" value={form.anxiety ?? null} onChange={(v) => set('anxiety', v)} low="1 · not at all" high="5 · very" />
+        {(form.depression != null || form.anxiety != null || !!form.feelingsNote) && (
+          <Field label="Why? Write whatever you like (optional)" hint="Only for you. A line or a page, either is fine. It only goes in your report if you choose that.">
+            {(id, d) => <TextArea id={id} aria-describedby={d} value={form.feelingsNote ?? ''} onChange={(e) => set('feelingsNote', e.target.value)} className="min-h-24" />}
+          </Field>
+        )}
+        <p className="text-sm text-ink-2">
+          Feeling very low, or not safe? <Link to="/support" className="font-bold text-accent-text underline underline-offset-4">Support is here any time</Link>.
+        </p>
         <Segmented
           label="Feeling unwell or feverish?"
           value={yn(form.illness)}

@@ -432,6 +432,12 @@ export interface DailyCheckIn {
   date: ISODate;
   stress: 1 | 2 | 3 | 4 | 5 | null;
   mood: 1 | 2 | 3 | 4 | 5 | null;
+  /** EXT (1.5.0, F-009): "how low or depressed have you felt?" 1 (not at all) to 5 (very). Self-rated, never scored or interpreted. */
+  depression?: 1 | 2 | 3 | 4 | 5 | null;
+  /** EXT (1.5.0, F-009): "how anxious have you felt?" 1 to 5 */
+  anxiety?: 1 | 2 | 3 | 4 | 5 | null;
+  /** EXT (1.5.0, F-009): the "why?" diary note. Private to her; only goes in the report if she chooses. */
+  feelingsNote?: string | null;
   onPeriod: boolean | null;
   illness: boolean | null;
   alcoholDrinks: number | null;

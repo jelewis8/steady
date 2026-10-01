@@ -35,13 +35,11 @@ _(none open)_
 - [ ] **F-010** · 2026-09-30 · requested by: Jeremiah's friend · **Insights: bowel and bladder over time, against medication changes** (split out of F-006)
   - F-006 lists this as "possibly". With bowel data in place, compare stretches without a bowel movement around dates a medication was started, stopped or changed. "Associated with" wording only, through the exact binomial test in `core/insights.ts`, with enough data first. The knowledge base doesn't cover this topic, so it would need a clinical source for any wording.
 
-- [ ] **F-009** · 2026-09-30 · requested by: Jeremiah · **Low-mood note in the neurologist report** (split out of F-002)
-  - A gentle note in the report when low mood has been logged often. All anti-seizure medications carry a label warning about suicidal thoughts, so mood matters to the prescriber (`knowledge-base.md` §1.6 notes the FDA warning and a 2–5× increased risk).
-  - **Verify the wording against the knowledge base or a clinical source before shipping.** Explore after release 3. Decide what counts as "often" and what the note says, with no scoring or diagnosis.
-
 ---
 
 ## Done
+
+- [x] **F-009** · 2026-10-01 · Mood, depression and anxiety: the daily check-in gains "how low or depressed" and "how anxious" (1 to 5) and a private "why" diary note; Day page shows them; the neurologist report gets "Mood and anxiety" (counts and averages only, notes only if she chooses); a support link is always in the check-in, never triggered by a score → release-2026-10-01-2
 
 - [x] **F-005** · 2026-10-01 · One timer for a warning sign or a seizure: "Something's happening — start timer"; when stopped she chooses a seizure or a warning sign (saved with how long it lasted); "It's turning into a seizure" records the warning's length, keeps timing, and saves one seizure with a linked warning sign at the same start → release-2026-10-01
 

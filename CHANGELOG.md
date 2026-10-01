@@ -18,6 +18,26 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-01-2
+
+Four things. Data schema is now `1.5.0` (new optional fields only: no database change, so no backup is needed first, though one is always a good idea).
+
+**B-012 fix: restoring a backup could put her routine back to the defaults** (reported: breakfast went from 9:30 back to 7:30).
+- Cause: a new install creates its own "Everyday" and "Rest day" routines, and "Add to what's here" (the default choice on the welcome screen) kept them next to the restored ones. Both claimed every weekday, so whichever came first won, which is why it only happened sometimes.
+- Now the restored routines are the ones used. On a brand-new device its own just-created default routines are removed. On a device that's already set up, its routines are kept but stop claiming the days the backup's routines use (nothing is deleted; she can still pick them by hand). A brand-new device also takes the backup's name and settings.
+- **If it has already happened to her:** restore the same backup again with "Add to what's here". The backup's routines take over again, and nothing is lost. Or fix the breakfast time in Schedule.
+
+**Aura timer.** The default title is now **"Aura timer"**, with a short line saying it's timing a warning sign and what the big button does. **"It's turning into a seizure"** is now the first and biggest button, with a ring around it. "It has stopped" is the second button. A quiet third option, **"It's already a seizure, not a warning sign"**, switches to "Seizure timer" without recording a warning sign, for a bystander timing a seizure that started with no warning. The lock screen keeps a neutral "Timer".
+
+**F-009: depression, anxiety and a "why" note.** In the daily check-in (Today's evening check-in, or any past day):
+- "How low or depressed have you felt?" and "How anxious have you felt?", each 1 (not at all) to 5 (very), next to the existing mood and stress ratings.
+- Once she rates one, a "Why? Write whatever you like (optional)" box appears: the space for a diary note. It's private to her.
+- "Support is here any time" is always shown in the check-in. It's never triggered by a score. Steady doesn't score, interpret or detect anything.
+- The Day page shows the ratings.
+- **Report: "Mood and anxiety"**, only counts and averages of what she entered (days rated, average, days rated 4 or 5, days of low overall mood). The report says that depression and anxiety are more common in people with epilepsy (knowledge base §1.6), and that it is not a screening result or a diagnosis. Her written notes stay out of the report unless she taps "Include my notes about feelings".
+
+**Philippines:** added the National Center for Mental Health's own hospital lines from its contact page text you supplied: Emergency Section direct line (02) 8531-5275, and the main trunk line (02) 8531-9001. See docs/CRISIS-LINES.md: that text doesn't list the crisis hotline numbers (1553 etc.), which still need checking.
+
 ## release-2026-10-01
 
 **F-005: one timer for a warning sign (aura) or a seizure.** No data changes: schema stays `1.4.0`, database stays at version 3.

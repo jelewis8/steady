@@ -2,12 +2,12 @@
 
 Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamps are ISO 8601 UTC, local calendar dates are `YYYY-MM-DD`, and times are `HH:mm`. IDs are UUID v4.
 
-## Export envelope (schema 1.4.0)
+## Export envelope (schema 1.5.0)
 
 ```json
 {
   "$schema": "https://steady.example.com/schema/export-v1.json",
-  "schemaVersion": "1.4.0",
+  "schemaVersion": "1.5.0",
   "exportedAt": "…",
   "appVersion": "1.0.0",
   "checksum": "<sha-256 hex of JSON.stringify(data)>",
@@ -18,7 +18,7 @@ Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamp
 Encrypted exports wrap the entire envelope:
 
 ```json
-{ "format": "steady-encrypted-export", "schemaVersion": "1.4.0", "exportedAt": "…",
+{ "format": "steady-encrypted-export", "schemaVersion": "1.5.0", "exportedAt": "…",
   "kdf": { "name": "PBKDF2", "hash": "SHA-256", "iterations": 310000, "saltBase64": "…" },
   "cipher": { "name": "AES-GCM", "ivBase64": "…" }, "ciphertextBase64": "…" }
 ```
@@ -80,6 +80,18 @@ Crisis-line and emergency-number data is **not** stored per user. It ships in th
 | `RoutineCategory` | adds `bowel` and `bathroom` | "Bowel movement today?" (opens the bowel sheet) and "Bathroom break" (an ordinary reminder item). |
 
 **Import migration** (`parseEnvelope`): routines without the new fields get `repeatEveryDays: null`, `repeatStartDate: null`, `doseShiftMinutes: 0`, `doseShiftWhich: 'all'`; `trackBathroom` defaults to false; `bathroomLogs` defaults to an empty list.
+
+## Extensions in 1.5.0 (F-009 depression, anxiety and a "why" note)
+
+No database change: `dailyCheckIns` keeps its indexes, and the new fields are optional (older check-ins read them as empty).
+
+| Where | Addition | Notes |
+|---|---|---|
+| `DailyCheckIn` | `depression` and `anxiety` (1 to 5 or null), `feelingsNote` | Self-rated by her. Never scored, interpreted or used to trigger anything. The note is private and only goes in the report if she chooses. |
+
+**Import migration** (`parseEnvelope`): check-ins without the new fields get `depression: null`, `anxiety: null`, `feelingsNote: null`.
+
+**Merge-mode import of routines** (`reconcileTemplates`, B-012): the backup's routines are the ones used. On a never-set-up device its own default routines are removed; on a set-up device they are kept but stop claiming the weekdays and the default flag the backup's routines use. A device that was never set up also takes the backup's profile and settings.
 
 ## Linked records
 

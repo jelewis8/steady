@@ -16,7 +16,7 @@ import type {
 
 export const APP_NAME = 'Steady';
 export const APP_VERSION = '1.0.0';
-export const SCHEMA_VERSION = '1.4.0';
+export const SCHEMA_VERSION = '1.5.0';
 
 export const SEIZURE_TYPE_LABELS: Record<SeizureType, { label: string; hint: string }> = {
   focal_aware: { label: 'Focal aware', hint: 'I stayed aware — I remember it' },

@@ -4,6 +4,7 @@ import {
   COLLECTION_KEYS,
   emptyExportData,
   mergeSupportIntoProfile,
+  reconcileTemplates,
   type CollectionKey,
   type ExportData,
   type ExportEnvelope,
@@ -94,12 +95,16 @@ export function createDexieStorage(database: SteadyDB = db): StorageAdapter {
         blob: new Blob([base64ToBytes(v.dataBase64)], { type: v.mimeType }),
       }));
       await database.transaction('rw', allTables(), async () => {
+        // was this device ever set up? Decided before anything is changed.
+        const deviceWasNew = !(await database.profile.toCollection().first())?.onboarded;
         if (mode === 'replace') {
           for (const t of allTables()) await t.clear();
         }
         if (d.userProfile) {
           const existingProfile = await database.profile.toCollection().first();
-          if (mode === 'replace' || !existingProfile) {
+          // a device that was never set up has nothing of its own to protect: take the backup's profile and settings too
+          if (mode === 'replace' || !existingProfile || !existingProfile.onboarded) {
+            await database.profile.clear(); // exactly one profile: the placeholder of a new device is replaced, not kept beside it
             await database.profile.put(d.userProfile);
           } else {
             await database.profile.put(mergeSupportIntoProfile(existingProfile, d.userProfile));
@@ -119,6 +124,12 @@ export function createDexieStorage(database: SteadyDB = db): StorageAdapter {
               const clash = await t.where('date').equals(row.date).first();
               if (clash) await t.delete((clash as { id: string }).id);
             }
+          }
+          if (k === 'routineTemplates' && mode === 'merge') {
+            const plan = reconcileTemplates(await database.routineTemplates.toArray(), rows as never[], deviceWasNew);
+            if (plan.deleteIds.length) await database.routineTemplates.bulkDelete(plan.deleteIds);
+            await database.routineTemplates.bulkPut(plan.put);
+            continue;
           }
           if (k === 'triggerTags' && mode === 'merge') {
             // avoid duplicate built-ins with different ids

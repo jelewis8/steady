@@ -26,7 +26,7 @@ describe('crisis line data (F-002)', () => {
     for (const c of COUNTRIES) {
       for (const l of c.lines) {
         expect(l.call || l.text, `${c.name}: ${l.name}`).toBeTruthy();
-        if (l.call) expect(l.call, `${c.name}: ${l.name}`).toMatch(/^[\d ]{2,16}$/);
+        if (l.call) expect(l.call, `${c.name}: ${l.name}`).toMatch(/^[\d ()-]{2,20}$/);
         if (l.text) {
           expect(l.text.to, `${c.name}: ${l.name}`).toMatch(/^[\d ]{2,16}$/);
           expect(l.text.label.length).toBeGreaterThan(4);

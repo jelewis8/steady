@@ -151,9 +151,12 @@ export const COUNTRIES: CountrySupport[] = [
       { name: 'NCMH Crisis Hotline (Globe / TM mobile)', call: '0917 899 8727', hours: '24 hours, every day' },
       { name: 'NCMH Crisis Hotline (Globe / TM mobile)', call: '0966 351 4518', hours: '24 hours, every day' },
       { name: 'NCMH Crisis Hotline (Smart / Sun / TNT mobile)', call: '0908 639 2672', hours: '24 hours, every day' },
+      { name: 'NCMH Emergency Section (direct line)', call: '(02) 8531-5275', note: 'The hospital in Mandaluyong.' },
+      { name: 'NCMH main line (trunk line)', call: '(02) 8531-9001', note: 'The hospital in Mandaluyong.' },
     ],
     sources: [
       { label: 'PH e-government hotlines: 911', url: 'https://ehotlines.e.gov.ph/', quality: 'official' },
+      { label: 'NCMH contact page: trunk line and Emergency Section (text supplied by Jeremiah from the page)', url: 'https://ncmh.gov.ph/contact-us/', quality: 'official' },
       { label: 'Department of Health: NCMH Crisis Hotline', url: 'https://doh.gov.ph/NCMH-Crisis-Hotline', quality: 'excerpt' },
       { label: 'Philippine News Agency / Information Agency: NCMH hotline', url: 'https://www.pna.gov.ph/articles/1068742', quality: 'excerpt' },
     ],

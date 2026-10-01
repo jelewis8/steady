@@ -11,6 +11,8 @@ import { Button, Chip } from '../../ui/kit';
 const KEY = 'steady.seizureTimerStart';
 /** How long the warning sign lasted, once it has turned into a seizure (seconds since the timer started). */
 const AURA_KEY = 'steady.seizureTimerAuraSec';
+/** Set when it was a seizure from the start (no warning sign to record). */
+const DIRECT_KEY = 'steady.seizureTimerDirect';
 
 function readNumber(key: string): number | null {
   try {
@@ -56,6 +58,7 @@ export function SeizureTimer({ allowSave = true }: { allowSave?: boolean }) {
   const [stoppedAt, setStoppedAt] = useState<number | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [auraSec, setAuraSec] = useState<number | null>(() => readNumber(AURA_KEY));
+  const [direct, setDirect] = useState<boolean>(() => readNumber(DIRECT_KEY) === 1);
   const [kind, setKind] = useState<Kind>('ask');
   const [picked, setPicked] = useState<string[]>([]);
 
@@ -68,6 +71,7 @@ export function SeizureTimer({ allowSave = true }: { allowSave?: boolean }) {
     const s = readStart() ?? Date.now();
     setStart(s);
     setAuraSec(readNumber(AURA_KEY));
+    setDirect(readNumber(DIRECT_KEY) === 1);
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [open]);
@@ -82,12 +86,16 @@ export function SeizureTimer({ allowSave = true }: { allowSave?: boolean }) {
   const overLimit = elapsed >= limit * 60;
   const number = prefs?.emergencyNumber ?? '911';
   const startDate = new Date(start);
-  const isSeizure = !allowSave || auraSec != null || kind === 'seizure';
+  const isSeizure = !allowSave || auraSec != null || direct || kind === 'seizure';
+  // Before anyone says otherwise, this is a timer for a warning sign (aura) that might turn into a seizure.
+  const auraPhase = allowSave && auraSec == null && !direct && !stoppedAt;
 
   const reset = () => {
     writeNumber(KEY, null);
     writeNumber(AURA_KEY, null);
+    writeNumber(DIRECT_KEY, null);
     setAuraSec(null);
+    setDirect(false);
     setKind('ask');
     setPicked([]);
     setStoppedAt(null);
@@ -99,6 +107,11 @@ export function SeizureTimer({ allowSave = true }: { allowSave?: boolean }) {
     const seconds = Math.max(0, Math.floor(((stoppedAt ?? Date.now()) - start!) / 1000));
     setAuraSec(seconds);
     writeNumber(AURA_KEY, seconds);
+  }
+
+  function markAlreadySeizure() {
+    setDirect(true);
+    writeNumber(DIRECT_KEY, 1);
   }
 
   async function saveSeizureToLog() {
@@ -118,7 +131,7 @@ export function SeizureTimer({ allowSave = true }: { allowSave?: boolean }) {
       <div className="mx-auto flex min-h-full max-w-xl flex-col gap-4 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
           <h1 id="timer-h" className="text-2xl font-bold">
-            {auraSec != null ? 'Seizure timer' : 'Timer'}
+            {!allowSave ? 'Timer' : auraSec != null || direct ? 'Seizure timer' : 'Aura timer'}
           </h1>
           {stoppedAt && (
             <button type="button" aria-label="Close timer" className="tap inline-flex items-center justify-center rounded-xl" onClick={reset}>
@@ -137,6 +150,12 @@ export function SeizureTimer({ allowSave = true }: { allowSave?: boolean }) {
           <p className="mt-2 text-lg text-ink-2">Started at {formatClock(startDate.getHours(), startDate.getMinutes())}</p>
           {auraSec != null && <p className="mt-1 text-lg">It began with a warning sign that lasted {formatDuration(auraSec)}.</p>}
         </div>
+
+        {auraPhase && (
+          <p className="rounded-2xl border-2 border-accent bg-accent-soft p-3 text-lg">
+            Timing a <strong>warning sign (aura)</strong>. If it turns into a seizure, tap the big button below. It saves how long the warning lasted and keeps timing the seizure.
+          </p>
+        )}
 
         {overLimit && !stoppedAt && (
           <div role="alert" className="rounded-2xl border-4 border-attn-line bg-attn-bg p-4 text-attn-ink">
@@ -163,14 +182,19 @@ export function SeizureTimer({ allowSave = true }: { allowSave?: boolean }) {
 
         {!stoppedAt && (
           <div className="grid gap-2">
-            {allowSave && auraSec == null && (
-              <Button size="lg" block onClick={markTurnedIntoSeizure}>
+            {auraPhase && (
+              <Button variant="primary" size="xl" block className="ring-4 ring-accent ring-offset-2 ring-offset-bg" onClick={markTurnedIntoSeizure}>
                 It’s turning into a seizure
               </Button>
             )}
-            <Button variant="primary" size="xl" block onClick={() => setStoppedAt(Date.now())}>
+            <Button variant={auraPhase ? 'secondary' : 'primary'} size={auraPhase ? 'lg' : 'xl'} block onClick={() => setStoppedAt(Date.now())}>
               It has stopped
             </Button>
+            {auraPhase && (
+              <Button variant="ghost" block onClick={markAlreadySeizure}>
+                It’s already a seizure, not a warning sign
+              </Button>
+            )}
           </div>
         )}
 
@@ -211,7 +235,7 @@ export function SeizureTimer({ allowSave = true }: { allowSave?: boolean }) {
               <Button size="lg" block onClick={() => setStoppedAt(null)}>
                 It started again — keep timing
               </Button>
-              {allowSave && auraSec == null && (
+              {allowSave && auraSec == null && !direct && (
                 <Button size="lg" block onClick={() => setKind('ask')}>
                   It wasn’t a seizure
                 </Button>

@@ -763,11 +763,14 @@ export async function saveCheckIn(date: ISODate, patch: Partial<Omit<DailyCheckI
     alcoholDrinks: null,
     seizureActivityReported: null,
     notes: null,
+    depression: null,
+    anxiety: null,
+    feelingsNote: null,
     createdAt: now,
     updatedAt: now,
   };
   await db.dailyCheckIns.put({ ...base, ...patch, updatedAt: now });
-  if (patch.stress != null || patch.mood != null) {
+  if (patch.stress != null || patch.mood != null || patch.depression != null || patch.anxiety != null) {
     const items = await db.routineChecklistItems.where('date').equals(date).toArray();
     const check = items.find((i) => (i.category === 'stress_check' || i.category === 'mood') && i.status !== 'done');
     if (check) await db.routineChecklistItems.update(check.id, { status: 'done', completedAt: now });

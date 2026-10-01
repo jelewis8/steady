@@ -82,6 +82,7 @@ describe('F-002 data: migration 1.1.0 → 1.2.0', () => {
 
     await storage.eraseAll();
     await initDatabase();
+    await db.profile.toCollection().modify({ onboarded: true }); // a device she has already set up and used
     await setCountry('DE');
     await saveSafetyPlan(plan({ warningSigns: 'Already here' }));
     await updatePreferences({ customSupportLines: [{ id: 'd1', name: 'Device line', phone: '222', textNumber: null }] });

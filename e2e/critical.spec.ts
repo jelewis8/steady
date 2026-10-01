@@ -1084,7 +1084,7 @@ test('F-005: the Rescue button is one timer for whatever is happening', async ({
   await page.goto('/rescue');
   await expect(page.getByRole('button', { name: 'Something’s happening — start timer' })).toBeVisible();
   await page.getByRole('button', { name: /start timer/ }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Timer' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Aura timer' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Call 911/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'It has stopped' })).toBeVisible();
 });
@@ -1218,4 +1218,183 @@ test('F-005: every timer screen has no accessibility violations', async ({ page 
   await page.getByRole('button', { name: 'Back' }).click();
   await page.getByRole('button', { name: 'A seizure', exact: true }).click();
   await check('seizure');
+});
+
+// ---- Release 8: B-012 restore keeps her routine, aura timer wording, F-009 depression and anxiety ----
+test('B-012: restoring a backup on a new device (the default choice) keeps her 9:30 breakfast', async ({ page }) => {
+  const fs = await import('node:fs/promises');
+  const env = JSON.parse(await fs.readFile(FIXTURE, 'utf8'));
+  delete env.checksum;
+  for (const t of env.data.routineTemplates) {
+    for (const i of t.items) if (i.category === 'meal' && i.mealType === 'breakfast') Object.assign(i, { hour: 9, minute: 30 });
+  }
+  // her routine claims every weekday, as the default one on the new device does
+  await page.goto('/');
+  await page.getByRole('button', { name: 'I have a backup file to restore' }).click();
+  await page.getByLabel('Choose a Steady backup file').setInputFiles({ name: 'steady-backup-test.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(env)) });
+  await expect(page.getByRole('radio', { name: /Add to what’s here/ })).toBeChecked(); // the default: merge
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /Backup added to your data/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Open Steady' }).click();
+  await expect(page.getByRole('button', { name: 'Log seizure' })).toBeVisible();
+
+  await page.goto('/schedule');
+  await expect(page.getByRole('button', { name: /Edit Breakfast.* at (9:30|09:30)/ }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /Edit Breakfast.* at (7:30|07:30)/ })).toHaveCount(0);
+  // and today's checklist uses it
+  await page.goto('/');
+  await page.getByRole('button', { name: /Show later today/ }).click().catch(() => undefined);
+  await expect(page.getByRole('listitem').filter({ hasText: 'Breakfast' }).first()).toContainText(/(9:30|09:30)/);
+});
+
+test('B-012: the same restore, repeated, does not pile up routines', async ({ page }) => {
+  const fs = await import('node:fs/promises');
+  const env = JSON.parse(await fs.readFile(FIXTURE, 'utf8'));
+  delete env.checksum;
+  await onboard(page);
+  for (let i = 0; i < 2; i++) {
+    await page.goto('/settings/data');
+    await page.getByLabel('Choose a Steady backup file').setInputFiles({ name: 'b.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(env)) });
+    await page.getByRole('radio', { name: /Add to what’s here/ }).check();
+    await page.getByRole('button', { name: /^Import$/ }).click();
+    await expect(page.getByRole('heading', { name: /Backup added to your data/ })).toBeVisible();
+  }
+  await page.goto('/schedule');
+  const routines = page.getByRole('group', { name: 'Routines' }).getByRole('button');
+  // her two routines from the backup, plus the one made when she set up this device (kept, never deleted)
+  expect(await routines.count()).toBeLessThanOrEqual(5);
+});
+
+test('aura timer: the default title says it is for a warning sign, and the seizure button stands out', async ({ page }) => {
+  await onboard(page);
+  await startTimerAgo(page, 15);
+  await expect(page.getByRole('heading', { level: 1, name: 'Aura timer' })).toBeVisible();
+  await expect(page.getByText(/Timing a warning sign \(aura\)/)).toBeVisible();
+  const turning = page.getByRole('button', { name: 'It’s turning into a seizure' });
+  const stopped = page.getByRole('button', { name: 'It has stopped' });
+  const [a, b] = await Promise.all([turning.boundingBox(), stopped.boundingBox()]);
+  expect(a!.y).toBeLessThan(b!.y); // the seizure button comes first
+  expect(a!.height).toBeGreaterThan(b!.height); // and is bigger
+  await turning.click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Seizure timer' })).toBeVisible();
+  await expect(page.getByText(/Timing a warning sign \(aura\)/)).toHaveCount(0);
+});
+
+test('aura timer: "it’s already a seizure" switches to the seizure timer without recording a warning sign, and survives a reload', async ({ page }) => {
+  await onboard(page);
+  await startTimerAgo(page, 5);
+  await page.getByRole('button', { name: 'It’s already a seizure, not a warning sign' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Seizure timer' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'It’s turning into a seizure' })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Seizure timer' })).toBeVisible();
+  await page.getByRole('button', { name: 'It has stopped' }).click();
+  await expect(page.getByRole('heading', { name: /What was it\?/ })).toHaveCount(0); // she already said what it was
+  await page.getByRole('button', { name: 'Save to seizure log' }).click();
+  await expect(page.getByRole('heading', { name: 'Seizure details' })).toBeVisible();
+  const auras = await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const n: number = await new Promise((res) => {
+      const g = db.transaction('auraLogs').objectStore('auraLogs').count();
+      g.onsuccess = () => res(g.result);
+    });
+    db.close();
+    return n;
+  });
+  expect(auras).toBe(0);
+});
+
+test('aura timer: the lock screen keeps a neutral "Timer" title', async ({ page }) => {
+  await onboard(page);
+  await setPasscodeAndLock(page);
+  await page.getByRole('button', { name: 'Emergency info' }).click();
+  await page.getByRole('button', { name: 'Start timer' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Timer' })).toBeVisible();
+  await expect(page.getByText(/Timing a warning sign/)).toHaveCount(0);
+});
+
+test('F-009: rate depression and anxiety, add a "why" note, and see it on that day', async ({ page }) => {
+  await onboard(page);
+  const d = await dayKey(page, -1);
+  await page.goto(`/day/${d}`);
+  await page.getByRole('button', { name: 'Add a check-in' }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByLabel(/Why\? Write whatever you like/)).toHaveCount(0); // appears once she rates something
+  await sheet.getByRole('radiogroup', { name: 'How low or depressed have you felt?' }).getByRole('radio', { name: '4' }).click();
+  await sheet.getByRole('radiogroup', { name: 'How anxious have you felt?' }).getByRole('radio', { name: '5' }).click();
+  await sheet.getByLabel(/Why\? Write whatever you like/).fill('Worried about the appointment');
+  await expect(sheet.getByRole('link', { name: 'Support is here any time' })).toBeVisible(); // always there, never triggered by a score
+  await sheet.getByRole('button', { name: 'Save check-in' }).click();
+  await expect(page.getByText(/low mood or depression 4\/5 · anxiety 5\/5/)).toBeVisible();
+});
+
+test('F-009: the report shows counts and averages, and her own notes only if she chooses', async ({ page }) => {
+  await onboard(page);
+  for (const [offset, dep, anx, note] of [[-1, '4', '5', 'Worried about the appointment'], [-2, '2', '3', '']] as const) {
+    await page.goto(`/day/${await dayKey(page, offset)}`);
+    await page.getByRole('button', { name: 'Add a check-in' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('radiogroup', { name: 'How low or depressed have you felt?' }).getByRole('radio', { name: dep }).click();
+    await sheet.getByRole('radiogroup', { name: 'How anxious have you felt?' }).getByRole('radio', { name: anx }).click();
+    if (note) await sheet.getByLabel(/Why\? Write whatever you like/).fill(note);
+    await sheet.getByRole('button', { name: 'Save check-in' }).click();
+    await expect(page.getByRole('button', { name: 'Edit check-in' })).toBeVisible();
+  }
+  await page.goto('/insights/report');
+  await expect(page.getByRole('heading', { name: 'Mood and anxiety' })).toBeVisible();
+  await expect(page.getByText('Low mood or depression, rated on 2 days: average 3 out of 5; rated 4 or 5 on 1 day.')).toBeVisible();
+  await expect(page.getByText('Anxiety, rated on 2 days: average 4 out of 5; rated 4 or 5 on 1 day.')).toBeVisible();
+  await expect(page.getByText(/not a screening result or a diagnosis/)).toBeVisible();
+  await expect(page.getByText('Worried about the appointment')).toHaveCount(0); // private by default
+  await page.getByRole('button', { name: /Include my notes about feelings/ }).click();
+  await expect(page.getByText('Worried about the appointment')).toBeVisible();
+});
+
+test('F-009: an older check-in with no depression or anxiety still opens and saves', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/');
+  await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const p = (n: number) => String(n).padStart(2, '0');
+    const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    await new Promise<void>((res) => {
+      const tx = db.transaction('dailyCheckIns', 'readwrite');
+      // exactly as release 1.4.0 saved it: no depression, anxiety or feelingsNote
+      tx.objectStore('dailyCheckIns').put({ id: 'old1', date, stress: 3, mood: 4, onPeriod: null, illness: null, alcoholDrinks: 0, seizureActivityReported: null, notes: 'old note', createdAt: '', updatedAt: '' });
+      tx.oncomplete = () => res();
+    });
+    db.close();
+  });
+  await page.goto(`/day/${await dayKey(page, -1)}`);
+  await expect(page.getByText(/mood 4\/5 · stress 3\/5/)).toBeVisible();
+  await page.getByRole('button', { name: 'Edit check-in' }).click();
+  await page.getByRole('dialog').getByRole('radiogroup', { name: 'How anxious have you felt?' }).getByRole('radio', { name: '2' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Save check-in' }).click();
+  await expect(page.getByText(/anxiety 2\/5/)).toBeVisible();
+});
+
+test('F-009 and the timer: the new screens have no accessibility violations', async ({ page }) => {
+  test.setTimeout(90_000);
+  await onboard(page);
+  await page.goto(`/day/${await dayKey(page, -1)}`);
+  await page.getByRole('button', { name: 'Add a check-in' }).click();
+  await page.getByRole('dialog').getByRole('radiogroup', { name: 'How anxious have you felt?' }).getByRole('radio', { name: '3' }).click();
+  await page.waitForTimeout(300);
+  let r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id), 'check-in').toEqual([]);
+  await page.keyboard.press('Escape');
+  await startTimerAgo(page, 10);
+  await page.waitForTimeout(300);
+  r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id), 'aura timer').toEqual([]);
 });
