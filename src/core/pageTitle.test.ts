@@ -6,7 +6,7 @@ describe('pageTitle (B-004)', () => {
     expect(pageTitle('/meds', 'Medications')).toBe('Medications – Steady');
     expect(pageTitle('/support', '  Support \n')).toBe('Support – Steady');
   });
-  it('says Today on the home page, not the greeting with her name', () => {
+  it('says Today on the home page, not the greeting with the user’s name', () => {
     expect(pageTitle('/', 'Good evening, Sam')).toBe('Today – Steady');
   });
   it('falls back to the app name when there is no heading', () => {

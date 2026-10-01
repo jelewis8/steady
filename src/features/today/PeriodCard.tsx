@@ -7,7 +7,7 @@ import { Card, CardTitle, Segmented } from '../../ui/kit';
 type Answer = 'yes' | 'no';
 
 /**
- * One-tap period question for a day (B-013). Shown only when she has turned on cycle tracking.
+ * One-tap period question for a day (B-013). Shown only when the user has turned on cycle tracking.
  * It writes the same field as the check-in sheet (`onPeriod`), so the calendar marker and the
  * cycle insight read it, and it is available at any hour instead of only after 17:00.
  */

@@ -233,7 +233,7 @@ export function SettingsPage() {
           </div>
           <Toggle
             label="Track my menstrual cycle"
-            hint="Adds a “Period today?” card to Today and the question to the evening check-in, and shows period days on the calendar. About a third of women with epilepsy notice a cycle pattern."
+            hint="Adds a “Period today?” card to Today and the question to the evening check-in, and shows period days on the calendar. Some people with epilepsy notice that their seizures follow a pattern across their cycle."
             checked={prefs.trackCycle}
             onChange={(trackCycle) => up({ trackCycle })}
           />

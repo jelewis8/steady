@@ -22,7 +22,7 @@ const EMPTY: SafetyPlan = {
   updatedAt: '',
 };
 
-/** The standard safety-planning sections, in the user's own words. Steady supplies the prompts and never the content. */
+/** The standard safety-planning sections, in the user’s own words. Steady supplies the prompts and never the content. */
 const SECTIONS: { key: 'warningSigns' | 'copingStrategies' | 'distractions' | 'helpers' | 'professionals' | 'makingSafe' | 'reasonsForLiving'; title: string; prompt: string }[] = [
   { key: 'warningSigns', title: 'My warning signs', prompt: 'Thoughts, feelings, or situations that tell me things are getting harder.' },
   { key: 'copingStrategies', title: 'Things I can do on my own that help', prompt: 'Small things that have helped before, even a little.' },

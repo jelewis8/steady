@@ -2,7 +2,7 @@
 
 A hands-on test with a real screen reader. About 30 minutes per reader. Automated checks (axe, the linter) cannot hear what a reader says, so this is the part only a person can do.
 
-**Do it with sample data** (Welcome screen → "Try with sample data"), not her real data. Do it on the production site, https://steady.example.com, so you test what she gets.
+**Do it with sample data** (Welcome screen → "Try with sample data"), not the user's real data. Do it on the production site, https://steady.example.com, so you test what users get.
 
 ## What has already been checked without a reader
 
@@ -66,7 +66,7 @@ For each, note **Pass**, **Annoying** (works but confusing or noisy), or **Fail*
 
 Add each **Fail** or **Annoying** as its own line in `BUGS.md` (the next free ID is at the top) with: reader and device, screen, what you did, what it said, what you expected. Fails on a safety screen (Rescue, the quick seizure log, doses, Support) are **P1**. Others are **P2**.
 
-When all three readers have been tried (or the ones she actually uses), tick B-004 and note the date and readers.
+When all three readers have been tried (or the ones the user actually uses), tick B-004 and note the date and readers.
 
 ## Not covered here
 

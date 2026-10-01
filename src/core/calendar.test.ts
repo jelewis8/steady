@@ -106,7 +106,7 @@ describe('medications on past days (F-003)', () => {
     expect(isMedicationActiveOn(med({ isActive: false, endDate: null }), '2026-09-05', today)).toBe(false);
     expect(isMedicationActiveOn(med({ isRescue: true }), '2026-09-05', today)).toBe(false);
   });
-  it('doses generated for a past day cover medications she has since stopped', () => {
+  it('doses generated for a past day cover medications the user has since stopped', () => {
     const doses = missingDosesForDay([med({ id: 'old', isActive: false, endDate: '2026-09-10' }), med({ id: 'cur' })], '2026-09-05', [], '2026-09-20T00:00:00Z', today);
     expect(doses.map((d) => d.medicationId).sort()).toEqual(['cur', 'old']);
   });

@@ -31,7 +31,7 @@ export interface BathroomSummary {
   /** days in the period with anything recorded */
   daysWithRecord: number;
   bowelDays: number;
-  /** days she answered "no" */
+  /** days the user answered "no" */
   noBowelDays: number;
   how: Record<BowelHow, number>;
   /** most days in a row between recorded bowel movements (or since the last one), null if none recorded */
@@ -93,7 +93,7 @@ export function bowelDates(logs: BathroomLog[], from: ISODate, to: ISODate): Set
 }
 
 /**
- * Her own bowel and bladder records on either side of a date a medication was started, stopped or had its dose changed (F-010).
+ * The user’s own bowel and bladder records on either side of a date a medication was started, stopped or had its dose changed (F-010).
  * Plain counts only. No test, no "associated with", and no statement about any drug: nothing here claims
  * a medication affects bowel or bladder, so it needs no clinical source. The note below is shown with it.
  */
@@ -121,7 +121,7 @@ export interface MedicationDateComparison {
   after: BathroomSide;
   /** both sides have at least COMPARE_MIN_DAYS days with a record */
   enough: boolean;
-  /** other medications started or stopped within the two windows, so she can see it isn't only one change */
+  /** other medications started or stopped within the two windows, so the user can see it isn't only one change */
   otherChanges: string[];
 }
 
@@ -133,7 +133,7 @@ export interface MedicationDateEvent {
   date: ISODate;
 }
 
-/** Dates in [from, to] on which a (non-rescue) medication was started, stopped or had its dose changed, from the dates she saved. */
+/** Dates in [from, to] on which a (non-rescue) medication was started, stopped or had its dose changed, from the dates the user saved. */
 export function medicationDateEvents(meds: Medication[], from: ISODate, to: ISODate, doseChanges: DoseChange[] = []): MedicationDateEvent[] {
   const out: MedicationDateEvent[] = [];
   for (const m of meds) {

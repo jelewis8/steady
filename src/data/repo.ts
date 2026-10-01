@@ -322,13 +322,13 @@ export async function deleteDoseChange(id: string): Promise<Undo> {
 }
 
 export interface StopDetails {
-  /** Date she stopped (defaults to today) */
+  /** Date the user stopped (defaults to today) */
   endDate?: ISODate;
   reason?: StopReason | null;
   note?: string | null;
 }
 
-/** "I no longer take this": archives the medication (history is kept) and records when and, if she says, why. */
+/** "I no longer take this": archives the medication (history is kept) and records when and, if the user says, why. */
 export async function deleteMedication(id: string, stop: StopDetails = {}): Promise<Undo> {
   const med = await db.medications.get(id);
   if (!med) return noop;
@@ -376,7 +376,7 @@ export type BathroomPatch = Partial<Pick<BathroomLog, 'bowel' | 'bowelHow' | 'bo
 
 /**
  * Save (or change) a day's bowel and bladder record. One record per day.
- * Answering the bowel question (yes or no) also ticks that day's "Bowel movement" routine item, if she has one.
+ * Answering the bowel question (yes or no) also ticks that day's "Bowel movement" routine item, if the user has one.
  * Returns an Undo that puts the record and the routine item back exactly as they were.
  */
 export async function saveBathroomLog(date: ISODate, patch: BathroomPatch): Promise<Undo> {
@@ -445,7 +445,7 @@ export async function addBowelItemToRoutines(time: ISOTime = '20:00'): Promise<U
 }
 
 /**
- * Set the times of day for "Bathroom break" reminders (she chooses them: after waking, before bed, every few hours...).
+ * Set the times of day for "Bathroom break" reminders (the user chooses them: after waking, before bed, every few hours...).
  * Replaces the bathroom-break items in every routine. An empty list removes them. Returns an Undo.
  */
 export async function setBathroomBreaks(times: ISOTime[]): Promise<Undo> {
@@ -973,8 +973,8 @@ export async function dayCompletion(date: ISODate) {
 }
 
 /**
- * Choose the country used for crisis lines. If her emergency number is still the previous country's default
- * (or the 911 starting value), switch it to the new country's default. A number she set herself is left alone.
+ * Choose the country used for crisis lines. If the user’s emergency number is still the previous country's default
+ * (or the 911 starting value), switch it to the new country's default. A number the user set themselves is left alone.
  */
 export async function setCountry(code: string | null): Promise<Undo> {
   const p = await getProfile();

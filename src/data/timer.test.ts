@@ -27,7 +27,7 @@ describe('one timer for a warning sign or a seizure (F-005)', () => {
     expect(await db.auraLogs.count()).toBe(0);
   });
 
-  it('a warning sign that stayed a warning sign is saved on its own, with its length and what she noticed, and can be undone', async () => {
+  it('a warning sign that stayed a warning sign is saved on its own, with its length and what the user noticed, and can be undone', async () => {
     const undo = await saveTimedAura({ start: at('11:00:00'), seconds: 52, symptoms: ['deja_vu', 'fear'] });
     const [a] = await db.auraLogs.toArray();
     expect(a).toMatchObject({ seizureEventId: null, durationSeconds: 52, symptoms: ['deja_vu', 'fear'], progressedToSeizure: false, timestamp: at('11:00:00').toISOString() });

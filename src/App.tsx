@@ -109,7 +109,7 @@ export default function App() {
     let tries = 0;
     const apply = () => {
       if (lockedNow) {
-        document.title = 'Steady'; // nothing about what she was reading while the app is locked
+        document.title = 'Steady'; // nothing about what the user was reading while the app is locked
         return;
       }
       const h = document.querySelector<HTMLElement>('main h1');

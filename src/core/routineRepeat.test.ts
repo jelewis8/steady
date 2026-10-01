@@ -47,7 +47,7 @@ describe('routines that repeat every N days (F-008)', () => {
     expect(selectTemplate([toilet, everyday], '2026-10-08')?.id).toBe('everyday'); // order does not matter: a repeating routine never takes part in the weekday choice
   });
 
-  it('her own choice for a day still wins', () => {
+  it('the user’s own choice for a day still wins', () => {
     expect(selectTemplate([everyday, toilet], '2026-10-07', { date: '2026-10-07', templateId: 'everyday' })?.id).toBe('everyday');
   });
 
@@ -87,17 +87,17 @@ describe('moving medication times later on those days (F-008)', () => {
     expect(normal.map((d) => d.scheduledTime).sort()).toEqual([at('2026-10-08', '08:00'), at('2026-10-08', '20:00')]);
   });
 
-  it('replaces a still-pending 8:00 dose with the 9:00 one, but keeps a dose she already took', () => {
+  it('replaces a still-pending 8:00 dose with the 9:00 one, but keeps a dose the user already took', () => {
     const pending = { id: 'p', medicationId: 'm', scheduledTime: at('2026-10-07', '08:00'), status: 'pending' } as MedicationDose;
     expect(orphanedPendingDoses([med], '2026-10-07', [pending], today, toilet)).toEqual(['p']);
     const taken = { ...pending, status: 'taken' as const };
     expect(orphanedPendingDoses([med], '2026-10-07', [taken], today, toilet)).toEqual([]);
-    // and no second, shifted dose is created on top of one she has already answered
+    // and no second, shifted dose is created on top of one the user has already answered
     const made = missingDosesForDay([med], '2026-10-07', [taken], '2026-10-07T00:00:00Z', today, toilet);
     expect(made.map((d) => d.scheduledTime)).toEqual([at('2026-10-07', '20:00')]);
   });
 
-  it('a shifted dose counts as on time when she takes it at the moved time (adherence)', () => {
+  it('a shifted dose counts as on time when the user takes it at the moved time (adherence)', () => {
     const scheduled = at('2026-10-07', '09:00'); // moved from 8:00
     const takenAt = new Date(scheduled);
     const status = doseStatusForNow(scheduled, takenAt, 60);

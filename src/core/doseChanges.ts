@@ -5,14 +5,14 @@ import { uuid } from './ids';
 import { isoNow } from './time';
 import type { DoseChange, ISODate, Medication } from './types';
 
-/** The dose as one short text, e.g. "100 mg" or "50 mg × 2" (when she takes more than one at a time). */
+/** The dose as one short text, e.g. "100 mg" or "50 mg × 2" (when the user takes more than one at a time). */
 export function doseText(m: Pick<Medication, 'dosage' | 'unit' | 'unitsPerDose'>): string {
   const base = [m.dosage.trim(), m.unit.trim()].filter(Boolean).join(' ') || 'no dose entered';
   const per = m.unitsPerDose ?? 1;
   return per !== 1 ? `${base} × ${per}` : base;
 }
 
-/** True when the dose (amount, unit or how many she takes each time) differs between two versions of a medication. */
+/** True when the dose (amount, unit or how many the user takes each time) differs between two versions of a medication. */
 export function doseDiffers(a: Pick<Medication, 'dosage' | 'unit' | 'unitsPerDose'>, b: Pick<Medication, 'dosage' | 'unit' | 'unitsPerDose'>): boolean {
   return doseText(a) !== doseText(b);
 }

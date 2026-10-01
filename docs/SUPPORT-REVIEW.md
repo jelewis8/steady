@@ -4,15 +4,15 @@ For a clinician, or a peer-support or suicide-prevention organisation, to read a
 
 ## What Steady is
 
-A free, private app that helps one adult with focal epilepsy keep daily routines, track seizures and take medication. Everything stays on her phone. There is no account, no server and no analytics. People with epilepsy have higher rates of depression and of suicidality than the general population (our clinical knowledge base cites depression in 20–55% and a 2–5× increased suicide risk; please correct us if those figures are out of date), so the app has a Support page. It is reachable from the Rescue screen, Calm & grounding, the More menu and the lock screen.
+A free, private app that helps one adult with focal epilepsy keep daily routines, track seizures and take medication. Everything stays on the user's phone. There is no account, no server and no analytics. People with epilepsy have higher rates of depression and of suicidality than the general population (our clinical knowledge base cites depression in 20–55% and a 2–5× increased suicide risk; please correct us if those figures are out of date), so the app has a Support page. It is reachable from the Rescue screen, Calm & grounding, the More menu and the lock screen.
 
 ## What the Support page does
 
 1. **Opens with warmth, not a form.** "You're not alone. Thank you for reaching out. You don't have to go through this alone."
-2. **Emergency call first.** A large button: "If you might act on these thoughts, or you're in danger. Call emergency services now." It uses the emergency number for the country she chose.
-3. **Talk to someone now.** Crisis lines for the country she chose (14 countries), each with Call and, where one exists, Text. A link to an international directory for anyone elsewhere. She can add her own number, such as a counsellor.
-4. **Reach someone you trust.** People she picked in advance, with Call and Text buttons. The text opens her own messaging app with a message she wrote earlier ("I’m not feeling safe right now. Can you call me or come be with me?" by default). She presses send. Steady never sends anything.
-5. **My safety plan.** Her own words in the standard sections (warning signs, things she can do alone, people and places that help, people to ask, professionals, making her space safer, what matters most). Steady supplies only the prompts. It is hidden on the lock screen unless she turns that on.
+2. **Emergency call first.** A large button: "If you might act on these thoughts, or you're in danger. Call emergency services now." It uses the emergency number for the country the user chose.
+3. **Talk to someone now.** Crisis lines for the country the user chose (14 countries), each with Call and, where one exists, Text. A link to an international directory for anyone elsewhere. The user can add their own number, such as a counsellor.
+4. **Reach someone you trust.** People the user picked in advance, with Call and Text buttons. The text opens the user's own messaging app with a message the user wrote earlier ("I’m not feeling safe right now. Can you call me or come be with me?" by default). The user presses send. Steady never sends anything.
+5. **My safety plan.** The user's own words in the standard sections (warning signs, things the user can do alone, people and places that help, people to ask, professionals, making their space safer, what matters most). Steady supplies only the prompts. It is hidden on the lock screen unless the user turns that on.
 6. **Calm & grounding.** A link to a breathing and grounding screen.
 7. **Disclaimer.** "Steady is not a crisis or emergency service… not medical advice or treatment… numbers can change; if one doesn't connect, try another or call emergency services."
 
@@ -20,7 +20,7 @@ A free, private app that helps one adult with focal epilepsy keep daily routines
 
 - It does not ask about suicidal thoughts, score anything, or decide when to show support. The Support link is always there (for example in the daily mood check-in) and never appears because of a low score.
 - It does not record visits to the page, notify anyone, or call or text by itself.
-- It gives no advice on treatment, and it does not interpret what she writes.
+- It gives no advice on treatment, and it does not interpret what the user writes.
 
 ## Questions for the reviewer
 
@@ -33,6 +33,10 @@ A free, private app that helps one adult with focal epilepsy keep daily routines
 7. Does the order (emergency, crisis line, trusted person, plan) seem right?
 
 Everything is in `src/features/support/` and `src/core/crisisLines.ts`. A reviewer can read the same text in the live app at https://steady.example.com/support (the app needs a one-minute setup first), or ask for a screenshot set.
+
+## Self-audit before review
+
+Claude audited the wording first and proposed changes: [SUPPORT-WORDING-AUDIT.md](SUPPORT-WORDING-AUDIT.md). Reviewers may want to read it alongside this summary. It lists nine findings and seven questions that only a reviewer can answer.
 
 ## Status
 

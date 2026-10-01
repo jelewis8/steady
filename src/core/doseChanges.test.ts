@@ -7,7 +7,7 @@ const med = (over: Partial<Medication> = {}): Medication =>
   ({ id: 'm1', name: 'Alpha', dosage: '100', unit: 'mg', unitsPerDose: 1, startDate: '2026-01-01', endDate: null, isRescue: false, ...over }) as Medication;
 
 describe('F-011: dose text and change detection', () => {
-  it('writes the dose as plain text, including how many she takes at a time', () => {
+  it('writes the dose as plain text, including how many the user takes at a time', () => {
     expect(doseText(med())).toBe('100 mg');
     expect(doseText(med({ dosage: '50', unitsPerDose: 2 }))).toBe('50 mg × 2');
     expect(doseText(med({ dosage: '1', unit: 'tablet' }))).toBe('1 tablet');

@@ -18,12 +18,21 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-01-6
+
+Wording only. No database change and no new fields (schema stays `1.6.0`), so no backup is needed first.
+
+**Neutral language throughout, so Steady can be given to anyone.** Docs, code comments and test names no longer say "she" or "her" about the user: they say "the user" or "they". Two things the user can see changed:
+- The neurologist report's heading **"Her own notes"** (shown only when the user chooses to include their diary notes) is now **"The patient's own notes"**, in the page and in the text summary.
+- The cycle-tracking setting no longer says "About a third of women with epilepsy…". It now says **"Some people with epilepsy notice that their seizures follow a pattern across their cycle."**
+- Clinical statements about a population (for example about women of childbearing potential, in the knowledge base) are unchanged.
+
 ## release-2026-10-01-5
 
-Two things. **This release changes the database** (Dexie version 4, data schema `1.6.0`), so she should **save a backup first** (More → Backup & data → Save backup file). The change only adds an empty table: nothing she has is edited or moved, and an automated test proves a database saved by release-2026-10-01-4 opens with every record intact.
+Two things. **This release changes the database** (Dexie version 4, data schema `1.6.0`), so the user should **save a backup first** (More → Backup & data → Save backup file). The change only adds an empty table: nothing the user has is edited or moved, and an automated test proves a database saved by release-2026-10-01-4 opens with every record intact.
 
 **F-011: dated dose changes.**
-- Change a dose on a medication and Steady now asks: **"A new dose"** (and from which day, today unless she says otherwise) or **"Fixing a mistake"** (nothing is added to the history). It never suggests a change.
+- Change a dose on a medication and Steady now asks: **"A new dose"** (and from which day, today unless the user says otherwise) or **"Fixing a mistake"** (nothing is added to the history). It never suggests a change.
 - Each medication has a **Dose changes** card: the history, newest first, with **Add a dose change** for past ones, and Edit or Remove (with undo) on each.
 - Dose changes are now dates in the **bowel and bladder comparison** (Insights) and are listed in the **neurologist report**, with the same plain, non-causal wording as before.
 - Backups include dose changes ("dose changes" in the restore summary). Older backups open with none, and nothing else in them changes.
@@ -43,10 +52,10 @@ Three things. No database change and no new stored fields (schema stays `1.5.0`)
 - With the toggle off, nothing changes and nothing is shown.
 
 **F-010: bowel and bladder next to medication dates.**
-- **Insights → "Bowel and bladder, and medication dates"** (shown once there are bowel or bladder records): a day grid with a ✓ for a bowel movement, ○ for recorded as none, and ▲ on days a medication was started or stopped (with a "View as table" alternative). Below it, for each start or stop date in the range, her own counts for the 14 days before and from that day: days with something recorded, bowel movements, longest stretch without one, and average urinations.
+- **Insights → "Bowel and bladder, and medication dates"** (shown once there are bowel or bladder records): a day grid with a ✓ for a bowel movement, ○ for recorded as none, and ▲ on days a medication was started or stopped (with a "View as table" alternative). Below it, for each start or stop date in the range, the user's own counts for the 14 days before and from that day: days with something recorded, bowel movements, longest stretch without one, and average urinations.
 - It only compares when both sides have at least 5 days with a record; otherwise it says so. Other starts or stops in the same weeks are named, so one change isn't mistaken for the only one.
 - The same table is in the neurologist report and its text summary.
-- **Deliberately plain.** These are counts of her own records with a fixed note ("They don't show whether a medication made any difference… show this to your neurologist or pharmacist. Steady doesn't give advice about doses."). No statistical test, no "associated with", no statement about any drug. That is why it needs no clinical sign-off. Statements about what a particular drug is known to do are parked as F-012 until a clinical reviewer can approve them.
+- **Deliberately plain.** These are counts of the user's own records with a fixed note ("They don't show whether a medication made any difference… show this to your neurologist or pharmacist. Steady doesn't give advice about doses."). No statistical test, no "associated with", no statement about any drug. That is why it needs no clinical sign-off. Statements about what a particular drug is known to do are parked as F-012 until a clinical reviewer can approve them.
 - It uses the start and stop dates saved with each medication. Dose changes aren't kept, so they aren't included (F-011).
 
 **Philippines crisis numbers, confirmed against the NCMH site text.** Nationwide **1553 or 1800-1888-1553** (new), **Smart/TNT 0919 057 1553** (this replaces 0908 639 2672, which was not on the NCMH page), Globe/TM 0917 899 8727 and 0966 351 4518. The trunk line and Emergency Section are unchanged. `docs/CRISIS-LINES.md` has the log.
@@ -55,19 +64,19 @@ Three things. No database change and no new stored fields (schema stays `1.5.0`)
 
 Four things. Data schema is now `1.5.0` (new optional fields only: no database change, so no backup is needed first, though one is always a good idea).
 
-**B-012 fix: restoring a backup could put her routine back to the defaults** (reported: breakfast went from 9:30 back to 7:30).
+**B-012 fix: restoring a backup could put the user's routine back to the defaults** (reported: breakfast went from 9:30 back to 7:30).
 - Cause: a new install creates its own "Everyday" and "Rest day" routines, and "Add to what's here" (the default choice on the welcome screen) kept them next to the restored ones. Both claimed every weekday, so whichever came first won, which is why it only happened sometimes.
-- Now the restored routines are the ones used. On a brand-new device its own just-created default routines are removed. On a device that's already set up, its routines are kept but stop claiming the days the backup's routines use (nothing is deleted; she can still pick them by hand). A brand-new device also takes the backup's name and settings.
-- **If it has already happened to her:** restore the same backup again with "Add to what's here". The backup's routines take over again, and nothing is lost. Or fix the breakfast time in Schedule.
+- Now the restored routines are the ones used. On a brand-new device its own just-created default routines are removed. On a device that's already set up, its routines are kept but stop claiming the days the backup's routines use (nothing is deleted; the user can still pick them by hand). A brand-new device also takes the backup's name and settings.
+- **If it has already happened to the user:** restore the same backup again with "Add to what's here". The backup's routines take over again, and nothing is lost. Or fix the breakfast time in Schedule.
 
 **Aura timer.** The default title is now **"Aura timer"**, with a short line saying it's timing a warning sign and what the big button does. **"It's turning into a seizure"** is now the first and biggest button, with a ring around it. "It has stopped" is the second button. A quiet third option, **"It's already a seizure, not a warning sign"**, switches to "Seizure timer" without recording a warning sign, for a bystander timing a seizure that started with no warning. The lock screen keeps a neutral "Timer".
 
 **F-009: depression, anxiety and a "why" note.** In the daily check-in (Today's evening check-in, or any past day):
 - "How low or depressed have you felt?" and "How anxious have you felt?", each 1 (not at all) to 5 (very), next to the existing mood and stress ratings.
-- Once she rates one, a "Why? Write whatever you like (optional)" box appears: the space for a diary note. It's private to her.
+- Once the user rates one, a "Why? Write whatever you like (optional)" box appears: the space for a diary note. It's private to the user.
 - "Support is here any time" is always shown in the check-in. It's never triggered by a score. Steady doesn't score, interpret or detect anything.
 - The Day page shows the ratings.
-- **Report: "Mood and anxiety"**, only counts and averages of what she entered (days rated, average, days rated 4 or 5, days of low overall mood). The report says that depression and anxiety are more common in people with epilepsy (knowledge base §1.6), and that it is not a screening result or a diagnosis. Her written notes stay out of the report unless she taps "Include my notes about feelings".
+- **Report: "Mood and anxiety"**, only counts and averages of what the user entered (days rated, average, days rated 4 or 5, days of low overall mood). The report says that depression and anxiety are more common in people with epilepsy (knowledge base §1.6), and that it is not a screening result or a diagnosis. The user's written notes stay out of the report unless the user taps "Include my notes about feelings".
 
 **Philippines:** added the National Center for Mental Health's own hospital lines from its contact page text you supplied: Emergency Section direct line (02) 8531-5275, and the main trunk line (02) 8531-9001. See docs/CRISIS-LINES.md: that text doesn't list the crisis hotline numbers (1553 etc.), which still need checking.
 
@@ -76,11 +85,11 @@ Four things. Data schema is now `1.5.0` (new optional fields only: no database c
 **F-005: one timer for a warning sign (aura) or a seizure.** No data changes: schema stays `1.4.0`, database stays at version 3.
 
 - **One button, "Something's happening — start timer"** (Rescue; on the lock screen it's "Start timer"). Nobody has to decide what it is while it's happening. The timer, the 5-minute emergency alert, the call button, the rescue plan and "how to help" are all as before.
-- **When it stops** ("It has stopped"), she (or whoever is with her) chooses:
+- **When it stops** ("It has stopped"), the user (or whoever is with them) chooses:
   - **A seizure**: saved to the seizure log as before.
-  - **A warning sign (aura) only**: pick what she noticed (optional) and save. It's saved as a warning sign **with how long it lasted** (the Warning signs list now shows "lasted 52 s"). It is not put in the seizure log.
+  - **A warning sign (aura) only**: pick what the user noticed (optional) and save. It's saved as a warning sign **with how long it lasted** (the Warning signs list now shows "lasted 52 s"). It is not put in the seizure log.
   - "It started again, keep timing" and "Close without saving" are still there, and "It wasn't a seizure" goes back a step.
-- **A warning sign that turns into a seizure:** while it's running, **"It's turning into a seizure"** records how long the warning lasted (measured at that tap) and carries on timing. The result is **one seizure plus a linked warning sign that starts at the same moment** (as agreed). It isn't also counted as a warning sign on its own. The same happens if she stops, picks "warning sign", and then taps "It turned into a seizure after all". The timer keeps running.
+- **A warning sign that turns into a seizure:** while it's running, **"It's turning into a seizure"** records how long the warning lasted (measured at that tap) and carries on timing. The result is **one seizure plus a linked warning sign that starts at the same moment** (as agreed). It isn't also counted as a warning sign on its own. The same happens if the user stops, picks "warning sign", and then taps "It turned into a seizure after all". The timer keeps running.
 - **On the lock screen** the timer works for anyone who needs it, but it never asks what it was or saves anything (as before).
 - The timer and what it recorded survive a reload.
 - **Fix found along the way:** editing a seizure that began with a timed warning sign (and ticking no warning-sign options) would have quietly removed the warning sign and its duration. It now keeps both.
@@ -88,20 +97,20 @@ Four things. Data schema is now `1.5.0` (new optional fields only: no database c
 
 ## release-2026-09-30-6
 
-**F-006 and F-008: bowel and bladder tracking, and routines that repeat every few days.** Data schema is now `1.4.0` and the database moves to **version 3** (one new table; nothing existing is changed). **Ask her to save a backup first.**
+**F-006 and F-008: bowel and bladder tracking, and routines that repeat every few days.** Data schema is now `1.4.0` and the database moves to **version 3** (one new table; nothing existing is changed). **Ask the user to save a backup first.**
 
-**Bowel and bladder (F-006)** is **off until she turns it on** (More → Bowel & bladder). Private, plain words, never scored.
+**Bowel and bladder (F-006)** is **off until the user turns it on** (More → Bowel & bladder). Private, plain words, never scored.
 - **Today card:** "Bowel movement today: Yes, normal / No / Not recorded yet", a quiet "Last bowel movement: 3 days ago", and a one-tap counter "Urinated today: N times" with "Add one" and "Take one off".
-- **The daily question as a routine item:** one button adds "Bowel movement today?" to her routines each evening (8:00 PM, changeable in Schedule). Answering it (yes or no) ticks it off. "How was it?" is plain: hard or difficult, normal, loose, not sure. "What did you eat or drink beforehand?" is an optional note.
-- **Bathroom break reminders:** times she chooses (add any time, or quick fill: after I wake up, before bed, every 3 hours). They appear in her routine with a reminder, for when she doesn't feel the need to go.
+- **The daily question as a routine item:** one button adds "Bowel movement today?" to the user's routines each evening (8:00 PM, changeable in Schedule). Answering it (yes or no) ticks it off. "How was it?" is plain: hard or difficult, normal, loose, not sure. "What did you eat or drink beforehand?" is an optional note.
+- **Bathroom break reminders:** times the user chooses (add any time, or quick fill: after I wake up, before bed, every 3 hours). They appear in their routine with a reminder, for when the user doesn't feel the need to go.
 - **Past days:** any day can be filled in from the Day page or "Recent days" on the same screen.
 - **Report** ("Bowel and bladder", also in the text summary): days with a bowel movement, days recorded as none, the longest stretch without one, how they were, and the average number of urinations on the days counted. **Calendar:** a "Bowel movement" symbol with words.
-- The knowledge base doesn't cover bowel or bladder, so Steady makes no claims about them. It records, and the screen says to tell her doctor or pharmacist about ongoing constipation or worries.
+- The knowledge base doesn't cover bowel or bladder, so Steady makes no claims about them. It records, and the screen says to tell the user's doctor or pharmacist about ongoing constipation or worries.
 
 **Routines that repeat, and planned medication shifts (F-008)**
-- In Schedule, a routine can be used **"Every few days"** (every N days, counting from a start date) instead of on weekdays. It shows the next three dates. On its days it is used instead of her weekday routine. Use "New routine" to make a copy of her usual day first, then add the toilet-day items.
-- A routine can **move medication times later** on the days it's used: morning doses only, or all doses, by 15 minutes to 2 hours. Reminders, the checklist and her record all use the moved times, so **a dose taken at the moved time counts as on time.** Today says, for example, "Medication times are 1 hour later today, as set in 'Toilet day'."
-- She sets this herself. The screen says to only use it if her doctor has agreed, and Steady never suggests changing a medication time.
+- In Schedule, a routine can be used **"Every few days"** (every N days, counting from a start date) instead of on weekdays. It shows the next three dates. On its days it is used instead of the user's weekday routine. Use "New routine" to make a copy of the user's usual day first, then add the toilet-day items.
+- A routine can **move medication times later** on the days it's used: morning doses only, or all doses, by 15 minutes to 2 hours. Reminders, the checklist and the user's record all use the moved times, so **a dose taken at the moved time counts as on time.** Today says, for example, "Medication times are 1 hour later today, as set in 'Toilet day'."
+- The user sets this themselves. The screen says to only use it if the user's doctor has agreed, and Steady never suggests changing a medication time.
 - Routines saved before this release behave exactly as they did (no repeat, no shift).
 
 **Safety of the upgrade:** upgrade tests now cover a database from every earlier release (Dexie version 1 and version 2), in unit tests and in a real browser. Older backups open with routines and preferences filled in with defaults.
@@ -110,40 +119,40 @@ Four things. Data schema is now `1.5.0` (new optional fields only: no database c
 
 **F-003 and F-004: log past days clearly, and a calendar.** No data changes: schema stays `1.3.0`, database stays at version 2.
 
-- **Log from an earlier day** (button on Today, and in the Calendar): pick yesterday, the day before, or any past date. The day shows its routine and medications, and she can tick off doses and routine items, skip them, or leave them. Nothing is marked as a failure ("Not recorded yet").
+- **Log from an earlier day** (button on Today, and in the Calendar): pick yesterday, the day before, or any past date. The day shows its routine and medications, and the user can tick off doses and routine items, skip them, or leave them. Nothing is marked as a failure ("Not recorded yet").
   - Things are recorded **at the time they were scheduled for that day**, not "now". A past breakfast or glass of water belongs to that day, and a past dose counts as taken on time. "I took it at…" is there for a different time.
   - The day also has: seizures that day (and "Log a seizure on this day", which starts at noon on that day), sleep for the night before, and a check-in for that day.
-  - A day she has never opened starts empty, with an explicit "Add this day's routine and medications" button. Just looking at a day never changes her records or her adherence numbers.
-  - Medications she has **since stopped** are included on the days before she stopped them.
-  - A medication added to Steady recently is only scheduled from its "Started on" date. The day says so and links to the medication. If she was already taking it, she sets an earlier "Started on" and the day catches up.
+  - A day the user has never opened starts empty, with an explicit "Add this day's routine and medications" button. Just looking at a day never changes the user's records or the user's adherence numbers.
+  - Medications the user has **since stopped** are included on the days before the user stopped them.
+  - A medication added to Steady recently is only scheduled from its "Started on" date. The day says so and links to the medication. If the user was already taking it, the user sets an earlier "Started on" and the day catches up.
 - **Sleep for any night:** Sleep → "Log a different night".
 - **Calendar** (Today, and More → Calendar): a month grid, weeks starting Monday. Each day shows symbols **with words**: seizure, warning sign, dose skipped or not sure, dose not recorded, short sleep the night before, period. Every day is a link with a full spoken description ("Tuesday, September 15: 1 seizure, 2 doses not recorded"). A **List** view shows the same as a table, in words. Tap a day to open it. No animation, and tap targets are 48 px or more.
-- Adherence numbers: doses on past days she chooses to fill in are added as "not recorded" until she ticks them, the same as on a day she opened the app but didn't tick.
+- Adherence numbers: doses on past days the user chooses to fill in are added as "not recorded" until the user ticks them, the same as on a day the user opened the app but didn't tick.
 - Not included yet: bowel days on the calendar (F-006).
 
 ## release-2026-09-30-4
 
-**F-001 and F-007: a dated side-effect log, and medications that didn't work out.** Data schema is now `1.3.0`, and the database moves to **version 2** (one new table; nothing existing is changed). **Ask her to save a backup first.**
+**F-001 and F-007: a dated side-effect log, and medications that didn't work out.** Data schema is now `1.3.0`, and the database moves to **version 2** (one new table; nothing existing is changed). **Ask the user to save a backup first.**
 
-- **Side effects have dates.** Each entry has what she noticed, which medication (or "I'm not sure which one"), when it started and stopped (both optional, "date unknown" is fine), how strong it was (mild, moderate, severe, or not sure), and notes. Find them under Medications → Side effects log, and on each medication's page. Entries can be edited, removed, and undone.
-- **Her existing side effects are kept.** On first opening after the update, each medication's old undated side effects become entries marked "Start date unknown". The old list is left untouched in the database, so nothing is lost even if this release is rolled back. Restoring an older backup does the same, without duplicates.
-- **"I no longer take this"** now asks when she stopped and, if she wants to say, why: didn't control seizures, side effects, allergic reaction, cost or access, another reason, or "I'd rather not say". Nothing is required. She can also add a reason later to a medication she stopped before (open it from Past medications). Past medications show when and why.
+- **Side effects have dates.** Each entry has what the user noticed, which medication (or "I'm not sure which one"), when it started and stopped (both optional, "date unknown" is fine), how strong it was (mild, moderate, severe, or not sure), and notes. Find them under Medications → Side effects log, and on each medication's page. Entries can be edited, removed, and undone.
+- **The user's existing side effects are kept.** On first opening after the update, each medication's old undated side effects become entries marked "Start date unknown". The old list is left untouched in the database, so nothing is lost even if this release is rolled back. Restoring an older backup does the same, without duplicates.
+- **"I no longer take this"** now asks when the user stopped and, if the user wants to say, why: didn't control seizures, side effects, allergic reaction, cost or access, another reason, or "I'd rather not say". Nothing is required. The user can also add a reason later to a medication the user stopped before (open it from Past medications). Past medications show when and why.
 - **Neurologist report:** new sections "Side effects noted" (all dates, with when each started and stopped) and "Past medications and why they were stopped" (with the side effects logged against each). Both are in the text summary too.
 - **Action plan:** medications stopped after an allergic reaction are listed under Allergies.
-- New upgrade tests: a database written by the previous release is upgraded in a real browser and in unit tests (with her real backup), and old backups migrate without duplicates.
+- New upgrade tests: a database written by the previous release is upgraded in a real browser and in unit tests (with the user's real backup), and old backups migrate without duplicates.
 - Not done here: per-dose notes are still shown in their own report section (B-011) and aren't merged into the side-effect log.
 
 ## release-2026-09-30-3
 
 **F-002: support for thoughts of suicide or self-harm.** Data schema is now `1.2.0`. There is no database change, only new optional fields, and old data and old backups open unchanged (upgrade test passes).
 
-- **Support page** ("I'm having thoughts of hurting myself" on the Rescue screen, also in Calm & grounding and More). It is calm and non-judgmental: call emergency services; crisis lines for her country, each with Call and Text buttons; call or text a trusted person with a message that is already written; her safety plan; a link to grounding.
+- **Support page** ("I'm having thoughts of hurting myself" on the Rescue screen, also in Calm & grounding and More). It is calm and non-judgmental: call emergency services; crisis lines for the user's country, each with Call and Text buttons; call or text a trusted person with a message that is already written; the user's safety plan; a link to grounding.
 - **Crisis lines for 14 countries** (Australia, Canada, France, Germany, India, Ireland, Italy, Netherlands, New Zealand, Philippines, South Africa, Spain, UK, US). Every number was checked against an official source; see `docs/CRISIS-LINES.md`. Anyone else can choose "Somewhere else" and add their own number, and there is a link to an international directory.
-- **Country** is asked during setup (it fills the emergency number), and can be changed in Settings or on the Support page. A number she set herself is never overwritten.
-- **Safety plan** (More → Support & safety plan): warning signs, things that help, people and places, people to ask, professionals, making the space safer, what matters most, and the text to send. Free text in her own words. Stays on the device and is included in backups.
-- **Trusted people:** one main person plus as many others as she wants, chosen from her contacts. "Text everyone" when there is more than one.
-- **Lock screen:** "I need support right now" shows the crisis lines, emergency call and trusted people without unlocking. The safety plan stays private unless she turns on "Show this plan on the lock screen" (off by default).
-- Nothing is recorded, scored or sent. Every call or text is started by her tap and opens the phone's own app.
+- **Country** is asked during setup (it fills the emergency number), and can be changed in Settings or on the Support page. A number the user set themselves is never overwritten.
+- **Safety plan** (More → Support & safety plan): warning signs, things that help, people and places, people to ask, professionals, making the space safer, what matters most, and the text to send. Free text in the user's own words. Stays on the device and is included in backups.
+- **Trusted people:** one main person plus as many others as the user wants, chosen from their contacts. "Text everyone" when there is more than one.
+- **Lock screen:** "I need support right now" shows the crisis lines, emergency call and trusted people without unlocking. The safety plan stays private unless the user turns on "Show this plan on the lock screen" (off by default).
+- Nothing is recorded, scored or sent. Every call or text is started by the user's tap and opens the phone's own app.
 - Restoring a backup in "Add to what's here" mode now also brings in a safety plan, country and own numbers when the device has none (it never overwrites what is on the device).
 - **Not included yet:** a note about low mood in the neurologist report (now F-009).
 
@@ -151,7 +160,7 @@ Four things. Data schema is now `1.5.0` (new optional fields only: no database c
 
 Three small fixes. No data changes; schema stays `1.1.0`.
 
-- **B-007:** "Used per dose" (pills per dose) can now be cleared and retyped, so she can set 2. Half and decimal amounts work too. It is checked when saving, it is also in the setup screen's medication form, and the refill countdown uses it. **After changing it on an existing medication, re-check "Pills/doses left".** Past doses were counted as 1 pill each.
+- **B-007:** "Used per dose" (pills per dose) can now be cleared and retyped, so the user can set 2. Half and decimal amounts work too. It is checked when saving, it is also in the setup screen's medication form, and the refill countdown uses it. **After changing it on an existing medication, re-check "Pills/doses left".** Past doses were counted as 1 pill each.
 - **B-009:** the seizure type is now labelled "Focal to bilateral tonic-clonic (formerly grand mal)" everywhere it appears.
 - **B-011:** the neurologist report and its text summary now include "Notes recorded with doses" (date, medication, note or side effect).
 
@@ -159,7 +168,7 @@ Three small fixes. No data changes; schema stays `1.1.0`.
 
 Fixes the unclear message after restoring a backup. No data changes; schema stays `1.1.0`.
 
-- **B-008:** restoring a backup now shows a clear confirmation on the page itself, and it stays until dismissed. It lists what is now on the device ("Backup restored: 0 seizure events, 2 medications, 9 dose records, …") after checking it against what was actually stored. A failed restore shows a visible error and says nothing was changed. On the welcome screen the page no longer reloads before it can be read; she taps "Open Steady". Backup & data also shows "Last restore: …".
+- **B-008:** restoring a backup now shows a clear confirmation on the page itself, and it stays until dismissed. It lists what is now on the device ("Backup restored: 0 seizure events, 2 medications, 9 dose records, …") after checking it against what was actually stored. A failed restore shows a visible error and says nothing was changed. On the welcome screen the page no longer reloads before it can be read; the user taps "Open Steady". Backup & data also shows "Last restore: …".
 - **B-006:** new automated upgrade test. Data and backup files written by the previous release must open, export and import intact, in merge and replace modes. It runs with `npm test` before every deploy.
 
 ## release-2026-09-27

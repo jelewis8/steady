@@ -1,7 +1,7 @@
 import { Card, Disclaimer, PageHeader } from '../../ui/kit';
 import { SideEffectsList } from './SideEffects';
 
-/** Every side effect she has noted, grouped by medication, with when each started and stopped. */
+/** Every side effect the user has noted, grouped by medication, with when each started and stopped. */
 export function SideEffectsPage() {
   return (
     <div className="grid gap-4 pb-6">

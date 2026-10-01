@@ -5,13 +5,13 @@ This is the day-to-day process. For server details, see [DEPLOY.md](DEPLOY.md).
 ## The loop
 
 ```
-She reports something  →  add it to BUGS.md  →  fix (P1 alone, P2 in small batches)
+A user reports something  →  add it to BUGS.md  →  fix (P1 alone, P2 in small batches)
       →  tests pass  →  commit  →  deploy a new release  →  tag + CHANGELOG  →  tick it off in BUGS.md
 ```
 
 ## 1. Record it
 
-Add a line to [BUGS.md](../BUGS.md) with the next free ID, the date, and what happened. Pick P1, P2 or P3. When in doubt, anything touching reminders, doses, the seizure timer, SOS, or her data is **P1**.
+Add a line to [BUGS.md](../BUGS.md) with the next free ID, the date, and what happened. Pick P1, P2 or P3. When in doubt, anything touching reminders, doses, the seizure timer, SOS, or the user's data is **P1**.
 
 ## 2. Fix it
 
@@ -61,9 +61,9 @@ git push
 
 To see the code for anything that was live, check out its tag, e.g. `git checkout release-2026-09-27`.
 
-## Rules that protect her data
+## Rules that protect the user's data
 
-Her data lives in her phone's browser, not on the server. Deploying never touches it, **unless new code misreads old data**. So:
+The user's data lives in their phone's browser, not on the server. Deploying never touches it, **unless new code misreads old data**. So:
 
 | Change | Safe? | What to do |
 |---|---|---|
@@ -73,7 +73,7 @@ Her data lives in her phone's browser, not on the server. Deploying never touche
 | New or changed database index | ⚠️ Risky | New `db.version(n+1).stores({...})` in `src/data/db.ts`. **Never edit an existing version block.** |
 | Delete a table | ❌ No | Don't. Leave it in place. |
 
-**Before a risky release:** ask her to save a backup first (More → Backup & data).
+**Before a risky release:** ask the user to save a backup first (More → Backup & data).
 
 ## Handing off to a new Claude session
 

@@ -6,7 +6,7 @@ import { adjustUrination } from '../../data/repo';
 import { Button, Card, CardTitle } from '../../ui/kit';
 import { BathroomSheet } from './BathroomSheet';
 
-/** Today card for bowel and bladder. Shown only if she turned tracking on. Quiet, plain, private. */
+/** Today card for bowel and bladder. Shown only if the user turned tracking on. Quiet, plain, private. */
 export function BathroomCard({ today }: { today: string }) {
   const prefs = usePrefs();
   const logs = useBathroomLogs();

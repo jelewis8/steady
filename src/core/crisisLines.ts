@@ -228,7 +228,7 @@ export function emergencyNumberFor(code: string | null | undefined): string {
   return countryByCode(code)?.emergency ?? '911';
 }
 
-/** The people she chose to reach out to (with a phone number), the main person first. */
+/** The people the user chose to reach out to (with a phone number), the main person first. */
 export function supportPeople(contacts: EmergencyContact[], defaultId: string | null): EmergencyContact[] {
   const people = contacts.filter((c) => c.supportPerson && c.phone.trim());
   return [...people].sort((a, b) => Number(b.id === defaultId) - Number(a.id === defaultId));

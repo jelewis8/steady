@@ -4,11 +4,11 @@
 
 A local-first web application (PWA) that helps people with focal (partial) epilepsy manage daily routines, track seizures, adhere to medications, and reduce seizure triggers. Phase 1 is browser-based with no backend. Phase 2 targets iOS/Android via React Native or Flutter.
 
-The first user is an adult with partial epilepsy who struggles to maintain daily routines. Design for her worst day, not her best.
+The first user is an adult with partial epilepsy who struggles to maintain daily routines. Design for the user's worst day, not their best.
 
 ## Current Status (keep this section up to date)
 
-- **Phase 1 is built and live** at https://steady.example.com, and **in use by the first user** since 2026-09-28. Real health data now exists on her phone, so every change must follow the data-safety rules in `docs/WORKFLOW.md`.
+- **Phase 1 is built and live** at https://steady.example.com, and **in use by the first user** since 2026-09-28. Real health data now exists on the first user's phone, so every change must follow the data-safety rules in `docs/WORKFLOW.md`.
 - **Work queue:** `BUGS.md` (things that are broken: P1 critical / P2 annoying / P3 wish list) and `FEATURES.md` (new features: Safety / High / Normal). Start any new session by reading both.
 - **What's live:** `CHANGELOG.md`. Each release is also a server folder and a git tag `release-YYYY-MM-DD`.
 - **Code:** git repo, `main` branch, pushed to the private GitHub repo https://github.com/jelewis8/steady. One commit per fix, with the bug ID in the message (`Fix B-012: …`).

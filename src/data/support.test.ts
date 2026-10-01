@@ -40,11 +40,11 @@ describe('F-002 data: migration 1.1.0 → 1.2.0', () => {
     expect(p.preferences.country).toBeNull();
     expect(p.preferences.customSupportLines).toEqual([]);
     expect(p.preferences.defaultSupportContactId).toBeNull();
-    // her existing settings are kept
+    // the user’s existing settings are kept
     expect(p.preferences.emergencyNumber).toBe(raw.data.userProfile!.preferences.emergencyNumber);
     expect(p.displayName).toBe(raw.data.userProfile!.displayName);
     expect(parsed.envelope.data.emergencyContacts.every((c) => c.supportPerson === false)).toBe(true);
-    // everything she had is still there (the side-effect log is checked in upgrade.test.ts)
+    // everything the user had is still there (the side-effect log is checked in upgrade.test.ts)
     const without = (d: typeof raw.data) => summarizeData({ ...d, sideEffects: [], bathroomLogs: [], doseChanges: [] });
     expect(without(parsed.envelope.data)).toEqual(without(raw.data));
   });
@@ -82,7 +82,7 @@ describe('F-002 data: migration 1.1.0 → 1.2.0', () => {
 
     await storage.eraseAll();
     await initDatabase();
-    await db.profile.toCollection().modify({ onboarded: true }); // a device she has already set up and used
+    await db.profile.toCollection().modify({ onboarded: true }); // a device the user has already set up and used
     await setCountry('DE');
     await saveSafetyPlan(plan({ warningSigns: 'Already here' }));
     await updatePreferences({ customSupportLines: [{ id: 'd1', name: 'Device line', phone: '222', textNumber: null }] });
@@ -116,7 +116,7 @@ describe('F-002 data: country and safety plan', () => {
     expect((await db.profile.toCollection().first())!.preferences.emergencyNumber).toBe('999');
     await setCountry('AU');
     expect((await db.profile.toCollection().first())!.preferences.emergencyNumber).toBe('000');
-    await updatePreferences({ emergencyNumber: '1234' }); // her own choice
+    await updatePreferences({ emergencyNumber: '1234' }); // the user’s own choice
     await setCountry('NZ');
     const prefs = (await db.profile.toCollection().first())!.preferences;
     expect(prefs.country).toBe('NZ');

@@ -34,7 +34,7 @@ export function MedEditorPage() {
   const [changeKind, setChangeKind] = useState<'change' | 'fix'>('change');
   const [changeDate, setChangeDate] = useState(todayKey());
   const [stopSheet, setStopSheet] = useState<'stop' | 'edit' | null>(null);
-  // Keep what she types as text while editing (so the field can be cleared and retyped); check it on save.
+  // Keep what the user types as text while editing (so the field can be cleared and retyped); check it on save.
   const [unitsText, setUnitsText] = useState('1');
   const today = todayKey();
   const doses = useDoses(addDays(today, -13), today).filter((d) => d.medicationId === id);

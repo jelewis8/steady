@@ -15,7 +15,7 @@ describe('summarizeFeelings', () => {
     ci('2026-08-20', { depression: 5, anxiety: 5, feelingsNote: 'outside the period' }),
   ];
 
-  it('averages and counts only what she entered, within the period', () => {
+  it('averages and counts only what the user entered, within the period', () => {
     const s = summarizeFeelings(list, '2026-09-01', '2026-09-30');
     expect(s.depression).toEqual({ days: 3, average: 3.7, highDays: 2 });
     expect(s.anxiety).toEqual({ days: 3, average: 4, highDays: 2 });
@@ -23,7 +23,7 @@ describe('summarizeFeelings', () => {
     expect(s.hasAnything).toBe(true);
   });
 
-  it('collects her written notes (only within the period, oldest first, trimmed)', () => {
+  it('collects the user’s written notes (only within the period, oldest first, trimmed)', () => {
     const s = summarizeFeelings(list, '2026-09-01', '2026-09-30');
     expect(s.notes).toEqual([{ date: '2026-09-02', text: 'Rough night, worried about the appointment' }]);
   });

@@ -84,7 +84,7 @@ export function ReportPage() {
       ? [
           'Mood and anxiety (self-rated):',
           ...feelingLines.map((l) => `  - ${l}`),
-          ...(withFeelingNotes && feelings.notes.length ? ['  Her own notes:', ...feelings.notes.map((n) => `    ${formatDateShort(n.date)}: ${n.text}`)] : []),
+          ...(withFeelingNotes && feelings.notes.length ? ['  The patient’s own notes:', ...feelings.notes.map((n) => `    ${formatDateShort(n.date)}: ${n.text}`)] : []),
           '',
         ]
       : []),
@@ -251,7 +251,7 @@ export function ReportPage() {
               </ul>
               {withFeelingNotes && feelings.notes.length > 0 && (
                 <div className="mt-2">
-                  <h3 className="font-bold">Her own notes</h3>
+                  <h3 className="font-bold">The patient’s own notes</h3>
                   <ul className="mt-1 grid gap-1">
                     {feelings.notes.map((n) => (
                       <li key={n.date}>

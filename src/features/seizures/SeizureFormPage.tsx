@@ -28,7 +28,7 @@ export function SeizureFormPage() {
   const isNew = id === 'new';
   const nav = useNavigate();
   const [params] = useSearchParams();
-  // coming from a past day: start the time at noon on that day (she can change it)
+  // coming from a past day: start the time at noon on that day (the user can change it)
   const forDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get('date') ?? '') && (params.get('date') as string) < todayKey() ? (params.get('date') as string) : null;
   const [draft, setDraft] = useState<Draft | null>(null);
   const [customTrigger, setCustomTrigger] = useState('');

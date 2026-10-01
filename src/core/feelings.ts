@@ -1,6 +1,6 @@
 /**
  * Mood, depression and anxiety ratings and the "why" diary note (F-009).
- * Self-rated 1 to 5 by the person herself. Steady only counts and averages what she entered: no scoring, no risk
+ * Self-rated 1 to 5 by the person themselves. Steady only counts and averages what the user entered: no scoring, no risk
  * detection, no diagnosis, nothing inferred.
  */
 import type { DailyCheckIn, ISODate } from './types';
@@ -57,7 +57,7 @@ export function summarizeFeelings(checkIns: DailyCheckIn[], from: ISODate, to: I
 
 const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
 
-/** Plain sentences for the report. Counts and averages of what she entered, nothing more. */
+/** Plain sentences for the report. Counts and averages of what the user entered, nothing more. */
 export function feelingsLines(s: FeelingsSummary): string[] {
   const out: string[] = [];
   if (s.depression.days) {

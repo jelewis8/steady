@@ -63,7 +63,7 @@ function DayGrid({ logs, meds, doseChanges, start, end }: { logs: BathroomLog[];
 
 /**
  * Bowel and bladder next to the dates medications were started or stopped (F-010).
- * Her own counts, side by side. Deliberately says nothing about what any drug does.
+ * The user’s own counts, side by side. Deliberately says nothing about what any drug does.
  */
 export function BathroomMedCard({ logs, meds, doseChanges, start, end }: { logs: BathroomLog[]; meds: Medication[]; doseChanges: DoseChange[]; start: ISODate; end: ISODate }) {
   const today = todayKey();

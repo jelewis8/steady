@@ -8,7 +8,7 @@ import { toast } from '../../state/ui';
 import { Button, Card, CardTitle, PageHeader, TextField } from '../../ui/kit';
 import { SupportPanel } from './SupportPanel';
 
-/** Numbers she adds herself: a local line not in the list, or someone like a counsellor. */
+/** Numbers the user adds: a local line not in the list, or someone like a counsellor. */
 function MyNumbers() {
   const prefs = usePrefs();
   const lines = prefs?.customSupportLines ?? [];

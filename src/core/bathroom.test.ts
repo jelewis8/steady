@@ -63,7 +63,7 @@ describe('summarizeBathroom (for the report)', () => {
   });
 });
 
-describe('F-010: her own numbers around medication start and stop dates', () => {
+describe('F-010: the user’s own numbers around medication start and stop dates', () => {
   const med = (id: string, name: string, over: Partial<Medication> = {}): Medication =>
     ({ id, name, startDate: '2026-01-01', endDate: null, isRescue: false, ...over }) as Medication;
   const days = (from: number, to: number, mk: (n: number) => Partial<BathroomLog>) =>

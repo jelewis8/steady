@@ -8,7 +8,7 @@ import { ensureDay, initDatabase } from './repo';
 import { storage } from './storage';
 
 /**
- * B-012: restoring a backup into a new device changed her breakfast from 9:30 back to the default 7:30.
+ * B-012: restoring a backup into a new device changed the user’s breakfast from 9:30 back to the default 7:30.
  * A new device already has its own default "Everyday" routine; the backup's routine must be the one that is used.
  */
 async function backupWithBreakfastAt(hour: number, minute: number): Promise<ExportEnvelope> {
@@ -30,9 +30,9 @@ const breakfastToday = async () => {
   return item ? [item.scheduledHour, item.scheduledMinute] : null;
 };
 
-describe('restoring a backup keeps her routine (B-012)', () => {
+describe('restoring a backup keeps the user’s routine (B-012)', () => {
   for (const mode of ['merge', 'replace'] as const) {
-    it(`${mode}: on a brand-new device (which has default routines of its own), her 9:30 breakfast is used`, async () => {
+    it(`${mode}: on a brand-new device (which has default routines of its own), the user’s 9:30 breakfast is used`, async () => {
       const env = await backupWithBreakfastAt(9, 30);
       await initDatabase(); // the new device's own defaults, with new ids (breakfast 7:30)
       const parsed = parseEnvelope(JSON.parse(JSON.stringify(env)));
@@ -51,7 +51,7 @@ describe('restoring a backup keeps her routine (B-012)', () => {
   it('merge into a device that is already set up: the backup’s routine is used, and nothing is deleted', async () => {
     const env = await backupWithBreakfastAt(9, 30);
     await initDatabase();
-    await db.profile.toCollection().modify({ onboarded: true }); // an app she has already set up
+    await db.profile.toCollection().modify({ onboarded: true }); // an app the user has already set up
     const before = await db.routineTemplates.toArray();
     const parsed = parseEnvelope(JSON.parse(JSON.stringify(env)));
     if (!parsed.ok) throw new Error(parsed.error);

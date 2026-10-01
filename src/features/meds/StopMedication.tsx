@@ -18,7 +18,7 @@ const REASON_OPTIONS: { value: Choice; label: string }[] = [
 ];
 
 /**
- * Asked when she says "I no longer take this", and reused to fill in the reason for a medication that was stopped earlier.
+ * Asked when the user says "I no longer take this", and reused to fill in the reason for a medication that was stopped earlier.
  * Every question is optional: stopping is never blocked by it.
  */
 export function StopMedicationSheet({

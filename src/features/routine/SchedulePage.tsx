@@ -368,7 +368,7 @@ type Update = (p: Partial<RoutineTemplate>) => Promise<void> | void;
 /** "Use this routine": on certain weekdays, or every few days counting from a date (F-008). */
 function RepeatFields({ t, update }: { t: RoutineTemplate; update: Update }) {
   const every = isRepeatMode(t);
-  // keep what she types as text; save as soon as it is a usable number
+  // keep what the user types as text; save as soon as it is a usable number
   const [text, setText] = useState(String(t.repeatEveryDays ?? 6));
   const n = Number(text);
   const valid = Number.isInteger(n) && n >= 2 && n <= 60;
@@ -425,7 +425,7 @@ function RepeatFields({ t, update }: { t: RoutineTemplate; update: Update }) {
 
 const SHIFT_CHOICES = [15, 30, 45, 60, 90, 120];
 
-/** On days this routine is used, medication times move later by an amount she chooses (F-008). */
+/** On days this routine is used, medication times move later by an amount the user chooses (F-008). */
 function DoseShiftFields({ t, update }: { t: RoutineTemplate; update: Update }) {
   const shift = t.doseShiftMinutes ?? 0;
   const which = t.doseShiftWhich ?? 'all';

@@ -65,7 +65,7 @@ describe('medications that didn’t work out (F-007)', () => {
     expect((await db.medications.get(m.id))!).toMatchObject({ isActive: true, endDate: null, stopReason: null });
   });
 
-  it('stopping without giving a reason still works (she can skip it)', async () => {
+  it('stopping without giving a reason still works (the user can skip it)', async () => {
     const m = await addMed();
     await deleteMedication(m.id);
     expect((await db.medications.get(m.id))!).toMatchObject({ isActive: false, stopReason: null, stopReasonNote: null });

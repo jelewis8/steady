@@ -40,11 +40,11 @@ function DayContent({ date }: { date: string }) {
   const [adding, setAdding] = useState(false);
 
   const hasRows = (items?.length ?? 0) > 0 || doses.length > 0;
-  // A day she has already opened keeps up with changes (for example a medication whose start date she moved earlier).
+  // A day the user has already opened keeps up with changes (for example a medication whose start date the user moved earlier).
   useEffect(() => {
     if (hasRows) void ensureDay(date);
   }, [date, hasRows]);
-  // Medications added to Steady later than this day aren't scheduled on it. Say so, instead of leaving her to wonder.
+  // Medications added to Steady later than this day aren't scheduled on it. Say so, instead of leaving the user to wonder.
   const laterMeds = useMedications().filter((m) => m.isActive && !m.isRescue && m.scheduledTimes.length > 0 && m.startDate > date);
   const open = view.entries.filter((e) => e.status === 'pending' || e.status === 'deferred');
   const recorded = view.entries.filter((e) => !(e.status === 'pending' || e.status === 'deferred'));

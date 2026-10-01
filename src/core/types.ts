@@ -59,7 +59,7 @@ export interface UserPreferences {
   triggerFoods: string[];
   /** EXT (1.2.0, F-002): ISO country code chosen for crisis lines; null until chosen */
   country: string | null;
-  /** EXT (1.2.0, F-002): crisis numbers she added herself */
+  /** EXT (1.2.0, F-002): crisis numbers the user added themselves */
   customSupportLines: CustomSupportLine[];
   /** EXT (1.2.0, F-002): the main person to reach out to (an EmergencyContact id) */
   defaultSupportContactId: string | null;
@@ -67,7 +67,7 @@ export interface UserPreferences {
   trackBathroom: boolean;
 }
 
-/** A crisis or support number the user added for her own country or situation. */
+/** A crisis or support number the user added for their own country or situation. */
 export interface CustomSupportLine {
   id: UUID;
   name: string;
@@ -108,7 +108,7 @@ export interface UserProfile {
   onboarded: boolean;
   /** EXT: true while the database holds generated sample data */
   isSampleData: boolean;
-  /** EXT (1.2.0, F-002): personal safety plan; null until she writes one */
+  /** EXT (1.2.0, F-002): personal safety plan; null until the user writes one */
   safetyPlan: SafetyPlan | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
@@ -179,7 +179,7 @@ export interface Medication {
   /** Legacy (before 1.3.0): undated side-effect names. Kept so old releases still work; the side-effect log (SideEffectLog) replaces it. */
   sideEffectsNoted: string[];
   notes: string | null;
-  /** EXT (1.3.0, F-007): why it was stopped, if she said; null = not recorded */
+  /** EXT (1.3.0, F-007): why it was stopped, if the user said; null = not recorded */
   stopReason: StopReason | null;
   stopReasonNote: string | null;
   createdAt: ISODateTime;
@@ -313,7 +313,7 @@ export interface RoutineTemplate {
   /** EXT (1.4.0, F-008): use this routine every N days (N >= 2), counting from repeatStartDate, instead of by weekday. null/absent = by weekday. */
   repeatEveryDays?: number | null;
   repeatStartDate?: ISODate | null;
-  /** EXT (1.4.0, F-008): on days this routine is used, scheduled medication times move LATER by this many minutes (0 = no change). Only ever set by her, never suggested. */
+  /** EXT (1.4.0, F-008): on days this routine is used, scheduled medication times move LATER by this many minutes (0 = no change). Only ever set by the user, never suggested. */
   doseShiftMinutes?: number;
   doseShiftWhich?: DoseShiftWhich;
   items: RoutineTemplateItem[];
@@ -331,9 +331,9 @@ export interface BathroomLog {
   /** "Did you have a bowel movement today?" null = not answered */
   bowel: boolean | null;
   bowelHow: BowelHow | null;
-  /** what she ate or drank beforehand, or anything else she wants to note */
+  /** what the user ate or drank beforehand, or anything else the user wants to note */
   bowelNotes: string | null;
-  /** how many times she urinated (a one-tap counter) */
+  /** how many times the user urinated (a one-tap counter) */
   urinationCount: number;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
@@ -410,7 +410,7 @@ export interface EmergencyContact {
   email: string | null;
   notifyOnEmergency: boolean;
   canViewRescueProtocol: boolean;
-  /** EXT (1.2.0, F-002): someone she can reach out to when she isn't feeling safe */
+  /** EXT (1.2.0, F-002): someone the user can reach out to when they aren't feeling safe */
   supportPerson: boolean;
   sortOrder: number;
   createdAt: ISODateTime;
@@ -450,7 +450,7 @@ export interface DailyCheckIn {
   depression?: 1 | 2 | 3 | 4 | 5 | null;
   /** EXT (1.5.0, F-009): "how anxious have you felt?" 1 to 5 */
   anxiety?: 1 | 2 | 3 | 4 | 5 | null;
-  /** EXT (1.5.0, F-009): the "why?" diary note. Private to her; only goes in the report if she chooses. */
+  /** EXT (1.5.0, F-009): the "why?" diary note. Private to the user; only goes in the report if the user chooses. */
   feelingsNote?: string | null;
   onPeriod: boolean | null;
   illness: boolean | null;

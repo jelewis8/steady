@@ -64,7 +64,7 @@ export function nextRepeatDates(t: RoutineTemplate, from: ISODate, count: number
 
 /**
  * A scheduled medication time on a day that uses `template`. Times move LATER by the routine's shift, never earlier, and never
- * past 23:59. Only what she set up is applied. Steady never proposes a shift.
+ * past 23:59. Only what the user set up is applied. Steady never proposes a shift.
  */
 export function shiftedDoseTime(time: ISOTime, template: RoutineTemplate | null | undefined): ISOTime {
   const shift = template?.doseShiftMinutes ?? 0;
@@ -151,8 +151,8 @@ export function syncDayItems(
 }
 
 /**
- * Was this medication scheduled on `date`? Today and later follow `isActive`. For past days, a medication she has since
- * stopped still counts up to the day she stopped it (so a past day can be filled in accurately).
+ * Was this medication scheduled on `date`? Today and later follow `isActive`. For past days, a medication the user has since
+ * stopped still counts up to the day the user stopped it (so a past day can be filled in accurately).
  */
 export function isMedicationActiveOn(med: Medication, date: ISODate, today: ISODate = todayKey()): boolean {
   if (med.isRescue) return false;
@@ -172,7 +172,7 @@ export function missingDosesForDay(
   template: RoutineTemplate | null = null,
 ): MedicationDose[] {
   const at = new Set(existing.map((d) => `${d.medicationId}|${d.scheduledTime}`));
-  // a dose she already took (or skipped) at its normal time still counts, even if today's routine would move it
+  // a dose the user already took (or skipped) at its normal time still counts, even if today's routine would move it
   const answered = new Set(existing.filter((d) => d.status !== 'pending').map((d) => `${d.medicationId}|${d.scheduledTime}`));
   const out: MedicationDose[] = [];
   for (const m of meds) {

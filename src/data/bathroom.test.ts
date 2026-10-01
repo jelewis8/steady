@@ -161,7 +161,7 @@ describe('a routine that repeats and moves doses later (F-008), end to end', () 
     expect(times).toEqual([localDateTime(d, '09:00'), localDateTime(d, '20:00')]);
   });
 
-  it('a dose she already took at 8:00 is kept, and no second 9:00 dose appears', async () => {
+  it('a dose the user already took at 8:00 is kept, and no second 9:00 dose appears', async () => {
     const med = { ...newMedication(), name: 'Lamotrigine', dosage: '100', unit: 'mg', scheduledTimes: ['08:00'], startDate: addDays(today(), -60) };
     await saveMedication(med);
     await ensureDay(today());

@@ -308,7 +308,7 @@ test('F-002: safety plan and a trusted person, with a prefilled text and nothing
   expect(posts).toEqual([]);
 });
 
-test('F-002: reachable from the lock screen; the detailed plan stays private unless she allows it', async ({ page }) => {
+test('F-002: reachable from the lock screen; the detailed plan stays private unless the user allows it', async ({ page }) => {
   await onboard(page);
   await page.goto('/support/plan');
   await page.getByRole('switch', { name: /Alex/ }).click();
@@ -330,7 +330,7 @@ test('F-002: reachable from the lock screen; the detailed plan stays private unl
   expect(axe.violations.map((v) => v.id)).toEqual([]);
 });
 
-test('F-002: if she allows it, the plan is shown on the lock screen', async ({ page }) => {
+test('F-002: if the user allows it, the plan is shown on the lock screen', async ({ page }) => {
   await onboard(page);
   await page.goto('/support/plan');
   await page.getByLabel('My warning signs').fill('Visible warning signs');
@@ -454,7 +454,7 @@ test('F-007: stopping a medication asks why (optionally) and the report lists it
   await expect(page.getByRole('heading', { name: 'Side effects noted' })).toBeVisible();
 });
 
-test('F-007: she can skip the reason, and add it later', async ({ page }) => {
+test('F-007: the user can skip the reason, and add it later', async ({ page }) => {
   await onboard(page);
   await page.goto('/meds');
   await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
@@ -554,7 +554,7 @@ test('upgrade in a real browser: a database saved by the previous release opens 
   await expect(page.getByText('Irritability')).toBeVisible();
   await expect(page.getByText('Tiredness')).toBeVisible();
   await expect(page.getByText('Start date unknown')).toHaveCount(2);
-  // the rest of her data is untouched and the app works
+  // the rest of the user’s data is untouched and the app works
   await page.goto('/meds');
   await expect(page.getByText('Keppra')).toBeVisible();
   const db = await page.evaluate(async () => {
@@ -595,7 +595,7 @@ test('F-003: a medication that starts later is explained on the day, and doses a
   await page.getByRole('link', { name: 'Open Lamotrigine' }).click();
   await page.getByLabel('Started on').fill(await dayKey(page, -10));
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await page.goto(`/day/${d}`); // a day she already opened catches up
+  await page.goto(`/day/${d}`); // a day the user already opened catches up
   await expect(page.getByRole('button', { name: /^Mark Lamotrigine .* as taken$/ }).first()).toBeVisible();
   await expect(page.getByText('Some medications start after this day')).toHaveCount(0);
 });
@@ -604,7 +604,7 @@ test('F-003: from Today, open an earlier day, add its routine, and tick a dose a
   await onboard(page);
   await page.goto('/meds');
   await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
-  await page.getByLabel('Started on').fill(await dayKey(page, -10)); // she was taking it before she added it to Steady
+  await page.getByLabel('Started on').fill(await dayKey(page, -10)); // they were taking it before they added it to Steady
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.goto('/');
   await page.getByRole('button', { name: 'Log from an earlier day' }).click();
@@ -695,7 +695,7 @@ test('F-003: today and future days are not past days', async ({ page }) => {
   await expect(page.getByText(/Today’s routine/)).toBeVisible();
 });
 
-test('F-003: a medication she has since stopped appears on the days before she stopped it', async ({ page }) => {
+test('F-003: a medication the user has since stopped appears on the days before the user stopped it', async ({ page }) => {
   await onboard(page);
   const started = await dayKey(page, -10);
   const stopped = await dayKey(page, -2);
@@ -713,7 +713,7 @@ test('F-003: a medication she has since stopped appears on the days before she s
   await page.getByRole('button', { name: 'Add this day’s routine and medications' }).click();
   await expect(page.getByRole('listitem').filter({ hasText: 'Lamotrigine' }).first()).toBeVisible();
 
-  await page.goto(`/day/${await dayKey(page, -1)}`); // after she stopped it
+  await page.goto(`/day/${await dayKey(page, -1)}`); // after the user stopped it
   await page.getByRole('button', { name: 'Add this day’s routine and medications' }).click();
   await expect(page.getByRole('heading', { name: 'Not recorded yet' })).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Lamotrigine' })).toHaveCount(0);
@@ -795,7 +795,7 @@ async function enableBathroom(page: Page) {
 
 test('F-006: off by default; turning it on adds a quiet Today card with a one-tap counter and the bowel question', async ({ page }) => {
   await onboard(page);
-  await expect(page.getByRole('heading', { name: 'Bathroom' })).toHaveCount(0); // nothing shown until she chooses it
+  await expect(page.getByRole('heading', { name: 'Bathroom' })).toHaveCount(0); // nothing shown until the user chooses it
   await enableBathroom(page);
   await page.goto('/');
   const card = page.getByRole('region', { name: 'Bathroom' });
@@ -861,7 +861,7 @@ test('F-006: days since the last bowel movement is shown quietly, and past days 
   await expect(page.getByRole('region', { name: 'Bathroom' })).toContainText('Last bowel movement: 3 days ago');
 });
 
-test('F-006: she chooses her own bathroom-break reminders', async ({ page }) => {
+test('F-006: the user chooses their own bathroom-break reminders', async ({ page }) => {
   await onboard(page);
   await enableBathroom(page);
   await page.getByLabel('Add a time').fill('10:00');
@@ -1045,7 +1045,7 @@ test('upgrade in a real browser (from version 2): a database saved by the previo
   });
 
   await page.goto('/meds/side-effects');
-  await expect(page.getByText('Tiredness')).toBeVisible(); // what she had is still there
+  await expect(page.getByText('Tiredness')).toBeVisible(); // what the user had is still there
   await page.goto('/');
   await expect(page.getByText('Wake up')).toBeVisible(); // a routine saved without the new settings behaves as before
   await page.goto('/bathroom');
@@ -1089,7 +1089,7 @@ test('F-005: the Rescue button is one timer for whatever is happening', async ({
   await expect(page.getByRole('button', { name: 'It has stopped' })).toBeVisible();
 });
 
-test('F-005: a warning sign only: stop, choose it, say what she noticed, and it is saved with how long it lasted', async ({ page }) => {
+test('F-005: a warning sign only: stop, choose it, say what the user noticed, and it is saved with how long it lasted', async ({ page }) => {
   await onboard(page);
   await startTimerAgo(page, 52);
   await page.getByRole('button', { name: 'It has stopped' }).click();
@@ -1118,7 +1118,7 @@ test('F-005: a warning sign that turns into a seizure is saved as one seizure wi
   await expect(page.getByText(/It began with a warning sign that lasted/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'It’s turning into a seizure' })).toHaveCount(0); // once only
   await page.getByRole('button', { name: 'It has stopped' }).click();
-  // she already said it was a seizure, so no question is asked
+  // the user already said it was a seizure, so no question is asked
   await expect(page.getByRole('heading', { name: /What was it\?/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Save to seizure log' }).click();
   await expect(page.getByRole('heading', { name: 'Seizure details' })).toBeVisible();
@@ -1220,15 +1220,15 @@ test('F-005: every timer screen has no accessibility violations', async ({ page 
   await check('seizure');
 });
 
-// ---- Release 8: B-012 restore keeps her routine, aura timer wording, F-009 depression and anxiety ----
-test('B-012: restoring a backup on a new device (the default choice) keeps her 9:30 breakfast', async ({ page }) => {
+// ---- Release 8: B-012 restore keeps the user’s routine, aura timer wording, F-009 depression and anxiety ----
+test('B-012: restoring a backup on a new device (the default choice) keeps the user’s 9:30 breakfast', async ({ page }) => {
   const fs = await import('node:fs/promises');
   const env = JSON.parse(await fs.readFile(FIXTURE, 'utf8'));
   delete env.checksum;
   for (const t of env.data.routineTemplates) {
     for (const i of t.items) if (i.category === 'meal' && i.mealType === 'breakfast') Object.assign(i, { hour: 9, minute: 30 });
   }
-  // her routine claims every weekday, as the default one on the new device does
+  // the user’s routine claims every weekday, as the default one on the new device does
   await page.goto('/');
   await page.getByRole('button', { name: 'I have a backup file to restore' }).click();
   await page.getByLabel('Choose a Steady backup file').setInputFiles({ name: 'steady-backup-test.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(env)) });
@@ -1261,7 +1261,7 @@ test('B-012: the same restore, repeated, does not pile up routines', async ({ pa
   }
   await page.goto('/schedule');
   const routines = page.getByRole('group', { name: 'Routines' }).getByRole('button');
-  // her two routines from the backup, plus the one made when she set up this device (kept, never deleted)
+  // the user’s two routines from the backup, plus the one made when the user set up this device (kept, never deleted)
   expect(await routines.count()).toBeLessThanOrEqual(5);
 });
 
@@ -1289,7 +1289,7 @@ test('aura timer: "it’s already a seizure" switches to the seizure timer witho
   await page.reload();
   await expect(page.getByRole('heading', { level: 1, name: 'Seizure timer' })).toBeVisible();
   await page.getByRole('button', { name: 'It has stopped' }).click();
-  await expect(page.getByRole('heading', { name: /What was it\?/ })).toHaveCount(0); // she already said what it was
+  await expect(page.getByRole('heading', { name: /What was it\?/ })).toHaveCount(0); // the user already said what it was
   await page.getByRole('button', { name: 'Save to seizure log' }).click();
   await expect(page.getByRole('heading', { name: 'Seizure details' })).toBeVisible();
   const auras = await page.evaluate(async () => {
@@ -1323,7 +1323,7 @@ test('F-009: rate depression and anxiety, add a "why" note, and see it on that d
   await page.goto(`/day/${d}`);
   await page.getByRole('button', { name: 'Add a check-in' }).click();
   const sheet = page.getByRole('dialog');
-  await expect(sheet.getByLabel(/Why\? Write whatever you like/)).toHaveCount(0); // appears once she rates something
+  await expect(sheet.getByLabel(/Why\? Write whatever you like/)).toHaveCount(0); // appears once the user rates something
   await sheet.getByRole('radiogroup', { name: 'How low or depressed have you felt?' }).getByRole('radio', { name: '4' }).click();
   await sheet.getByRole('radiogroup', { name: 'How anxious have you felt?' }).getByRole('radio', { name: '5' }).click();
   await sheet.getByLabel(/Why\? Write whatever you like/).fill('Worried about the appointment');
@@ -1332,7 +1332,7 @@ test('F-009: rate depression and anxiety, add a "why" note, and see it on that d
   await expect(page.getByText(/low mood or depression 4\/5 · anxiety 5\/5/)).toBeVisible();
 });
 
-test('F-009: the report shows counts and averages, and her own notes only if she chooses', async ({ page }) => {
+test('F-009: the report shows counts and averages, and the user’s own notes only if the user chooses', async ({ page }) => {
   await onboard(page);
   for (const [offset, dep, anx, note] of [[-1, '4', '5', 'Worried about the appointment'], [-2, '2', '3', '']] as const) {
     await page.goto(`/day/${await dayKey(page, offset)}`);
@@ -1402,7 +1402,7 @@ test('F-009 and the timer: the new screens have no accessibility violations', as
 // ---- B-013: cycle tracking is visible, any hour ----
 test('B-013: turning on cycle tracking shows a Period card on Today and past days, and the calendar marks it', async ({ page }) => {
   await onboard(page);
-  await expect(page.getByRole('region', { name: 'Period' })).toHaveCount(0); // nothing until she chooses it
+  await expect(page.getByRole('region', { name: 'Period' })).toHaveCount(0); // nothing until the user chooses it
   await page.goto('/settings');
   const sw = page.getByRole('switch', { name: /Track my menstrual cycle/ });
   await sw.click();
@@ -1431,7 +1431,7 @@ test('B-013: turning on cycle tracking shows a Period card on Today and past day
   expect(r.violations.map((v) => v.id)).toEqual([]);
 });
 
-// ---- F-010: her own bowel and bladder numbers around medication start dates, with no causal wording ----
+// ---- F-010: the user’s own bowel and bladder numbers around medication start dates, with no causal wording ----
 test('F-010: Insights and the report show before/after counts around a medication start date, with the plain note', async ({ page }) => {
   await onboard(page);
   await page.goto('/');

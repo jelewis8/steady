@@ -2,7 +2,7 @@
 /**
  * B-006 — upgrade safety net.
  *
- * Her data lives on her phone and survives every deploy. These tests prove that data written by an
+ * The user’s data lives on their phone and survives every deploy. These tests prove that data written by an
  * EARLIER release still opens, reads and imports intact with the CURRENT code. Run before every deploy.
  *
  * When you ship a new Dexie version or SCHEMA_VERSION:
@@ -378,7 +378,7 @@ describe('bathroom table and routine settings (F-006, F-008)', () => {
       await current.open();
       try {
         expect(await current.bathroomLogs.count()).toBe(0);
-        expect(byId(await current.routineTemplates.toArray())).toEqual(byId(data.routineTemplates)); // untouched, no new fields added behind her back
+        expect(byId(await current.routineTemplates.toArray())).toEqual(byId(data.routineTemplates)); // untouched, no new fields added behind the user’s back
         expect(await current.medications.count()).toBe(data.medications.length);
         // and the new table works, with one record per day
         await current.bathroomLogs.add({ id: 'b1', date: '2026-09-01', bowel: true, bowelHow: 'normal', bowelNotes: null, urinationCount: 3, createdAt: '', updatedAt: '' });

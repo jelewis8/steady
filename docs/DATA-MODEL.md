@@ -50,7 +50,7 @@ No Dexie version change: nothing is indexed. New fields are optional and read wi
 |---|---|---|
 | `UserProfile` | `safetyPlan: SafetyPlan | null` | Seven free-text sections in the standard safety-planning structure, the message to send, and `showOnLockScreen` (default off). Written by the user, never analysed. |
 | `UserProfile.preferences` | `country` (ISO code, `'other'`, or null), `customSupportLines[]`, `defaultSupportContactId` | Country drives the crisis lines and the default emergency number. |
-| `EmergencyContact` | `supportPerson: boolean` | Someone she can reach out to when she isn't feeling safe. |
+| `EmergencyContact` | `supportPerson: boolean` | Someone the user can reach out to when they aren't feeling safe. |
 
 Crisis-line and emergency-number data is **not** stored per user. It ships in the app (`src/core/crisisLines.ts`, see [CRISIS-LINES.md](CRISIS-LINES.md)).
 
@@ -63,7 +63,7 @@ Crisis-line and emergency-number data is **not** stored per user. It ships in th
 | Where | Addition | Notes |
 |---|---|---|
 | **New** `SideEffectLog` | `{ id, medicationId \| null, name, startDate \| null, endDate \| null, severity: 'mild' \| 'moderate' \| 'severe' \| null, notes, createdAt, updatedAt }` | `medicationId: null` = "not sure which medication". `startDate: null` = "date unknown". `endDate: null` = still happening or not known. |
-| `Medication` | `stopReason` (`not_controlling` \| `side_effects` \| `allergic_reaction` \| `cost_or_access` \| `other` \| null), `stopReasonNote` | Why it was stopped, if she said. `endDate` is the date she stopped. |
+| `Medication` | `stopReason` (`not_controlling` \| `side_effects` \| `allergic_reaction` \| `cost_or_access` \| `other` \| null), `stopReasonNote` | Why it was stopped, if the user said. `endDate` is the date the user stopped. |
 | `Medication.sideEffectsNoted` | **legacy** | Still stored and exported, no longer shown. The log replaces it. |
 
 **Import migration** (`parseEnvelope`): a file without a `sideEffects` list (schema before 1.3.0) gets one built from each medication's `sideEffectsNoted`. Ids are made from the medication id and name (`deterministicId`), the same as the Dexie upgrade, so restoring an old backup never duplicates entries. Files that already carry a `sideEffects` list are not migrated. Medications get `stopReason: null`.
@@ -87,7 +87,7 @@ No database change: `dailyCheckIns` keeps its indexes, and the new fields are op
 
 | Where | Addition | Notes |
 |---|---|---|
-| `DailyCheckIn` | `depression` and `anxiety` (1 to 5 or null), `feelingsNote` | Self-rated by her. Never scored, interpreted or used to trigger anything. The note is private and only goes in the report if she chooses. |
+| `DailyCheckIn` | `depression` and `anxiety` (1 to 5 or null), `feelingsNote` | Self-rated by the user. Never scored, interpreted or used to trigger anything. The note is private and only goes in the report if the user chooses. |
 
 **Import migration** (`parseEnvelope`): check-ins without the new fields get `depression: null`, `anxiety: null`, `feelingsNote: null`.
 
@@ -99,7 +99,7 @@ Database change: **Dexie version 4** adds the `doseChanges` table (`id, medicati
 
 | Where | Addition | Notes |
 |---|---|---|
-| `DoseChange` | `id`, `medicationId`, `date` (the day the new dose started), `from`, `to` (text, e.g. "100 mg" or "50 mg × 2"), `note`, `createdAt`, `updatedAt` | Written when she edits a dose and says it is a new dose (not a correction), or added by hand from the medication screen. Used by the F-010 bowel and bladder comparison and listed in the neurologist report. Steady never suggests a change. |
+| `DoseChange` | `id`, `medicationId`, `date` (the day the new dose started), `from`, `to` (text, e.g. "100 mg" or "50 mg × 2"), `note`, `createdAt`, `updatedAt` | Written when the user edits a dose and says it is a new dose (not a correction), or added by hand from the medication screen. Used by the F-010 bowel and bladder comparison and listed in the neurologist report. Steady never suggests a change. |
 | `ExportData` | `doseChanges: DoseChange[]` | In the backup file and in the restore summary ("dose changes"). |
 
 **Import migration** (`parseEnvelope`): files from before 1.6.0 have no `doseChanges`; the list starts empty. Entries without an id are skipped with a warning.

@@ -87,7 +87,7 @@ describe('crisis line data (F-002)', () => {
 
 describe('supportPeople', () => {
   const c = (id: string, supportPerson: boolean, phone = '+1 555 0100') => ({ id, name: id, supportPerson, phone }) as EmergencyContact;
-  it('lists only people she chose who have a number, main person first', () => {
+  it('lists only people the user chose who have a number, main person first', () => {
     const list = supportPeople([c('a', true), c('b', false), c('c', true), c('d', true, '  ')], 'c');
     expect(list.map((x) => x.id)).toEqual(['c', 'a']);
   });
