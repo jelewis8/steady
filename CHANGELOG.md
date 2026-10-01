@@ -18,6 +18,15 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-01-3
+
+One fix. No database change and no new fields (`onPeriod` already existed on the daily check-in), so no backup is needed first, though one is always a good idea. Schema stays `1.5.0`.
+
+**B-013 fix: cycle tracking was invisible** (reported: "Track my menstrual cycle" was only a toggle in Settings).
+- Cause: the toggle only added "On your period today?" to the evening check-in sheet, and that sheet's card on Today only appears after 17:00. Nothing else showed it, so the calendar's Period marker and the cycle insight had nothing to read.
+- Now, with the toggle on, **Today has a "Period today?" Yes / No card at any hour.** Every past day page has the same card. The evening check-in summary mentions a period day, the calendar marks period days, and the Settings text now says all this. Answers are saved as before, so existing check-ins keep working.
+- With the toggle off, nothing changes and nothing is shown.
+
 ## release-2026-10-01-2
 
 Four things. Data schema is now `1.5.0` (new optional fields only: no database change, so no backup is needed first, though one is always a good idea).

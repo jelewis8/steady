@@ -23,7 +23,7 @@ The single running list of bugs, requests, and to-dos for Steady. Add anything h
 2. Add the release it shipped in, e.g. ` → release-2026-09-30`.
 3. Mention the ID in the commit message, e.g. `Fix B-004: dose note not saving`.
 
-The next free ID is **B-013**.
+The next free ID is **B-014**.
 
 New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`). This file is for things that are broken or wrong.
 
@@ -41,6 +41,7 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 - [ ] **B-003** · 2026-09-28 · server · Port **5173** is open to the internet in the droplet firewall (a Vite dev-server port). Close it if nothing needs it: `ufw delete allow 5173`.
 - [ ] **B-004** · 2026-09-28 · testing · Manual screen-reader pass not done yet (VoiceOver on iPhone, TalkBack on Android, NVDA on Windows). Automated axe checks pass.
 
+
 ### P3 — Wish list
 
 
@@ -48,6 +49,7 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 ## Done
 
+- [x] **B-013** · 2026-10-01 · reported by: Jeremiah · Cycle tracking wasn't visible anywhere except as a Settings toggle. Now, with it on, Today has a "Period today?" Yes/No card that works at any hour (it used to appear only inside the evening check-in, after 17:00), every past day page has the same card, the Today check-in summary mentions a period day, and the calendar marks it. Same stored field as before, so no database change and nothing to migrate → release-2026-10-01-3
 - [x] **B-012** · 2026-10-01 · reported by: Jeremiah · Restoring a backup changed her breakfast from 9:30 back to the default 7:30. A new device's own default routines were kept next to the restored ones and both claimed every weekday, so which one won was random. The restored routines are now the ones used (nothing deleted on a set-up device; the new device's placeholders are removed). Re-restoring the same backup repairs a device already affected → release-2026-10-01-2
 - [x] **B-010** · 2026-09-30 · Side effects now have a start and stop date (and severity), and the old undated ones are kept as "date unknown" → release-2026-09-30-4 (F-001)
 - [x] **B-005** · 2026-09-28 · Dated side-effect log → release-2026-09-30-4 (F-001)

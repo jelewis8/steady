@@ -1398,3 +1398,35 @@ test('F-009 and the timer: the new screens have no accessibility violations', as
   r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
   expect(r.violations.map((v) => v.id), 'aura timer').toEqual([]);
 });
+
+// ---- B-013: cycle tracking is visible, any hour ----
+test('B-013: turning on cycle tracking shows a Period card on Today and past days, and the calendar marks it', async ({ page }) => {
+  await onboard(page);
+  await expect(page.getByRole('region', { name: 'Period' })).toHaveCount(0); // nothing until she chooses it
+  await page.goto('/settings');
+  const sw = page.getByRole('switch', { name: /Track my menstrual cycle/ });
+  await sw.click();
+  await expect(sw).toBeChecked();
+  await page.waitForTimeout(500); // let the save finish before navigating
+  await page.goto('/');
+  const card = page.getByRole('region', { name: 'Period' });
+  await expect(card).toContainText('Not recorded yet');
+  await card.getByRole('radio', { name: 'Yes' }).click();
+  await expect(card).toContainText('Saved');
+  await expect(card.getByRole('radio', { name: 'Yes' })).toBeChecked();
+  await card.getByRole('radio', { name: 'No' }).click();
+  await expect(card.getByRole('radio', { name: 'No' })).toBeChecked();
+  await card.getByRole('radio', { name: 'Yes' }).click();
+  await expect(card.getByRole('radio', { name: 'Yes' })).toBeChecked();
+
+  const d = await dayKey(page, -1);
+  await page.goto(`/day/${d}`);
+  await page.getByRole('region', { name: 'Period' }).getByRole('radio', { name: 'Yes' }).click();
+  await expect(page.getByText(/period/i).first()).toBeVisible();
+
+  await page.goto('/calendar');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByText('Period', { exact: true }).first()).toBeVisible();
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+});

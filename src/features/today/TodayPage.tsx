@@ -14,7 +14,8 @@ import { isSafeMode, useNow } from '../../ui/hooks';
 import { seizuresInRange, daysSinceLastSeizure } from '../../core/stats';
 import { ChecklistRow } from './Checklist';
 import { useConsistency, useDayView } from './useDayView';
-import { MedCard, WaterCard, SleepCard, CheckInCard, WeekCard, InsightTeaser } from './TodayCards';
+import { PeriodCard } from './PeriodCard';
+import { MedCard,WaterCard, SleepCard, CheckInCard, WeekCard, InsightTeaser } from './TodayCards';
 import { SafeModeToday } from '../safemode/SafeModeToday';
 
 function greeting(d: Date) {
@@ -197,6 +198,7 @@ function RegularToday({ now }: { now: Date }) {
       <WaterCard today={today} />
       <SleepCard today={today} now={now} />
       <BathroomCard today={today} />
+      <PeriodCard date={today} />
       <CheckInCard today={today} now={now} />
       <WeekCard today={today} />
       <InsightTeaser today={today} />

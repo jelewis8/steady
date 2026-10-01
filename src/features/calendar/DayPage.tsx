@@ -11,6 +11,7 @@ import { Button, Card, CardTitle, LinkButton, PageHeader, Progress } from '../..
 import { BathroomSheet } from '../bathroom/BathroomSheet';
 import { SleepLogSheet } from '../sleep/SleepLogSheet';
 import { CheckInSheet } from '../today/CheckInSheet';
+import { PeriodCard } from '../today/PeriodCard';
 import { ChecklistRow } from '../today/Checklist';
 import { useDayView } from '../today/useDayView';
 
@@ -201,6 +202,8 @@ function DayContent({ date }: { date: string }) {
           {checkIn ? 'Edit check-in' : 'Add a check-in'}
         </Button>
       </Card>
+
+      <PeriodCard date={date} />
 
       {trackBathroom && (
         <Card labelledBy="dp-bt">

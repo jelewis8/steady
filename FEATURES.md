@@ -33,7 +33,10 @@ _(none open)_
 ### Normal
 
 - [ ] **F-010** · 2026-09-30 · requested by: Jeremiah's friend · **Insights: bowel and bladder over time, against medication changes** (split out of F-006)
-  - F-006 lists this as "possibly". With bowel data in place, compare stretches without a bowel movement around dates a medication was started, stopped or changed. "Associated with" wording only, through the exact binomial test in `core/insights.ts`, with enough data first. The knowledge base doesn't cover this topic, so it would need a clinical source for any wording.
+  - **What it is:** the app already records bowel movements and urination (F-006) and when a medication was started, stopped or changed. F-010 would compare the two, for example "longer stretches without a bowel movement in the weeks after dose X was changed", and show it in Insights and the neurologist report.
+  - **What is needed before building it:** one clinical source (guideline, review, or a neurologist or pharmacist) saying which anti-seizure medications are known to affect bowel or bladder function, and what wording is safe to show. `knowledge-base.md` does not cover this, so there is nothing to base the wording on yet. Without that, the app would only show a plain chart of her own days next to her own medication dates, with no explanation, no "may be caused by" and no advice.
+  - **Rules when built:** "associated with" wording only, through the exact binomial test in `core/insights.ts`, only with enough days of data, never a suggestion to change a dose. A medical disclaimer is on it.
+  - **Not needed:** any new stored data. It reads what is already there.
 
 ---
 

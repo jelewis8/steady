@@ -35,6 +35,10 @@ Read on the pages below, by Claude, while building F-002.
 | **Italy** | Telefono Amico Italia 02 2327 2327, every day, 24 hours. Emergency: 112. | telefonoamico.it. |
 | **Elsewhere** | Find A Helpline: an international directory, shown as a link for anyone outside the list. | findahelpline.com |
 
+### 2026-10-01, Philippines re-check
+
+Jeremiah pasted the NCMH contact-page text again (address, trunk line (02) 8531-9001, local 301/304 for PACD, Emergency Section (02) 8531-5275, two email addresses). It matches the two hospital lines already in the app. It lists **no crisis hotline**, and "1553" in it is the postal code of Mandaluyong City. ncmh.gov.ph still shows a bot check to automated browsers, which Claude did not try to bypass. **The hotline 1553 and the three mobile numbers remain "excerpt" and need a person to confirm them on the NCMH "Crisis Hotline" page.** The local numbers 301/304 and the email addresses were not added to the app (not crisis lines).
+
 ### Checked and left out (could not be verified)
 
 Brazil, Mexico, Japan, South Korea, and Singapore's emergency number. Their official pages were unreachable, blocked, or didn't state the number. They can be added once verified. Anyone can also add their own number in the app.

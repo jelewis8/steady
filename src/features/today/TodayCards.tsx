@@ -218,6 +218,7 @@ export function CheckInCard({ today, now }: { today: string; now: Date }) {
         <p>
           {checkIn.stress != null && <>Stress {checkIn.stress}/5. </>}
           {checkIn.mood != null && <>Mood {checkIn.mood}/5. </>}
+          {checkIn.onPeriod === true && 'Period day. '}
           {checkIn.seizureActivityReported === false && 'No seizure activity. '}
           <button type="button" className="tap font-bold text-accent-text underline underline-offset-4" onClick={() => setOpen(true)}>
             Edit
