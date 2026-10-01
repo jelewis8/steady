@@ -1430,3 +1430,53 @@ test('B-013: turning on cycle tracking shows a Period card on Today and past day
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
 });
+
+// ---- F-010: her own bowel and bladder numbers around medication start dates, with no causal wording ----
+test('F-010: Insights and the report show before/after counts around a medication start date, with the plain note', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/');
+  await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open('steady');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const p = (n: number) => String(n).padStart(2, '0');
+    const key = (off: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + off);
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    };
+    const meds: { id: string; isRescue: boolean }[] = await new Promise((res) => {
+      const rq = db.transaction('medications').objectStore('medications').getAll();
+      rq.onsuccess = () => res(rq.result);
+    });
+    const med = meds.find((m) => !m.isRescue)!;
+    await new Promise<void>((res) => {
+      const tx = db.transaction(['medications', 'bathroomLogs'], 'readwrite');
+      tx.objectStore('medications').put({ ...med, startDate: key(-14) });
+      for (let off = -27; off <= -1; off++) {
+        tx.objectStore('bathroomLogs').put({ id: `b${off}`, date: key(off), bowel: off < -14 ? off % 2 === 0 : false, bowelHow: null, bowelNotes: null, urinationCount: off < -14 ? 4 : 6, createdAt: '', updatedAt: '' });
+      }
+      tx.oncomplete = () => res();
+    });
+    db.close();
+  });
+
+  await page.goto('/insights');
+  const card = page.getByRole('region', { name: 'Bowel and bladder, and medication dates' });
+  await expect(card).toBeVisible();
+  await expect(card.getByRole('heading', { name: /started on/ })).toBeVisible();
+  await expect(card.getByRole('row', { name: /Urination/ })).toContainText('about 4 a day');
+  await expect(card.getByRole('row', { name: /Urination/ })).toContainText('about 6 a day');
+  await expect(card).toContainText('They don’t show whether a medication made any difference');
+  await expect(card).not.toContainText(/caused by|side effect of/i);
+  let r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id), 'insights').toEqual([]);
+
+  await page.goto('/insights/report?days=90');
+  await expect(page.getByRole('heading', { name: 'Around medication start and stop dates' })).toBeVisible();
+  await expect(page.getByText('They don’t show whether a medication made any difference').first()).toBeVisible();
+  r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(r.violations.map((v) => v.id), 'report').toEqual([]);
+});

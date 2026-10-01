@@ -18,6 +18,19 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-01-4
+
+Two things. No database change and no new stored fields (schema stays `1.5.0`), so no backup is needed first, though one is always a good idea. This release also contains release-2026-10-01-3 (B-013), so deploying it on its own is fine.
+
+**F-010: bowel and bladder next to medication dates.**
+- **Insights → "Bowel and bladder, and medication dates"** (shown once there are bowel or bladder records): a day grid with a ✓ for a bowel movement, ○ for recorded as none, and ▲ on days a medication was started or stopped (with a "View as table" alternative). Below it, for each start or stop date in the range, her own counts for the 14 days before and from that day: days with something recorded, bowel movements, longest stretch without one, and average urinations.
+- It only compares when both sides have at least 5 days with a record; otherwise it says so. Other starts or stops in the same weeks are named, so one change isn't mistaken for the only one.
+- The same table is in the neurologist report and its text summary.
+- **Deliberately plain.** These are counts of her own records with a fixed note ("They don't show whether a medication made any difference… show this to your neurologist or pharmacist. Steady doesn't give advice about doses."). No statistical test, no "associated with", no statement about any drug. That is why it needs no clinical sign-off. Statements about what a particular drug is known to do are parked as F-012 until a clinical reviewer can approve them.
+- It uses the start and stop dates saved with each medication. Dose changes aren't kept, so they aren't included (F-011).
+
+**Philippines crisis numbers, confirmed against the NCMH site text.** Nationwide **1553 or 1800-1888-1553** (new), **Smart/TNT 0919 057 1553** (this replaces 0908 639 2672, which was not on the NCMH page), Globe/TM 0917 899 8727 and 0966 351 4518. The trunk line and Emergency Section are unchanged. `docs/CRISIS-LINES.md` has the log.
+
 ## release-2026-10-01-3
 
 One fix. No database change and no new fields (`onPeriod` already existed on the daily check-in), so no backup is needed first, though one is always a good idea. Schema stays `1.5.0`.

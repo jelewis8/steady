@@ -16,7 +16,7 @@ New features and bigger improvements for Steady. Bugs go in [BUGS.md](BUGS.md).
 - **When shipped:** tick it, move it to **Done**, add ` → release-YYYY-MM-DD`, and mention the ID in the commit (`Add F-003: past-day logging`).
 - **Data model:** any feature that adds stored data must follow the data-safety rules in [docs/WORKFLOW.md](docs/WORKFLOW.md): a new Dexie version with an upgrade step, a `SCHEMA_VERSION` bump, and an import migration. Do **B-006** (the upgrade test) first.
 
-The next free ID is **F-011**.
+The next free ID is **F-013**.
 
 ---
 
@@ -32,15 +32,18 @@ _(none open)_
 
 ### Normal
 
-- [ ] **F-010** · 2026-09-30 · requested by: Jeremiah's friend · **Insights: bowel and bladder over time, against medication changes** (split out of F-006)
-  - **What it is:** the app already records bowel movements and urination (F-006) and when a medication was started, stopped or changed. F-010 would compare the two, for example "longer stretches without a bowel movement in the weeks after dose X was changed", and show it in Insights and the neurologist report.
-  - **What is needed before building it:** one clinical source (guideline, review, or a neurologist or pharmacist) saying which anti-seizure medications are known to affect bowel or bladder function, and what wording is safe to show. `knowledge-base.md` does not cover this, so there is nothing to base the wording on yet. Without that, the app would only show a plain chart of her own days next to her own medication dates, with no explanation, no "may be caused by" and no advice.
-  - **Rules when built:** "associated with" wording only, through the exact binomial test in `core/insights.ts`, only with enough days of data, never a suggestion to change a dose. A medical disclaimer is on it.
-  - **Not needed:** any new stored data. It reads what is already there.
+- [ ] **F-011** · 2026-10-01 · from F-010 · **Remember dose changes (date, from, to)**
+  - F-010 only knows the start and stop dates saved with each medication. Changing the dose on a medication overwrites it and keeps no history, so a dose change can't be compared. Needs a small dated "dose changed" record (a new Dexie version, `SCHEMA_VERSION` bump, import migration, upgrade test, and a backup first), and then the F-010 comparison can include those dates.
+  - Open question: ask for the date when she edits a dose, or let her add "dose changed on…" by hand? The first is less to remember but adds a question to every edit.
+
+- [ ] **F-012** · 2026-10-01 · from F-010 · **Label-backed notes about a drug and bowel or bladder** (parked until a clinical reviewer is available)
+  - "Drug X lists constipation / urinary retention among adverse reactions in its prescribing information." This is the only part of F-010 that says something about a drug, so it is **not built**. Plan: for each recognised medication, copy the GI and urinary lines from the current DailyMed label (store the label date, section and citation next to each string), show it only when her records overlap a start or dose change of that drug, and have a clinical pharmacist or epileptologist approve the strings and the report footnote before it ships. Sources and wording rules are in the F-010 notes below. Never treat a FAERS signal as a labelled reaction.
 
 ---
 
 ## Done
+
+- [x] **F-010** · 2026-10-01 · Bowel and bladder next to medication dates: an Insights card with a day grid (bowel movement per day, ▲ on days a medication was started or stopped, with a table view) and, for each start or stop date, her own counts for the 14 days before and from that day (days recorded, bowel movements, longest stretch without one, average urinations), only when each side has at least 5 recorded days. Other starts or stops in the same weeks are named. The same table is in the neurologist report. **Plain counts only, with a fixed non-causal note, no test, no claim about any drug, no dose advice, so it needs no clinical sign-off.** Label-backed statements are parked as F-012; dose-change dates as F-011 → release-2026-10-01-4
 
 - [x] **F-009** · 2026-10-01 · Mood, depression and anxiety: the daily check-in gains "how low or depressed" and "how anxious" (1 to 5) and a private "why" diary note; Day page shows them; the neurologist report gets "Mood and anxiety" (counts and averages only, notes only if she chooses); a support link is always in the check-in, never triggered by a score → release-2026-10-01-2
 
@@ -53,3 +56,7 @@ _(none open)_
 - [x] **F-001** · 2026-09-30 · Dated side-effect log (medication or "not sure which", start and stop dates, severity, notes), in the neurologist report; the old undated list was migrated to "date unknown" → release-2026-09-30-4
 - [x] **F-007** · 2026-09-30 · Medications that didn't work out: "I no longer take this" asks the date and (optionally) why; the report has "Past medications and why they were stopped"; allergic reactions also appear on the action plan under Allergies → release-2026-09-30-4
 - [x] **F-002** · 2026-09-30 · Support for thoughts of suicide or self-harm: Support page (crisis lines by country, call/text a trusted person, emergency call), personal safety plan, reachable from Rescue, Calm & grounding, More and the lock screen → release-2026-09-30-3. _Wording still needs review by a clinician or peer-support organisation._
+
+## Notes kept from F-010 (for F-012)
+
+Sources suggested for any wording about a drug: the **official prescribing information** (DailyMed, Drugs@FDA; or EMA SmPC / BNF) is the citable source for "listed adverse reaction"; the AES *Summary of Antiseizure Medications Available in the United States* (4th ed., April 2024) is a starting table compiled from those labels; reviews: Gabrielsson et al., "Poo Matters!", *Seizure* 2023 (PubMed 37146516); Li et al., FAERS bladder and urethral symptoms, *Expert Opin Drug Saf* 2025 (PubMed 38871672; a reporting signal, not proof); Brickel et al. on retigabine/ezogabine (PubMed 22428574); "Managing the patient with epilepsy and renal impairment", *Seizure* 2020. Constipation is described as a commonly reported effect for several ASMs; urinary symptoms are more drug-specific. **These were supplied by Jeremiah and have not been checked against the sources by Claude.** Allowed shape of any sentence: a label-backed statement plus an explicit non-causal frame, never "caused by", never "stop or reduce".

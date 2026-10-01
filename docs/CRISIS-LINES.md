@@ -25,7 +25,7 @@ Read on the pages below, by Claude, while building F-002.
 | **Ireland** | Pieta: freephone 1800 247 247 (24 hours), text HELP to 51444. Emergency: 112 or 999, both free. | pieta.ie; HSE (www2.hse.ie). |
 | **Australia** | Lifeline: call 13 11 14 (24/7); text 0477 13 11 14 (24/7). Emergency: 000 ("If life is in danger, call 000"). | lifeline.org.au (call and text pages). |
 | **New Zealand** | 1737: call or text, free, 24/7. Emergency: 111. | 1737.org.nz. |
-| **Philippines** | NCMH Crisis Hotline 1553, plus mobile 0917 899 8727, 0966 351 4518 (Globe/TM) and 0908 639 2672 (Smart/Sun/TNT), 24/7. NCMH Emergency Section direct line (02) 8531-5275 and trunk line (02) 8531-9001 (added 2026-10-01 from the contact-page text Jeremiah supplied). Emergency: 911. | 911: ehotlines.e.gov.ph (official, read directly). **Crisis numbers: excerpt only.** ncmh.gov.ph, doh.gov.ph, pna.gov.ph and pia.gov.ph all blocked automated access (HTTP 403 or a bot check), so the numbers were confirmed from search excerpts of the DOH pages and of separate PNA/PIA articles, which agreed. **Please confirm on ncmh.gov.ph.** The contact-page text supplied on 2026-10-01 gives the trunk line and Emergency Section but **does not include the crisis hotline numbers**. Its address line ends "Mandaluyong City 1553", which is the postal code and happens to match the hotline number, so it does not confirm the hotline. Check the "Crisis Hotline" part of the NCMH site. |
+| **Philippines** | NCMH Crisis Hotline: 1553 or 1800-1888-1553 (nationwide), Smart/TNT 0919 057 1553, Globe/TM 0917 899 8727 and 0966 351 4518, 24/7. NCMH Emergency Section direct line (02) 8531-5275 and trunk line (02) 8531-9001. Emergency: 911. | NCMH site text copied by Jeremiah on 2026-10-01 (**official**; see the log below). 911: ehotlines.e.gov.ph (official, read directly). |
 | **India** | Tele-MANAS 14416, 24x7, toll-free. Emergency: 112. | PIB (Tele-MANAS launch release); mha.gov.in (ERSS-112). |
 | **South Africa** | SADAG Suicide Crisis Helpline 0800 567 567, 24-hour toll-free. Emergency: 112 from a mobile; ambulance 10177; police 10111. | sadag.org; westerncape.gov.za. |
 | **Germany** | TelefonSeelsorge 0800 111 0 111, 0800 111 0 222, 116 123, free. Emergency: 112. | telefonseelsorge.de; 112 across the EU: HSE. |
@@ -35,9 +35,13 @@ Read on the pages below, by Claude, while building F-002.
 | **Italy** | Telefono Amico Italia 02 2327 2327, every day, 24 hours. Emergency: 112. | telefonoamico.it. |
 | **Elsewhere** | Find A Helpline: an international directory, shown as a link for anyone outside the list. | findahelpline.com |
 
-### 2026-10-01, Philippines re-check
+### 2026-10-01, Philippines confirmed from the NCMH site text
 
-Jeremiah pasted the NCMH contact-page text again (address, trunk line (02) 8531-9001, local 301/304 for PACD, Emergency Section (02) 8531-5275, two email addresses). It matches the two hospital lines already in the app. It lists **no crisis hotline**, and "1553" in it is the postal code of Mandaluyong City. ncmh.gov.ph still shows a bot check to automated browsers, which Claude did not try to bypass. **The hotline 1553 and the three mobile numbers remain "excerpt" and need a person to confirm them on the NCMH "Crisis Hotline" page.** The local numbers 301/304 and the email addresses were not added to the app (not crisis lines).
+Jeremiah copied the "NCMH Crisis Hotline" text from the NCMH site: nationwide **1553 or 1800-1888-1553**; **SMART/TNT 0919-057-1553**; **GLOBE/TM 0917-899-8727 and 0966-351-4518**. Earlier contact-page text gave the trunk line (02) 8531-9001 and the Emergency Section (02) 8531-5275. All are now in the app and rated `official`.
+
+- **Changed:** the Smart number the app had (0908 639 2672, from search excerpts) is not on the NCMH page. It was replaced by 0919 057 1553, and the "Sun" label dropped because the page doesn't say Sun. The toll-free 1800-1888-1553 was added.
+- Not added: the outpatient, child and adolescent, Women and Children Protection Unit and Forensic Section numbers and email addresses (not crisis lines).
+- Claude cannot read ncmh.gov.ph itself (it shows a bot check, which was not bypassed), so this rests on the text Jeremiah copied. Re-check by hand from time to time, as for the others.
 
 ### Checked and left out (could not be verified)
 

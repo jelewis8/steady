@@ -6,7 +6,7 @@ import { adherence, doseNotesForReport } from '../../core/stats';
 import { describeSideEffectDates, groupSideEffects, pastMedicationsForReport, SEVERITY_TEXT } from '../../core/sideEffects';
 import { dateKeyOf, formatDateShort, formatDuration, formatHours, formatIsoClock } from '../../core/time';
 import { useBathroomLogs, useDoses, usePrefs, useProfile, useSideEffects, useTriggerTags } from '../../data/hooks';
-import { BOWEL_HOW_LABELS, summarizeBathroom } from '../../core/bathroom';
+import { BOWEL_BLADDER_NOTE, BOWEL_HOW_LABELS, compareAroundMedicationDates, comparisonRows, summarizeBathroom } from '../../core/bathroom';
 import { feelingsLines, summarizeFeelings } from '../../core/feelings';
 import { webShare } from '../../platform/share';
 import { toast } from '../../state/ui';
@@ -40,6 +40,12 @@ export function ReportPage() {
         bath.bladderAverage != null ? `Urination: about ${bath.bladderAverage} times a day, on the ${bath.bladderDays} ${bath.bladderDays === 1 ? 'day' : 'days'} it was counted.` : '',
       ].filter(Boolean)
     : [];
+  const bathCompare = showBath ? compareAroundMedicationDates(bathroomLogs, d.meds, d.start, d.end) : [];
+  const bathCompareText = bathCompare.flatMap((c) => [
+    `  - ${c.medication} ${c.event} on ${formatDateShort(c.date)}:${c.enough ? '' : ' not enough records on both sides to compare.'}`,
+    ...(c.enough ? comparisonRows(c).map(([label, b, a]) => `      ${label}: before ${b}; from that day ${a}`) : []),
+    ...(c.otherChanges.length ? [`      Also in these weeks: ${c.otherChanges.join(', ')}.`] : []),
+  ]);
   const allSideEffects = useSideEffects();
   const sideEffectGroups = groupSideEffects(allSideEffects, d.meds);
   const pastMeds = pastMedicationsForReport(d.meds, allSideEffects);
@@ -78,7 +84,14 @@ export function ReportPage() {
           '',
         ]
       : []),
-    ...(bathLines.length ? ['Bowel and bladder (self-reported):', ...bathLines.map((l) => `  - ${l}`), ''] : []),
+    ...(bathLines.length
+      ? [
+          'Bowel and bladder (self-reported):',
+          ...bathLines.map((l) => `  - ${l}`),
+          ...(bathCompareText.length ? ['  Around medication start and stop dates (14 days before, and from that day):', ...bathCompareText, `  Note: ${BOWEL_BLADDER_NOTE}`] : []),
+          '',
+        ]
+      : []),
     ...(sideEffectGroups.length
       ? [
           'Side effects noted (all dates):',
@@ -253,6 +266,46 @@ export function ReportPage() {
                   <li key={l}>{l}</li>
                 ))}
               </ul>
+              {bathCompare.length > 0 && (
+                <div className="mt-3">
+                  <h3 className="font-bold">Around medication start and stop dates</h3>
+                  <p className="text-sm text-ink-2">The 14 days before, and from, the date saved with the medication.</p>
+                  {bathCompare.map((c) => (
+                    <div key={`${c.medicationId}-${c.event}-${c.date}`} className="mt-2">
+                      <p className="font-bold">
+                        {c.medication} {c.event} on {formatDateShort(c.date)}
+                      </p>
+                      {c.enough ? (
+                        <table className="w-full border-collapse text-left text-sm">
+                          <caption className="sr-only">
+                            {c.medication} {c.event} on {formatDateShort(c.date)}: records before and after
+                          </caption>
+                          <thead>
+                            <tr className="border-b border-line">
+                              <th scope="col" className="py-1 pr-2">&nbsp;</th>
+                              <th scope="col" className="py-1 pr-2">Before</th>
+                              <th scope="col" className="py-1">From that day</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {comparisonRows(c).map(([label, b, a]) => (
+                              <tr key={label} className="border-b border-line align-top">
+                                <th scope="row" className="py-1 pr-2 font-normal">{label}</th>
+                                <td className="py-1 pr-2">{b}</td>
+                                <td className="py-1">{a}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p className="text-sm text-ink-2">Not enough records on both sides to compare.</p>
+                      )}
+                      {c.otherChanges.length > 0 && <p className="text-sm text-ink-2">Also in these weeks: {c.otherChanges.join(', ')}.</p>}
+                    </div>
+                  ))}
+                  <p className="mt-2 text-sm text-ink-2">{BOWEL_BLADDER_NOTE}</p>
+                </div>
+              )}
             </section>
           )}
 

@@ -2,7 +2,7 @@
  * Bowel and bladder tracking (F-006). Pure logic. Kept private and matter-of-fact: plain words, no scoring.
  */
 import { addDays, dateRange, daysBetween, todayKey } from './time';
-import type { BathroomLog, BowelHow, ISODate } from './types';
+import type { BathroomLog, BowelHow, ISODate, Medication } from './types';
 
 export const BOWEL_HOW_LABELS: Record<BowelHow, string> = {
   hard: 'Hard or difficult',
@@ -87,6 +87,107 @@ export function summarizeBathroom(logs: BathroomLog[], from: ISODate, to: ISODat
 export function bowelDates(logs: BathroomLog[], from: ISODate, to: ISODate): Set<ISODate> {
   const range = new Set(dateRange(from, to));
   return new Set(logs.filter((l) => l.bowel === true && range.has(l.date)).map((l) => l.date));
+}
+
+/**
+ * Her own bowel and bladder records on either side of a date a medication was started or stopped (F-010).
+ * Plain counts only. No test, no "associated with", and no statement about any drug: nothing here claims
+ * a medication affects bowel or bladder, so it needs no clinical source. The note below is shown with it.
+ */
+export const BOWEL_BLADDER_NOTE =
+  'These are your own numbers, side by side. They don’t show whether a medication made any difference. Bowel and bladder changes can also relate to seizures, other medicines, food and drink, how much you move, and how much you drink. If you notice a change, show this to your neurologist or pharmacist. Steady doesn’t give advice about doses.';
+
+export const COMPARE_WINDOW_DAYS = 14;
+/** Fewest days with something recorded, on each side, before a comparison is shown. */
+export const COMPARE_MIN_DAYS = 5;
+
+export interface BathroomSide {
+  from: ISODate;
+  to: ISODate;
+  summary: BathroomSummary;
+}
+
+export interface MedicationDateComparison {
+  medicationId: string;
+  medication: string;
+  event: 'started' | 'stopped';
+  date: ISODate;
+  before: BathroomSide;
+  after: BathroomSide;
+  /** both sides have at least COMPARE_MIN_DAYS days with a record */
+  enough: boolean;
+  /** other medications started or stopped within the two windows, so she can see it isn't only one change */
+  otherChanges: string[];
+}
+
+/** Dates in [from, to] on which a (non-rescue) medication was started or stopped, from the dates saved with each medication. */
+export function medicationDateEvents(meds: Medication[], from: ISODate, to: ISODate): { medicationId: string; medication: string; event: 'started' | 'stopped'; date: ISODate }[] {
+  const out: { medicationId: string; medication: string; event: 'started' | 'stopped'; date: ISODate }[] = [];
+  for (const m of meds) {
+    if (m.isRescue) continue;
+    if (m.startDate && m.startDate >= from && m.startDate <= to) out.push({ medicationId: m.id, medication: m.name, event: 'started', date: m.startDate });
+    if (m.endDate && m.endDate >= from && m.endDate <= to) out.push({ medicationId: m.id, medication: m.name, event: 'stopped', date: m.endDate });
+  }
+  return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.medication.localeCompare(b.medication)));
+}
+
+export function compareAroundMedicationDates(
+  logs: BathroomLog[],
+  meds: Medication[],
+  from: ISODate,
+  to: ISODate,
+  today: ISODate = todayKey(),
+): MedicationDateComparison[] {
+  const events = medicationDateEvents(meds, from, to);
+  const all = medicationDateEvents(meds, '0000-01-01', '9999-12-31');
+  return events.map((e) => {
+    const beforeFrom = addDays(e.date, -COMPARE_WINDOW_DAYS);
+    const beforeTo = addDays(e.date, -1);
+    const afterFrom = e.date;
+    const afterTo = addDays(e.date, COMPARE_WINDOW_DAYS - 1);
+    const afterEnd = afterTo > today ? today : afterTo;
+    const before = { from: beforeFrom, to: beforeTo, summary: summarizeBathroom(logs, beforeFrom, beforeTo, today) };
+    const after = { from: afterFrom, to: afterEnd, summary: summarizeBathroom(logs, afterFrom, afterEnd, today) };
+    const otherChanges = all
+      .filter((o) => !(o.medicationId === e.medicationId && o.event === e.event) && o.date >= beforeFrom && o.date <= afterTo)
+      .map((o) => `${o.medication} ${o.event}`);
+    return {
+      ...e,
+      before,
+      after,
+      enough: before.summary.daysWithRecord >= COMPARE_MIN_DAYS && after.summary.daysWithRecord >= COMPARE_MIN_DAYS,
+      otherChanges: [...new Set(otherChanges)],
+    };
+  });
+}
+
+/** One side as a plain sentence, for the report and the Insights card. */
+export function describeSide(s: BathroomSummary): string[] {
+  const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
+  const out = [`Something recorded on ${days(s.daysWithRecord)}.`];
+  if (s.bowelDays || s.noBowelDays) out.push(`Bowel movement on ${s.bowelDays} of the ${days(s.bowelDays + s.noBowelDays)} answered.`);
+  if (s.longestGapDays != null) out.push(`Longest stretch without one: ${days(s.longestGapDays)}.`);
+  if (s.bladderAverage != null) out.push(`Urination: about ${s.bladderAverage} times a day (${days(s.bladderDays)} counted).`);
+  return out;
+}
+
+/** Table rows for one comparison: [measure, before, after]. */
+export function comparisonRows(c: MedicationDateComparison): [string, string, string][] {
+  const n = (v: number) => `${v} ${v === 1 ? 'day' : 'days'}`;
+  const side = (s: BathroomSummary) => ({
+    recorded: n(s.daysWithRecord),
+    bowel: s.bowelDays + s.noBowelDays ? `${s.bowelDays} of ${n(s.bowelDays + s.noBowelDays)} answered` : 'none answered',
+    gap: s.longestGapDays == null ? '—' : n(s.longestGapDays),
+    bladder: s.bladderAverage == null ? '—' : `about ${s.bladderAverage} a day`,
+  });
+  const b = side(c.before.summary);
+  const a = side(c.after.summary);
+  return [
+    ['Days with something recorded', b.recorded, a.recorded],
+    ['Bowel movement', b.bowel, a.bowel],
+    ['Longest stretch without a bowel movement', b.gap, a.gap],
+    ['Urination', b.bladder, a.bladder],
+  ];
 }
 
 export { addDays };

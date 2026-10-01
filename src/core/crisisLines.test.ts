@@ -100,6 +100,8 @@ describe('inCountry', () => {
   it('reads naturally in a sentence', async () => {
     const { inCountry } = await import('./crisisLines');
     expect(inCountry(countryByCode('PH')!)).toBe('the Philippines');
+    // every Philippines number, as printed on the NCMH site (2026-10-01)
+    expect(countryByCode('PH')!.lines.map((l) => l.call)).toEqual(['1553', '1800-1888-1553', '0917 899 8727', '0966 351 4518', '0919 057 1553', '(02) 8531-5275', '(02) 8531-9001']);
     expect(inCountry(countryByCode('US')!)).toBe('the United States');
     expect(inCountry(countryByCode('DE')!)).toBe('Germany');
   });
