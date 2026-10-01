@@ -1352,6 +1352,10 @@ test('F-009: the report shows counts and averages, and the user’s own notes on
   await expect(page.getByText('Worried about the appointment')).toHaveCount(0); // private by default
   await page.getByRole('button', { name: /Include my notes about feelings/ }).click();
   await expect(page.getByText('Worried about the appointment')).toBeVisible();
+  // the report speaks of the user by the name they set up, never "the patient"
+  await expect(page.getByRole('heading', { name: 'Dylan’s own notes' })).toBeVisible();
+  await expect(page.getByText('Self-rated by Dylan from 1 to 5')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(/patient/i);
 });
 
 test('F-009: an older check-in with no depression or anxiety still opens and saves', async ({ page }) => {

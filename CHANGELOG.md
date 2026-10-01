@@ -18,6 +18,15 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-01-7
+
+Wording only. No database change and no new fields (schema stays `1.6.0`), so no backup is needed first.
+
+**The neurologist report no longer says "the patient".** It names the user by the name they set up in Steady, and says "the user" if there is no name.
+- Headings and notes now read, for example, **"Sam’s own notes"**, "Self-rated by Sam from 1 to 5", "Entered by Sam", "Sam’s own records" and "kept on Sam’s own device", in both the page and the text summary.
+- The title line of the text summary is "SEIZURE DIARY SUMMARY — Sam". With no name it is just "SEIZURE DIARY SUMMARY", and the name line at the top of the printed report is left out instead of showing "Patient".
+- This replaces the "The patient's own notes" heading from release-2026-10-01-6.
+
 ## release-2026-10-01-6
 
 Wording only. No database change and no new fields (schema stays `1.6.0`), so no backup is needed first.

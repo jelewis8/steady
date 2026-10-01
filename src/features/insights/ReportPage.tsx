@@ -8,6 +8,7 @@ import { dateKeyOf, formatDateShort, formatDuration, formatHours, formatIsoClock
 import { useBathroomLogs, useDoseChanges, useDoses, usePrefs, useProfile, useSideEffects, useTriggerTags } from '../../data/hooks';
 import { BOWEL_BLADDER_NOTE, BOWEL_HOW_LABELS, compareAroundMedicationDates, comparisonRows, comparisonTitle, summarizeBathroom } from '../../core/bathroom';
 import { describeChange, sortDoseChanges } from '../../core/doseChanges';
+import { reportWho } from '../../core/reportWho';
 import { feelingsLines, summarizeFeelings } from '../../core/feelings';
 import { webShare } from '../../platform/share';
 import { toast } from '../../state/ui';
@@ -27,6 +28,7 @@ export function ReportPage() {
   const auraName = new Map(AURA_SYMPTOMS.map((a) => [a.key, a.label]));
   const postName = new Map(POST_ICTAL_SYMPTOMS.map((a) => [a.key, a.label]));
   const [withFeelingNotes, setWithFeelingNotes] = useState(false);
+  const who = reportWho(profile?.displayName);
   const feelings = summarizeFeelings(d.checkIns, d.start, d.end);
   const feelingLines = feelingsLines(feelings);
   const bathroomLogs = useBathroomLogs();
@@ -67,7 +69,7 @@ export function ReportPage() {
   const avgStress = stressDays.length ? (stressDays.reduce((a, c) => a + (c.stress ?? 0), 0) / stressDays.length).toFixed(1) : null;
 
   const text = [
-    `SEIZURE DIARY SUMMARY — ${profile?.displayName || 'Patient'}`,
+    `SEIZURE DIARY SUMMARY${who.name ? ` — ${who.name}` : ''}`,
     `Period: ${formatDateShort(d.start)} to ${formatDateShort(d.end)} (${days} days)`,
     '',
     `Seizures: ${seizures.length} (≈${Math.round((seizures.length / days) * 300) / 10} per 30 days)`,
@@ -84,7 +86,7 @@ export function ReportPage() {
       ? [
           'Mood and anxiety (self-rated):',
           ...feelingLines.map((l) => `  - ${l}`),
-          ...(withFeelingNotes && feelings.notes.length ? ['  The patient’s own notes:', ...feelings.notes.map((n) => `    ${formatDateShort(n.date)}: ${n.text}`)] : []),
+          ...(withFeelingNotes && feelings.notes.length ? [`  ${who.Possessive} own notes:`, ...feelings.notes.map((n) => `    ${formatDateShort(n.date)}: ${n.text}`)] : []),
           '',
         ]
       : []),
@@ -106,7 +108,7 @@ export function ReportPage() {
         ]
       : []),
     ...(doseChangesInRange.length
-      ? ['Dose changes recorded (by the patient):', ...doseChangesInRange.map((c) => `  - ${formatDateShort(c.date)}, ${medName(c.medicationId)}: ${describeChange(c)}${c.note ? ` (${c.note})` : ''}`), '']
+      ? [`Dose changes recorded (by ${who.by}):`, ...doseChangesInRange.map((c) => `  - ${formatDateShort(c.date)}, ${medName(c.medicationId)}: ${describeChange(c)}${c.note ? ` (${c.note})` : ''}`), '']
       : []),
     ...(pastMeds.length
       ? [
@@ -176,11 +178,7 @@ export function ReportPage() {
         <article className="print-plain rounded-2xl border border-line bg-surface p-5 print:border-0 print:p-0">
           <header className="border-b-2 border-accent pb-3">
             <h1 className="text-2xl font-bold">Seizure diary summary</h1>
-            <p>
-              {profile?.displayName || 'Patient'}
-              {profile?.dateOfBirth ? ` · born ${profile.dateOfBirth}` : ''}
-              {profile?.seizureFocus ? ` · ${profile.seizureFocus}` : ''}
-            </p>
+            <p>{[who.name, profile?.dateOfBirth ? `born ${profile.dateOfBirth}` : '', profile?.seizureFocus ?? ''].filter(Boolean).join(' · ')}</p>
             <p className="text-ink-2">
               {formatDateShort(d.start)} – {formatDateShort(d.end)} ({days} days) · generated {new Date().toLocaleDateString()}
             </p>
@@ -243,7 +241,7 @@ export function ReportPage() {
           {feelingLines.length > 0 && (
             <section className="mt-5">
               <h2 className="text-lg font-bold">Mood and anxiety</h2>
-              <p className="text-sm text-ink-2">Self-rated by the patient from 1 to 5, for this period. Depression and anxiety are more common in people with epilepsy, so this is shared for the care team to see. It is not a screening result or a diagnosis.</p>
+              <p className="text-sm text-ink-2">Self-rated by {who.by} from 1 to 5, for this period. Depression and anxiety are more common in people with epilepsy, so this is shared for the care team to see. It is not a screening result or a diagnosis.</p>
               <ul className="mt-1 list-disc pl-6">
                 {feelingLines.map((l) => (
                   <li key={l}>{l}</li>
@@ -251,7 +249,7 @@ export function ReportPage() {
               </ul>
               {withFeelingNotes && feelings.notes.length > 0 && (
                 <div className="mt-2">
-                  <h3 className="font-bold">The patient’s own notes</h3>
+                  <h3 className="font-bold">{who.Possessive} own notes</h3>
                   <ul className="mt-1 grid gap-1">
                     {feelings.notes.map((n) => (
                       <li key={n.date}>
@@ -319,7 +317,7 @@ export function ReportPage() {
           {sideEffectGroups.length > 0 && (
             <section className="mt-5">
               <h2 className="text-lg font-bold">Side effects noted</h2>
-              <p className="text-sm text-ink-2">All dates, as recorded by the patient. “Start date unknown” means it was noted without a date.</p>
+              <p className="text-sm text-ink-2">All dates, as recorded by {who.by}. “Start date unknown” means it was noted without a date.</p>
               <table className="mt-2 w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b-2 border-line">
@@ -351,7 +349,7 @@ export function ReportPage() {
           {doseChangesInRange.length > 0 && (
             <section className="mt-5">
               <h2 className="text-lg font-bold">Dose changes recorded</h2>
-              <p className="text-sm text-ink-2">Entered by the patient, with the day the new dose started.</p>
+              <p className="text-sm text-ink-2">Entered by {who.by}, with the day the new dose started.</p>
               <table className="mt-2 w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-line">
@@ -450,7 +448,7 @@ export function ReportPage() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-1 text-sm text-ink-2">Simple comparisons of the patient’s own records — associations, not causes.</p>
+              <p className="mt-1 text-sm text-ink-2">Simple comparisons of {who.possessive} own records — associations, not causes.</p>
             </section>
           )}
 
@@ -510,7 +508,7 @@ export function ReportPage() {
           )}
 
           <footer className="mt-6 border-t border-line pt-3 text-sm text-ink-2">
-            Self-reported data from the Steady app, kept on the patient’s own device. Seizures with impaired awareness may be under-reported. This
+            Self-reported data from the Steady app, kept on {who.possessive} own device. Seizures with impaired awareness may be under-reported. This
             summary is not a diagnosis or treatment recommendation.
           </footer>
         </article>
