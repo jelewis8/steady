@@ -18,6 +18,12 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-06-2
+
+**No schema change. No backup needed.**
+
+**B-015: record a checklist item at an earlier time.** The menu (the three dots) on every checklist item that is not a medication now has **"I did it earlier, at [time]"**, as medications already had. This lets the user note a bedtime of 12 midnight after the fact. A small-hours time on an evening item is saved on the next day (00:00 for a 22:30 bedtime is just after midnight that night). A time that has not happened yet is refused with a short message.
+
 ## release-2026-10-06
 
 **Schema 1.7.0. Ask the user to save a backup first** (More → Backup & data), as with any release that adds fields. Nothing is renamed or removed and there is no new Dexie version, so existing medications keep working exactly as they were: no days set means every day, no per-time pills means the old "pills per dose".

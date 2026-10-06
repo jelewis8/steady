@@ -48,7 +48,7 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 
 ## Done
 
-- [x] **B-015** · 2026-10-06 · reported by: a user · Could not note a bedtime of 12 midnight after the fact: the Bedtime checklist item only had "Done" (recorded as now, or at the scheduled time on a past day). Now every non-dose item's menu has "I did it earlier, at [time]"; a small-hours time on an evening item lands on the next day. No data change. Not yet released
+- [x] **B-015** · 2026-10-06 · reported by: a user · Could not note a bedtime of 12 midnight after the fact: the Bedtime checklist item only had "Done" (recorded as now, or at the scheduled time on a past day). Now every non-dose item's menu has "I did it earlier, at [time]"; a small-hours time on an evening item lands on the next day. No data change → release-2026-10-06-2
 - [x] **B-003** · 2026-10-01 · Port 5173 (a development-server port, not used in production) was open to the internet on the droplet firewall. Closed by Jeremiah on 2026-10-01 with `ufw delete allow 5173`
 - [x] **B-002** · 2026-10-01 · The user's first backup (More → Backup & data → Save backup file) was tested by Jeremiah and works
 - [x] **B-001** · 2026-10-01 · Install to the home screen was tested by Jeremiah and works
