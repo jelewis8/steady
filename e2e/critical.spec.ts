@@ -786,7 +786,7 @@ test('F-004: calendar and day pages have no accessibility violations and no anim
   await page.getByRole('button', { name: 'Add this day’s routine and medications' }).click();
   for (const path of ['/calendar', '/calendar?view=list', `/day/${await dayKey(page, -1)}`]) {
     await page.goto(path);
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(900); // toggles fade over 320ms once settings load; axe must not sample mid-fade
     const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
     expect(r.violations, `${path}: ${r.violations.map((v) => v.id).join(', ')}`).toEqual([]);
   }
