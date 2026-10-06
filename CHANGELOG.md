@@ -18,12 +18,6 @@ The folder that `current` points at is the release name.
 
 ---
 
-## 2026-10-06-2
-
-- Release 2026-10-06-2: changelog and B-015 tick
-- Make the F-006/F-008 axe test wait out the 320ms toggle fade (flaky mid-transition contrast)
-- Fix B-015: record a checklist item (e.g. bedtime at midnight) at an earlier time
-
 ## release-2026-10-06-2
 
 **No schema change. No backup needed.**
