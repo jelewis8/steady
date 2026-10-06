@@ -7,6 +7,7 @@
  * Pure functions only.
  */
 import { uuid } from './ids';
+import { isMedDueOn, pillsAt, pillsWords, showsPills } from './medSchedule';
 import { addDays, daysBetween, fromDateKey, localDateTime, minutesOfDay, parseTime, todayKey } from './time';
 import type {
   DayPlan,
@@ -176,7 +177,7 @@ export function missingDosesForDay(
   const answered = new Set(existing.filter((d) => d.status !== 'pending').map((d) => `${d.medicationId}|${d.scheduledTime}`));
   const out: MedicationDose[] = [];
   for (const m of meds) {
-    if (!isMedicationActiveOn(m, date, today)) continue;
+    if (!isMedicationActiveOn(m, date, today) || !isMedDueOn(m, date)) continue;
     for (const base of m.scheduledTimes) {
       const scheduledTime = localDateTime(date, shiftedDoseTime(base, template));
       if (at.has(`${m.id}|${scheduledTime}`) || answered.has(`${m.id}|${localDateTime(date, base)}`)) continue;
@@ -188,11 +189,33 @@ export function missingDosesForDay(
         status: 'pending',
         sideEffects: [],
         notes: null,
+        units: pillsAt(m, base),
         createdAt: now,
       });
     }
   }
   return out;
+}
+
+/**
+ * Still-pending doses whose pill count no longer matches the medication (the user edited it). Answered doses are never touched,
+ * so what was taken stays as it was recorded (F-013).
+ */
+export function pendingDosesWithStaleUnits(
+  meds: Medication[],
+  date: ISODate,
+  existing: MedicationDose[],
+  today: ISODate = todayKey(),
+  template: RoutineTemplate | null = null,
+): MedicationDose[] {
+  const want = new Map<string, number>();
+  for (const m of meds) {
+    if (!isMedicationActiveOn(m, date, today) || !isMedDueOn(m, date)) continue;
+    for (const t of m.scheduledTimes) want.set(`${m.id}|${localDateTime(date, shiftedDoseTime(t, template))}`, pillsAt(m, t));
+  }
+  return existing
+    .filter((d) => d.status === 'pending' && want.has(`${d.medicationId}|${d.scheduledTime}`) && want.get(`${d.medicationId}|${d.scheduledTime}`) !== d.units)
+    .map((d) => ({ ...d, units: want.get(`${d.medicationId}|${d.scheduledTime}`) }));
 }
 
 /** Remove still-pending doses whose schedule no longer exists (e.g., a time was edited). */
@@ -205,7 +228,7 @@ export function orphanedPendingDoses(
 ): string[] {
   const valid = new Set<string>();
   for (const m of meds) {
-    if (!isMedicationActiveOn(m, date, today)) continue;
+    if (!isMedicationActiveOn(m, date, today) || !isMedDueOn(m, date)) continue;
     for (const t of m.scheduledTimes) valid.add(`${m.id}|${localDateTime(date, shiftedDoseTime(t, template))}`);
   }
   return existing
@@ -309,7 +332,14 @@ export function buildChecklistView(opts: {
       kind: 'dose',
       id: d.id,
       label: med.name,
-      detail: [med.dosage, med.unit && !med.dosage.endsWith(med.unit) ? med.unit : ''].filter(Boolean).join(' ') || null,
+      detail:
+        [
+          [med.dosage, med.unit && !med.dosage.endsWith(med.unit) ? med.unit : ''].filter(Boolean).join(' '),
+          // F-013: say how many to take whenever it is not simply one, so a bedtime "2" is never missed
+          showsPills(med) ? `take ${pillsWords(d.units ?? med.unitsPerDose ?? 1)}` : '',
+        ]
+          .filter(Boolean)
+          .join(' · ') || null,
       category: 'medication',
       minutes: scheduled,
       scheduledMinutes: scheduled,

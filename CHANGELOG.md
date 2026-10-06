@@ -18,6 +18,20 @@ The folder that `current` points at is the release name.
 
 ---
 
+## release-2026-10-06
+
+**Schema 1.7.0. Ask the user to save a backup first** (More → Backup & data), as with any release that adds fields. Nothing is renamed or removed and there is no new Dexie version, so existing medications keep working exactly as they were: no days set means every day, no per-time pills means the old "pills per dose".
+
+**F-013: different pills at different times.** In the medication editor each time now has its own **Pills** box (the old single "Used per dose" box is gone for scheduled medications; rescue medications keep it). Example: 9:00 ×1, 15:00 ×1, 21:00 ×2.
+- The checklist says "take 2 pills" whenever the count is not always 1. The medication list, neurologist report and action plan list the pills at each time.
+- Each dose remembers the count it was created with, so what was recorded stays as recorded. Pending doses follow an edit; taken or skipped ones never change.
+- The refill countdown subtracts the right number of pills, and changing the pills at any time is saved as a dated dose change (F-011).
+- Two doses at the same time are not allowed; use one time and the total pills.
+
+**F-014: certain days.** New "Which days?" choice: **Every day**, **Certain weekdays** (pick any, e.g. Mon, Tue, Fri) or **Every few days** (2 = every other day, counted from a day the user picks). On off days there are no doses, reminders or "not recorded" marks; doses already recorded on a day that becomes an off day are kept. The editor shows the next three days. The refill estimate counts days off.
+
+Tests: 18 new unit tests (`src/core/medSchedule.test.ts`), new e2e for the lacosamide schedule on weekdays; the B-007 e2e now uses the per-time Pills box.
+
 ## release-2026-10-01-7
 
 Wording only. No database change and no new fields (schema stays `1.6.0`), so no backup is needed first.

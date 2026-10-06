@@ -2,12 +2,12 @@
 
 Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamps are ISO 8601 UTC, local calendar dates are `YYYY-MM-DD`, and times are `HH:mm`. IDs are UUID v4.
 
-## Export envelope (schema 1.6.0)
+## Export envelope (schema 1.7.0)
 
 ```json
 {
   "$schema": "https://steady.example.com/schema/export-v1.json",
-  "schemaVersion": "1.6.0",
+  "schemaVersion": "1.7.0",
   "exportedAt": "…",
   "appVersion": "1.0.0",
   "checksum": "<sha-256 hex of JSON.stringify(data)>",
@@ -18,7 +18,7 @@ Types live in `src/core/types.ts` and mirror `app-blueprint.md` §2.3. Timestamp
 Encrypted exports wrap the entire envelope:
 
 ```json
-{ "format": "steady-encrypted-export", "schemaVersion": "1.6.0", "exportedAt": "…",
+{ "format": "steady-encrypted-export", "schemaVersion": "1.7.0", "exportedAt": "…",
   "kdf": { "name": "PBKDF2", "hash": "SHA-256", "iterations": 310000, "saltBase64": "…" },
   "cipher": { "name": "AES-GCM", "ivBase64": "…" }, "ciphertextBase64": "…" }
 ```
@@ -92,6 +92,18 @@ No database change: `dailyCheckIns` keeps its indexes, and the new fields are op
 **Import migration** (`parseEnvelope`): check-ins without the new fields get `depression: null`, `anxiety: null`, `feelingsNote: null`.
 
 **Merge-mode import of routines** (`reconcileTemplates`, B-012): the backup's routines are the ones used. On a never-set-up device its own default routines are removed; on a set-up device they are kept but stop claiming the weekdays and the default flag the backup's routines use. A device that was never set up also takes the backup's profile and settings.
+
+## Extensions in 1.7.0 (F-013 pills per time, F-014 which days)
+
+Optional fields only; no new table and no new Dexie version (nothing new is indexed). Readers treat a missing value as the default, so records saved before 1.7.0 behave as before.
+
+| Entity | Field | Meaning |
+|---|---|---|
+| `Medication` | `timeUnits?: { "HH:MM": number }` | Pills at a time when it differs from `unitsPerDose`. Missing = `unitsPerDose`. `unitsPerDose` is the count at the earliest time. |
+| `Medication` | `repeat?: { kind: 'daily' } \| { kind: 'weekdays', days: number[] } \| { kind: 'everyN', n: number, from: ISODate }` | Which days it is taken. `days`: 0 = Sunday. `everyN` counts from `from` (and back before it). Missing, empty or invalid = every day. |
+| `MedicationDose` | `units?: number` | Pills for this dose, fixed when it was created. Missing = the medication's `unitsPerDose`. Used for the checklist wording and the refill count. |
+
+**Import migration** (`parseEnvelope`): older files get `timeUnits: {}` and `repeat: { kind: 'daily' }`.
 
 ## Extensions in 1.6.0 (F-011 dated dose changes)
 

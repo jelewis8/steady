@@ -2,18 +2,27 @@
  * Dated dose changes (F-011). Pure logic. Steady only records what happened: it never suggests a change.
  */
 import { uuid } from './ids';
+import { pillsAt } from './medSchedule';
 import { isoNow } from './time';
 import type { DoseChange, ISODate, Medication } from './types';
 
-/** The dose as one short text, e.g. "100 mg" or "50 mg × 2" (when the user takes more than one at a time). */
-export function doseText(m: Pick<Medication, 'dosage' | 'unit' | 'unitsPerDose'>): string {
+type DoseLike = Pick<Medication, 'dosage' | 'unit' | 'unitsPerDose'> & Partial<Pick<Medication, 'scheduledTimes' | 'timeUnits'>>;
+
+/**
+ * The dose as one short text, e.g. "100 mg" or "50 mg × 2" (when the user takes more than one at a time).
+ * When the pills differ by time of day (F-013) they are listed in time order: "50 mg × 1, 1, 2".
+ */
+export function doseText(m: DoseLike): string {
   const base = [m.dosage.trim(), m.unit.trim()].filter(Boolean).join(' ') || 'no dose entered';
-  const per = m.unitsPerDose ?? 1;
+  const times = [...(m.scheduledTimes ?? [])].sort();
+  const counts = times.map((t) => pillsAt(m, t));
+  if (counts.length > 1 && counts.some((c) => c !== counts[0])) return `${base} × ${counts.join(', ')}`;
+  const per = counts.length ? counts[0] : (m.unitsPerDose ?? 1);
   return per !== 1 ? `${base} × ${per}` : base;
 }
 
 /** True when the dose (amount, unit or how many the user takes each time) differs between two versions of a medication. */
-export function doseDiffers(a: Pick<Medication, 'dosage' | 'unit' | 'unitsPerDose'>, b: Pick<Medication, 'dosage' | 'unit' | 'unitsPerDose'>): boolean {
+export function doseDiffers(a: DoseLike, b: DoseLike): boolean {
   return doseText(a) !== doseText(b);
 }
 

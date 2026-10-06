@@ -196,6 +196,8 @@ export function parseEnvelope(raw: unknown): ParseResult {
   data.medicationDoses = requireId(data.medicationDoses, 'doses');
   data.sideEffects = requireId(data.sideEffects, 'side effects');
   data.bathroomLogs = requireId(data.bathroomLogs, 'bathroom records');
+  // Migration 1.6.0 → 1.7.0 (F-013, F-014): a medication is taken every day, with the same pills at each time, unless it says otherwise.
+  data.medications = data.medications.map((m) => Object.assign({ timeUnits: {}, repeat: { kind: 'daily' as const } }, m));
   // Migration 1.5.0 → 1.6.0 (F-011): dated dose changes. Older files have none; the list starts empty.
   data.doseChanges = requireId(data.doseChanges, 'dose changes');
   return {

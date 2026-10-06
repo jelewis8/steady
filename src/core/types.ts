@@ -156,6 +156,12 @@ export interface AuraLog {
   createdAt: ISODateTime;
 }
 
+/** Which days a medication is taken (F-014). `everyN` counts from `from`. `days` are 0 = Sunday … 6 = Saturday. */
+export type MedRepeat =
+  | { kind: 'daily' }
+  | { kind: 'weekdays'; days: number[] }
+  | { kind: 'everyN'; n: number; from: ISODate };
+
 export interface Medication {
   id: UUID;
   name: string;
@@ -169,6 +175,10 @@ export interface Medication {
   remainingCount: number | null;
   /** EXT: units consumed per scheduled dose, for the refill countdown */
   unitsPerDose: number;
+  /** EXT (1.7.0, F-013): pills at a given time when it differs from `unitsPerDose`, keyed by the time ("21:00"). Missing = `unitsPerDose`. */
+  timeUnits?: Record<ISOTime, number>;
+  /** EXT (1.7.0, F-014): which days it is taken. Missing = every day. */
+  repeat?: MedRepeat;
   refillDate: ISODate | null;
   refillReminderDays: number;
   isActive: boolean;
@@ -231,6 +241,8 @@ export interface MedicationDose {
   status: DoseStatus;
   sideEffects: string[];
   notes: string | null;
+  /** EXT (1.7.0, F-013): pills for this dose, fixed when it was created. Missing = the medication's `unitsPerDose`. */
+  units?: number;
   createdAt: ISODateTime;
 }
 

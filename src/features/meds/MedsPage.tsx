@@ -1,3 +1,4 @@
+import { describeRepeat, pillsAt, pillsWords, showsPills } from '../../core/medSchedule';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { adherence, supplyEstimate } from '../../core/stats';
@@ -21,7 +22,7 @@ function MedRow({ m }: { m: Medication }) {
             : m.isRescue
             ? 'Rescue medication — used as your plan says'
             : m.scheduledTimes.length
-              ? `Daily at ${m.scheduledTimes.map((t) => formatClock(parseTime(t).hour, parseTime(t).minute)).join(', ')}`
+              ? `${describeRepeat(m)} at ${[...m.scheduledTimes].sort().map((t) => formatClock(parseTime(t).hour, parseTime(t).minute) + (showsPills(m) ? ` (${pillsWords(pillsAt(m, t))})` : '')).join(', ')}`
               : 'No times set'}
         </div>
         {supply.daysLeft != null && (

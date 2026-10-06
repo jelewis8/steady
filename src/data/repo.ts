@@ -7,6 +7,7 @@ import {
   doseStatusForNow,
   missingDosesForDay,
   orphanedPendingDoses,
+  pendingDosesWithStaleUnits,
   selectTemplate,
   syncDayItems,
 } from '../core/checklist';
@@ -115,6 +116,8 @@ export async function ensureDay(date: ISODate = todayKey()): Promise<void> {
       if (missing.length) await db.medicationDoses.bulkAdd(missing);
       const orphans = orphanedPendingDoses(meds, date, doses, todayKey(), template);
       if (orphans.length) await db.medicationDoses.bulkDelete(orphans);
+      const stale = pendingDosesWithStaleUnits(meds, date, doses, todayKey(), template);
+      if (stale.length) await db.medicationDoses.bulkPut(stale);
     },
   );
 }
@@ -241,7 +244,7 @@ export async function setDoseStatus(doseId: string, status: DoseStatus, at: Date
       actualTime: isTaken ? at.toISOString() : null,
     });
     if (med && med.remainingCount != null && wasTaken !== isTaken) {
-      const delta = (isTaken ? -1 : 1) * (med.unitsPerDose || 1);
+      const delta = (isTaken ? -1 : 1) * (dose.units ?? med.unitsPerDose ?? 1);
       await db.medications.put({ ...med, remainingCount: Math.max(0, med.remainingCount + delta), updatedAt: isoNow() });
     }
   });

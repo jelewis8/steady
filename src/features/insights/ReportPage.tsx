@@ -14,6 +14,7 @@ import { webShare } from '../../platform/share';
 import { toast } from '../../state/ui';
 import { Button, Segmented } from '../../ui/kit';
 import { useInsightData } from './useInsightData';
+import { scheduleText } from '../../core/medSchedule';
 
 /** Clinician report (Workflow 4) — printable to PDF, or copied as plain text. Generated on the device. */
 export function ReportPage() {
@@ -80,7 +81,7 @@ export function ReportPage() {
     `Standalone warning signs (auras): ${d.auras.filter((a) => !a.seizureEventId).length}`,
     '',
     `Medication adherence (recorded doses): ${d.adherence.percent ?? '—'}%`,
-    ...perMed.map(({ m, a }) => `  - ${m.name} ${m.dosage}${m.unit} at ${m.scheduledTimes.join(', ')}: ${a.percent ?? '—'}% (${a.skipped} skipped, ${a.unsure} unsure, ${a.notRecorded} not recorded)`),
+    ...perMed.map(({ m, a }) => `  - ${m.name} ${m.dosage}${m.unit} at ${scheduleText(m)}: ${a.percent ?? '—'}% (${a.skipped} skipped, ${a.unsure} unsure, ${a.notRecorded} not recorded)`),
     '',
     ...(feelingLines.length
       ? [
@@ -226,7 +227,7 @@ export function ReportPage() {
                         {m.name} {m.dosage}
                         {m.unit}
                       </td>
-                      <td>{m.scheduledTimes.join(', ')}</td>
+                      <td>{scheduleText(m)}</td>
                       <td>{a.percent ?? '—'}%</td>
                       <td>
                         {a.skipped} / {a.unsure} / {a.notRecorded}

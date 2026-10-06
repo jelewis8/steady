@@ -1,3 +1,4 @@
+import { pillsPerDayAverage } from './medSchedule';
 import { addDays, dateKeyOf, dateRange, daysBetween, fromDateKey, todayKey } from './time';
 import type { ISODate, Medication, MedicationDose, SeizureEvent, SleepEntry } from './types';
 
@@ -82,7 +83,7 @@ export interface SupplyEstimate {
 }
 
 export function supplyEstimate(med: Medication, today: ISODate = todayKey()): SupplyEstimate {
-  const perDay = med.scheduledTimes.length * (med.unitsPerDose || 1);
+  const perDay = pillsPerDayAverage(med);
   if (med.remainingCount == null || perDay === 0) {
     if (med.refillDate) {
       const daysLeft = daysBetween(today, med.refillDate);

@@ -1,3 +1,4 @@
+import { scheduleText } from '../../core/medSchedule';
 import { useEffect, useState } from 'react';
 import type { RescueProtocol } from '../../core/types';
 import { useMedications, useRescueProtocol } from '../../data/hooks';
@@ -27,7 +28,7 @@ export function PlanEditorPage() {
   const set = (p: Partial<RescueProtocol>) => setForm({ ...form, ...p });
   const medSummary = meds
     .filter((m) => m.isActive)
-    .map((m) => `${m.name} ${m.dosage}${m.unit}${m.isRescue ? ' (rescue)' : m.scheduledTimes.length ? ` at ${m.scheduledTimes.join(', ')}` : ''}`)
+    .map((m) => `${m.name} ${m.dosage}${m.unit}${m.isRescue ? ' (rescue)' : m.scheduledTimes.length ? ` at ${scheduleText(m)}` : ''}`)
     .join('\n');
 
   return (

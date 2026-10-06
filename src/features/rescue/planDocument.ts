@@ -1,3 +1,4 @@
+import { scheduleText } from '../../core/medSchedule';
 import type { EmergencyContact, Medication, RescueProtocol, UserProfile } from '../../core/types';
 
 const esc = (s: string | null | undefined) =>
@@ -22,7 +23,7 @@ export function buildPlanDocument(opts: {
     .map(
       (m) =>
         `<tr><td>${esc(m.name)}${m.isRescue ? ' <strong>(rescue)</strong>' : ''}</td><td>${esc(`${m.dosage} ${m.unit}`)}</td><td>${esc(
-          m.isRescue ? 'As in plan' : m.scheduledTimes.join(', '),
+          m.isRescue ? 'As in plan' : scheduleText(m),
         )}</td></tr>`,
     )
     .join('');

@@ -190,21 +190,44 @@ test('restoring something that is not a backup shows a visible error and changes
 });
 
 // ---- Release 2: B-007, B-009, B-011 ----
-test('B-007: "Used per dose" can be cleared and set to 2, and is remembered', async ({ page }) => {
+test('B-007: the pills at a time can be cleared and set to 2, and are remembered', async ({ page }) => {
   await onboard(page);
   await page.goto('/meds');
   await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
-  const units = page.getByLabel('Used per dose');
+  const units = page.getByLabel('Pills to take at dose time 1');
   await units.fill('');
   await expect(units).toHaveValue('');
-  await expect(page.getByText(/Enter how many you take each time/)).toBeVisible();
+  await expect(page.getByText(/Enter how many pills at each time/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save changes' })).toBeDisabled();
   await units.fill('2');
   await expect(units).toHaveValue('2');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.goto('/meds');
   await page.getByRole('link', { name: /Lamotrigine/ }).first().click();
-  await expect(page.getByLabel('Used per dose')).toHaveValue('2');
+  await expect(page.getByLabel('Pills to take at dose time 1')).toHaveValue('2');
+});
+
+test('F-013/F-014: 1 pill, 1 pill and 2 pills at bedtime, and only on Mon, Tue and Fri', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/meds/new');
+  await page.getByLabel('Name').fill('Lacosamide');
+  await page.getByLabel('Dose', { exact: true }).fill('50');
+  await page.getByLabel('Unit').fill('mg');
+  await page.getByLabel('Dose time 1', { exact: true }).fill('09:00');
+  await page.getByLabel('Dose time 2', { exact: true }).fill('15:00');
+  await page.getByRole('button', { name: 'Add a time' }).click();
+  await page.getByLabel('Dose time 3', { exact: true }).fill('21:00');
+  await page.getByLabel('Pills to take at dose time 3').fill('2');
+  await page.getByRole('radio', { name: /Certain weekdays/ }).click();
+  await expect(page.getByRole('button', { name: 'Add medication' })).toBeDisabled();
+  for (const d of ['Monday', 'Tuesday', 'Friday']) await page.getByRole('button', { name: d }).click();
+  await page.getByRole('button', { name: 'Add medication' }).click();
+  await page.goto('/meds');
+  await expect(page.getByText(/Mon, Tue, Fri at 9:00 AM \(1 pill\), 3:00 PM \(1 pill\), 9:00 PM \(2 pills\)/)).toBeVisible();
+  await page.getByRole('link', { name: /Lacosamide/ }).first().click();
+  await expect(page.getByLabel('Pills to take at dose time 3')).toHaveValue('2');
+  await expect(page.getByRole('button', { name: 'Friday' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Wednesday' })).toHaveAttribute('aria-pressed', 'false');
 });
 
 test('B-007: pills per dose can be set during onboarding', async ({ page }) => {
@@ -222,7 +245,7 @@ test('B-007: pills per dose can be set during onboarding', async ({ page }) => {
   await expect(page.getByText(/Today’s routine/)).toBeVisible();
   await page.goto('/meds');
   await page.getByRole('link', { name: /Keppra/ }).first().click();
-  await expect(page.getByLabel('Used per dose')).toHaveValue('2');
+  await expect(page.getByLabel('Pills to take at dose time 1')).toHaveValue('2');
 });
 
 test('B-009: the convulsive seizure type says "formerly grand mal" in the quick log', async ({ page }) => {

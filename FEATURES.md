@@ -16,7 +16,7 @@ New features and bigger improvements for Steady. Bugs go in [BUGS.md](BUGS.md).
 - **When shipped:** tick it, move it to **Done**, add ` → release-YYYY-MM-DD`, and mention the ID in the commit (`Add F-003: past-day logging`).
 - **Data model:** any feature that adds stored data must follow the data-safety rules in [docs/WORKFLOW.md](docs/WORKFLOW.md): a new Dexie version with an upgrade step, a `SCHEMA_VERSION` bump, and an import migration. Do **B-006** (the upgrade test) first.
 
-The next free ID is **F-013**.
+The next free ID is **F-015**.
 
 ---
 
@@ -39,6 +39,8 @@ _(none open)_
 
 ## Done
 
+- [x] **F-013** · 2026-10-06 · safety · Different pill counts at different times (e.g. lacosamide 1 + 1 + 2 at bedtime): every time on a medication has its own "Pills" box; the checklist, medication list, report and action plan say "take 2 pills"; each dose keeps the count it was created with; the refill countdown subtracts the right number → release-2026-10-06
+- [x] **F-014** · 2026-10-06 · safety · Medications on certain days: every day, certain weekdays (e.g. Mon, Tue, Fri), or every N days from a chosen day (2 = every other day). Off days get no doses, no reminders and no "not recorded"; the editor shows the next three days; the refill estimate accounts for days off → release-2026-10-06
 - [x] **F-011** · 2026-10-01 · Dated dose changes. Editing a dose now asks "A new dose (from which day)" or "Fixing a mistake" (a correction adds nothing); the medication screen has a "Dose changes" history with add, edit and remove (undo offered), so past changes can be entered by hand too. Dose changes are comparison dates in the F-010 bowel and bladder card (shown as "dose changed on … (100 mg to 150 mg)"), and the neurologist report lists them. New table (Dexie version 4, schema 1.6.0); nothing existing is changed; older backups open with no dose changes → release-2026-10-01-5
 - [x] **F-010** · 2026-10-01 · Bowel and bladder next to medication dates: an Insights card with a day grid (bowel movement per day, ▲ on days a medication was started or stopped, with a table view) and, for each start or stop date, the user's own counts for the 14 days before and from that day (days recorded, bowel movements, longest stretch without one, average urinations), only when each side has at least 5 recorded days. Other starts or stops in the same weeks are named. The same table is in the neurologist report. **Plain counts only, with a fixed non-causal note, no test, no claim about any drug, no dose advice, so it needs no clinical sign-off.** Label-backed statements are parked as F-012; dose-change dates as F-011 → release-2026-10-01-4
 
