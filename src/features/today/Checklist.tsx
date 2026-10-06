@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Check, Clock, Minus, MoreHorizontal, HelpCircle } from 'lucide-react';
 import type { ChecklistEntry } from '../../core/checklist';
 import { CATEGORY_LABELS } from '../../core/defaults';
-import { formatClock, formatIsoClock, formatTimeKey, localDateTime, todayKey } from '../../core/time';
+import { formatClock, formatIsoClock, formatTimeKey, localDateTime, resolveDoneTime, todayKey } from '../../core/time';
 import { usePrefs } from '../../data/hooks';
 import {
   deleteChecklistItem,
@@ -198,6 +198,24 @@ function EntryActions({ entry, open, onClose, date }: { entry: ChecklistEntry; o
                 Done
               </Button>
             )}
+            <div className="flex items-end gap-2 rounded-xl border border-line p-3">
+              <Field label="I did it earlier, at">
+                {(id) => <Input id={id} type="time" value={earlier} onChange={(e) => setEarlier(e.target.value)} />}
+              </Field>
+              <Button
+                disabled={!earlier}
+                onClick={() => {
+                  const at = resolveDoneTime(date, entry.scheduledMinutes, earlier);
+                  if (at.getTime() > Date.now()) {
+                    toast('That time hasn’t happened yet. Pick a time that has passed.');
+                    return;
+                  }
+                  return run(() => setChecklistStatus(entry.id, 'done', { glassMl: prefs?.glassSizeMl, at }), `${entry.label} recorded at ${earlier}.`);
+                }}
+              >
+                Save
+              </Button>
+            </div>
             {date === todayKey() && (
               <div className="grid grid-cols-2 gap-2">
                 <Button size="lg" onClick={() => run(() => setChecklistStatus(entry.id, 'deferred', { deferMinutes: 30 }), 'Moved 30 minutes later.')}>

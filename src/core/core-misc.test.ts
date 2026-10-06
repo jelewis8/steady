@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { adherence, seizureBuckets, supplyEstimate } from './stats';
 import { buildEnvelope, emptyExportData, parseEnvelope, seizuresCsv, toCsv } from './exportSchema';
-import { addDays, dateRange, localDateTime, sleepDurationMinutes } from './time';
+import { addDays, dateRange, localDateTime, resolveDoneTime, sleepDurationMinutes } from './time';
 import { SCHEMA_VERSION } from './defaults';
 import type { Medication, MedicationDose } from './types';
 
@@ -9,6 +9,13 @@ describe('time helpers', () => {
   it('handles sleep across midnight', () => {
     expect(sleepDurationMinutes('23:00', '07:00')).toBe(480);
     expect(sleepDurationMinutes('01:00', '07:30')).toBe(390);
+  });
+  it('puts a midnight bedtime on the next day, and an evening time on the same day', () => {
+    const bed = 22 * 60 + 30;
+    expect(resolveDoneTime('2026-10-05', bed, '00:00').toISOString()).toBe(localDateTime('2026-10-06', '00:00'));
+    expect(resolveDoneTime('2026-10-05', bed, '00:45').toISOString()).toBe(localDateTime('2026-10-06', '00:45'));
+    expect(resolveDoneTime('2026-10-05', bed, '23:15').toISOString()).toBe(localDateTime('2026-10-05', '23:15'));
+    expect(resolveDoneTime('2026-10-05', 9 * 60, '08:30').toISOString()).toBe(localDateTime('2026-10-05', '08:30'));
   });
   it('builds inclusive date ranges', () => {
     expect(dateRange('2026-09-25', '2026-09-27')).toEqual(['2026-09-25', '2026-09-26', '2026-09-27']);

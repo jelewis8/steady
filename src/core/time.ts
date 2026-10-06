@@ -69,6 +69,16 @@ export function sleepDurationMinutes(bed: ISOTime, wake: ISOTime): number {
   return diff;
 }
 
+/**
+ * When a checklist item on `date` was done at clock time `time`. A time many hours before the
+ * scheduled time (e.g. 00:00 for a 22:30 bedtime) means after midnight, so it falls on the next day.
+ */
+export function resolveDoneTime(date: ISODate, scheduledMinutes: number, time: ISOTime): Date {
+  const t = parseTime(time);
+  const wrapsPastMidnight = minutesOfDay(t.hour, t.minute) < scheduledMinutes - 12 * 60;
+  return new Date(localDateTime(wrapsPastMidnight ? addDays(date, 1) : date, time));
+}
+
 export function isoNow(): ISODateTime {
   return new Date().toISOString();
 }
