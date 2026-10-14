@@ -4,8 +4,6 @@ A calm, local-first daily companion for people living with focal epilepsy: an ho
 
 **Your data never leaves the device.** No backend, no accounts, no analytics. The site's Content-Security-Policy blocks connections to any other origin, and an end-to-end test checks that on every page.
 
-Live target: **https://steady.example.com**
-
 ---
 
 ## Quick start (Windows)
@@ -64,8 +62,7 @@ src/
   ui/          Accessible component kit, charts (static, with table views), shell.
   sw.ts        Service worker: precache app shell, offline navigation, notification taps.
 e2e/           Playwright: critical workflows, axe, animation-speed guard, offline, privacy.
-deploy/        steady.conf (Apache vhost used in production), deploy.ps1, plus Caddy/nginx
-               alternatives for a fresh server.
+deploy/        Example Apache, Caddy and nginx configs, plus deploy.ps1.
 ```
 
 See [docs/DATA-MODEL.md](docs/DATA-MODEL.md) for the entities, including the documented extensions to the blueprint schema.
@@ -78,17 +75,22 @@ See [docs/DATA-MODEL.md](docs/DATA-MODEL.md) for the entities, including the doc
 | [FEATURES.md](FEATURES.md) | Feature requests, with design notes and open questions |
 | [CHANGELOG.md](CHANGELOG.md) | What shipped in each release |
 | [docs/WORKFLOW.md](docs/WORKFLOW.md) | Report → fix → commit → release loop, and the rules that protect user data |
-| [docs/DEPLOY.md](docs/DEPLOY.md) | The production server and how to release |
 | [CLAUDE.md](CLAUDE.md) | Project brief and rules. New Claude sessions read this first. |
 
 ## Deploy
 
-Steady runs on the existing Apache server on the `id_ed25519` droplet, with files in `/var/www/steady/`. Each release is uploaded to its own dated folder, and the `current` symlink is switched to it. Rollback means pointing `current` back at the previous folder.
+Steady builds to plain static files, so any static web host works. It must be served over HTTPS (required for the service worker and installable PWA) and should send the Content-Security-Policy header shown in the example configs.
 
-- **Manual:** upload the contents of `dist\` with WinSCP.
-- **Scripted:** `./deploy/deploy.ps1 -Server 203.0.113.10 -KeyFile <key>`.
+```powershell
+npm run build        # outputs to dist/
+```
 
-Full steps are in [docs/DEPLOY.md](docs/DEPLOY.md).
+1. Upload the contents of `dist/` to a new, dated folder on your server (for example `releases/2026-01-01`).
+2. Point a `current` symlink at that folder, and serve the web root from `current`. Rollback means pointing `current` back at the previous folder.
+3. Configure the web server using one of the examples in `deploy/` (Apache, Caddy or nginx). Replace the placeholder domain with your own.
+4. Serve `index.html` for unknown paths (single-page app fallback) and never cache `sw.js`, so updates reach installed copies.
+
+`deploy/deploy.ps1` automates the test, build, upload and symlink steps over SSH. Read it and adjust it for your own server before use.
 
 ## Medical disclaimer
 

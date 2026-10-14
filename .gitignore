@@ -9,3 +9,6 @@ test-results
 # Never commit health-data backups
 steady-backup-*.json
 steady-*.csv
+
+# Private server notes (kept locally, not published)
+docs/DEPLOY.md
