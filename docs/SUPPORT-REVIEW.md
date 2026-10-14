@@ -32,7 +32,7 @@ A free, private app that helps one adult with focal epilepsy keep daily routines
 6. We only link to the crisis lines of the countries listed (see `docs/CRISIS-LINES.md`). Are there lines you would add or remove?
 7. Does the order (emergency, crisis line, trusted person, plan) seem right?
 
-Everything is in `src/features/support/` and `src/core/crisisLines.ts`. A reviewer can read the same text in the live app at https://steady.example.com/support (the app needs a one-minute setup first), or ask for a screenshot set.
+Everything is in `src/features/support/` and `src/core/crisisLines.ts`. A reviewer can read the same text in the live app at the `/support` page (the app needs a one-minute setup first), or ask for a screenshot set.
 
 ## Self-audit before review
 

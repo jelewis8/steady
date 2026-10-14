@@ -8,7 +8,7 @@ The first user is an adult with partial epilepsy who struggles to maintain daily
 
 ## Current Status (keep this section up to date)
 
-- **Phase 1 is built and live** at https://steady.example.com, and **in use by the first user** since 2026-09-28. Real health data now exists on the first user's phone, so every change must follow the data-safety rules in `docs/WORKFLOW.md`.
+- **Phase 1 is built and live** (production details are in the local-only `docs/DEPLOY.md`), and **in use by the first user** since 2026-09-28. Real health data now exists on the first user's phone, so every change must follow the data-safety rules in `docs/WORKFLOW.md`.
 - **Work queue:** `BUGS.md` (things that are broken: P1 critical / P2 annoying / P3 wish list) and `FEATURES.md` (new features: Safety / High / Normal). Start any new session by reading both.
 - **What's live:** `CHANGELOG.md`. Each release is also a server folder and a git tag `release-YYYY-MM-DD`.
 - **Code:** git repo, `main` branch, pushed to the private GitHub repo https://github.com/jelewis8/steady. One commit per fix, with the bug ID in the message (`Fix B-012: …`).
@@ -21,7 +21,7 @@ The first user is an adult with partial epilepsy who struggles to maintain daily
 - `FEATURES.md` — Feature requests with design notes and open questions (IDs `F-###`).
 - `CHANGELOG.md` — One entry per deploy.
 - `docs/WORKFLOW.md` — Bug → fix → commit → release loop, data-safety rules for schema changes, and session handoff.
-- `docs/DEPLOY.md` — Production server details (Apache on the shared droplet) and release steps.
+- `docs/DEPLOY.md` — **Local only (gitignored, not in the public repo).** Production server details and release steps. Read it before any deploy; if it is missing, ask the user. Never copy server names, IPs or domains from it into tracked files.
 - `docs/DATA-MODEL.md` — Entities and extensions to the blueprint schema.
 - `docs/CRISIS-LINES.md` — Crisis-line and emergency-number data: sources, verification log, how to re-check. **Never add a number from memory.**
 
@@ -44,7 +44,7 @@ The first user is an adult with partial epilepsy who struggles to maintain daily
 - **Encryption**: Web Crypto. AES-256-GCM with PBKDF2 (310k) for **exports**; PBKDF2 hash for the passcode. **Field-level encryption at rest is deliberately deferred.** A 4–8 digit PIN-derived key can be brute-forced offline in seconds, so it would add data-loss risk (a forgotten PIN after a seizure means unreadable records) without real protection. The protection model is device lock + OS disk encryption + app passcode gate + encrypted backups. Revisit only with a strong passphrase or platform keystore (Phase 2).
 - **PWA**: Workbox via vite-plugin-pwa (`injectManifest`, `src/sw.ts`). Updates are user-initiated (“Update now”).
 - **Testing**: Vitest (unit), Playwright (e2e, uses installed Edge on Windows), axe-core (accessibility)
-- **Hosting**: Static files served by the **existing Apache** on the shared DigitalOcean droplet `id_ed25519` (203.0.113.10) at `https://steady.example.com`. Files are in `/var/www/steady/releases/<name>`, with `current` as a symlink. The config is `deploy/steady.conf`, using an IP-based vhost to match the other sites. HTTPS is via certbot. See `docs/DEPLOY.md`. The CSP `connect-src 'self'` technically enforces “no data leaves the device”.
+- **Hosting**: Static files served by Apache on a server the owner controls (details in the local-only `docs/DEPLOY.md`). Releases are dated folders with `current` as a symlink; `deploy/` holds generic example configs. HTTPS via certbot. The CSP `connect-src 'self'` technically enforces “no data leaves the device”.
 
 All platform-specific APIs are behind interfaces (`StorageAdapter`, `NotificationScheduler`, `AudioRecorder`, `EncryptionProvider`, `ShareProvider`, `AuthGate`) so Phase 2 swaps the implementation without touching business logic.
 
@@ -95,7 +95,7 @@ See `app-blueprint.md` — "Build Order Checklist" at the end. Phase 1 (steps 1�
 - `npm test`: Vitest unit tests (core logic, storage, export/import)
 - `npm run e2e`: Playwright against the production build under the production CSP. Covers critical flows, axe WCAG 2.2 AA, a <300 ms animation guard, offline, and a no-foreign-requests privacy check.
 - `npm run lint`: ESLint + jsx-a11y (strict) + a no-pulse/bounce rule
-- `./deploy/deploy.ps1 -Server 203.0.113.10 -KeyFile <openssh-key>`: test, build, publish a new release, and tag it in git. Refuses to run with uncommitted changes. Manual WinSCP steps are in `docs/DEPLOY.md`.
+- `./deploy/deploy.ps1 -Server <host> -KeyFile <openssh-key>`: test, build, publish a new release, and tag it in git. Refuses to run with uncommitted changes. Manual WinSCP steps are in the local-only `docs/DEPLOY.md`.
 
 ## Working Rules for Changes
 

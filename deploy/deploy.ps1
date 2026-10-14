@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-  Test, build and publish Steady to the Apache server on id_ed25519, then tag the release in git.
-  Uses the OpenSSH client built into Windows. See docs/DEPLOY.md.
+  Test, build and publish Steady to the Apache server, then tag the release in git.
+  Uses the OpenSSH client built into Windows. See the Deploy section of README.md.
 
 .EXAMPLE
   ./deploy/deploy.ps1 -Server 203.0.113.10 -KeyFile $HOME\.ssh\id_ed25519

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# One-time setup for a fresh Ubuntu 22.04/24.04 DigitalOcean droplet.
+# One-time setup for a fresh Ubuntu 22.04/24.04 server.
 # Run as root:   bash setup-server.sh
-# Prerequisite: an A record for steady.example.com pointing at this droplet's IP.
+# Prerequisite: an A record for steady.example.com pointing at this server's IP.
 set -euo pipefail
 
 DOMAIN="steady.example.com"

@@ -49,7 +49,7 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 ## Done
 
 - [x] **B-015** · 2026-10-06 · reported by: a user · Could not note a bedtime of 12 midnight after the fact: the Bedtime checklist item only had "Done" (recorded as now, or at the scheduled time on a past day). Now every non-dose item's menu has "I did it earlier, at [time]"; a small-hours time on an evening item lands on the next day. No data change → release-2026-10-06-2
-- [x] **B-003** · 2026-10-01 · Port 5173 (a development-server port, not used in production) was open to the internet on the droplet firewall. Closed by Jeremiah on 2026-10-01 with `ufw delete allow 5173`
+- [x] **B-003** · 2026-10-01 · Port 5173 (a development-server port, not used in production) was open to the internet on the server firewall. Closed by Jeremiah on 2026-10-01 with `ufw delete allow 5173`
 - [x] **B-002** · 2026-10-01 · The user's first backup (More → Backup & data → Save backup file) was tested by Jeremiah and works
 - [x] **B-001** · 2026-10-01 · Install to the home screen was tested by Jeremiah and works
 - [x] **B-013** · 2026-10-01 · reported by: Jeremiah · Cycle tracking wasn't visible anywhere except as a Settings toggle. Now, with it on, Today has a "Period today?" Yes/No card that works at any hour (it used to appear only inside the evening check-in, after 17:00), every past day page has the same card, the Today check-in summary mentions a period day, and the calendar marks it. Same stored field as before, so no database change and nothing to migrate → release-2026-10-01-4
@@ -61,4 +61,4 @@ New features and larger requests go in [FEATURES.md](FEATURES.md) (IDs `F-###`).
 - [x] **B-011** · 2026-09-30 · Neurologist report (and its text summary) has a "Notes recorded with doses" section: date, medication, note / side effect → release-2026-09-30-2
 - [x] **B-008** · 2026-09-30 · Restoring a backup now shows a clear confirmation that stays on the page ("Backup restored: 0 seizure events, 2 medications, 9 dose records, …"), checked against what is actually stored, plus a visible error if it fails. The welcome screen no longer reloads before the user can read it. Tested with a real backup in merge and replace modes → release-2026-09-30
 - [x] **B-006** · 2026-09-28 · Automated upgrade test (`src/data/upgrade.test.ts`): data and backups from the previous release must open intact; runs with `npm test` before every deploy → release-2026-09-30 (test only)
-- [x] **B-000** · 2026-09-27 · Phase 1 built and deployed to https://steady.example.com → release-2026-09-27
+- [x] **B-000** · 2026-09-27 · Phase 1 built and deployed → release-2026-09-27

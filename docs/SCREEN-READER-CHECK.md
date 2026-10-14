@@ -2,7 +2,7 @@
 
 A hands-on test with a real screen reader. About 30 minutes per reader. Automated checks (axe, the linter) cannot hear what a reader says, so this is the part only a person can do.
 
-**Do it with sample data** (Welcome screen → "Try with sample data"), not the user's real data. Do it on the production site, https://steady.example.com, so you test what users get.
+**Do it with sample data** (Welcome screen → "Try with sample data"), not the user's real data. Do it on the production site so you test what users get.
 
 ## What has already been checked without a reader
 

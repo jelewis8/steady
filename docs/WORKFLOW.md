@@ -1,6 +1,6 @@
 # Working on Steady: bugs, git, releases
 
-This is the day-to-day process. For server details, see [DEPLOY.md](DEPLOY.md).
+This is the day-to-day process. For release steps, see the Deploy section of the [README](../README.md).
 
 ## The loop
 
@@ -47,7 +47,7 @@ git push
 
 ## 4. Release
 
-1. Build and deploy using one of the two methods in [DEPLOY.md](DEPLOY.md):
+1. Build and deploy using one of the two methods in the [README](../README.md) Deploy section:
    - **Manual:** WinSCP upload.
    - **Scripted:** `deploy/deploy.ps1`, which also tags the release for you.
 2. If you deployed manually, tag the release yourself. The name must match the server folder:
